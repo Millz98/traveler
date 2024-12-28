@@ -119,15 +119,24 @@ class Game:
             print(f"Abilities: {', '.join(member.abilities)}")
 
     def handle_player_input(self):
-            # Handle the player's input
-            player_input = input("What do you want to do? ")
-            # Process the player's input
-            if player_input.lower() == "accept mission":
-                self.accept_mission()
-            elif player_input.lower() == "decline mission":
-                self.decline_mission()
-            else:
-                print("Invalid input. Please try again.")        
+        print("What do you want to do?")
+        print("1. Accept mission")
+        print("2. Decline mission")
+        player_input = input("> ")
+        if player_input == "1":
+            self.accept_mission()
+            # Update the game state
+            self.game_world.update_game_world()
+            # Generate new events
+            self.event_generation.generate_events()
+        elif player_input == "2":
+            self.decline_mission()
+            # Update the game state
+            self.game_world.update_game_world()
+            # Generate new events
+            self.event_generation.generate_events()
+        else:
+            print("Invalid input. Please try again.")       
 
     def view_team_roster(self):
         print("\nTeam Roster:")
