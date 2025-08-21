@@ -1,0 +1,113 @@
+{
+  "team_leader": {
+    "name": "Tiffany",
+    "designation": "5777",
+    "role": "Team Leader",
+    "occupation": "Scientist",
+    "skills": [
+      "Safecracking",
+      "Artificial Intelligence",
+      "Vulnerability Assessment",
+      "Lockpicking",
+      "Marksmanship"
+    ],
+    "abilities": [
+      "Exceptional Detective",
+      "Master Conductor",
+      "Skilled Leader"
+    ],
+    "mission_count": 1,
+    "success_rate": 0.0,
+    "protocol_violations": 0,
+    "timeline_impact": 0
+  },
+  "team_members": [
+    {
+      "name": "Avery",
+      "designation": "9018",
+      "role": "Historian",
+      "occupation": "Tactician",
+      "skills": [
+        "Nutrition",
+        "Gunnery",
+        "Natural Language Processing",
+        "Meteorology"
+      ],
+      "abilities": [
+        "Master Mediator",
+        "Exceptional Persuader"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "James",
+      "designation": "2561",
+      "role": "Engineer",
+      "occupation": "Tactician",
+      "skills": [
+        "Culinary Arts",
+        "Volcanology",
+        "Statistics",
+        "Computer Science"
+      ],
+      "abilities": [
+        "Exceptional Camper",
+        "Gifted Sportsman",
+        "Skilled Diplomat"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Thomas",
+      "designation": "7319",
+      "role": "Medic",
+      "occupation": "Leader",
+      "skills": [
+        "Hand-to-Hand",
+        "Astrophysics",
+        "Oceanography",
+        "History",
+        "Pharmacology"
+      ],
+      "abilities": [
+        "Master Conductor",
+        "Expert Forger"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Larry",
+      "designation": "8418",
+      "role": "Tactician",
+      "occupation": "Leader",
+      "skills": [
+        "Gunnery",
+        "Culinary Arts",
+        "First Aid",
+        "Environmental Science"
+      ],
+      "abilities": [
+        "Master Conductor",
+        "Exceptional Athlete"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    }
+  ],
+  "mission_status": "No active mission",
+  "current_mission": null,
+  "active_missions": [],
+  "team_cohesion": 0.8,
+  "communication_level": 0.7
+}
