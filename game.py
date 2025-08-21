@@ -52,6 +52,10 @@ class Game:
         # Initialize hacking system
         self.hacking_system.initialize_hacking_world()
         
+        # Initialize Dynamic World Events System for real-time NPC and faction actions
+        if hasattr(self.messenger_system, 'dynamic_world_events'):
+            self.messenger_system.dynamic_world_events.initialize_npc_mission_system()
+        
         self.timeline = self.game_world.integrate_with_gameplay()
         self.randomized_events = self.game_world.randomize_events(self.timeline)
         self.consequences = self.game_world.implement_consequences(self.timeline)
@@ -385,15 +389,19 @@ class Game:
                     elif choice == "21":
                         self.view_director_programmers()
                     elif choice == "22":
-                        self.end_turn()
+                        self.view_dynamic_world_status()
                     elif choice == "23":
-                        self.save_game()
+                        self.view_world_activity_feed()
                     elif choice == "24":
+                        self.end_turn()
+                    elif choice == "25":
+                        self.save_game()
+                    elif choice == "26":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
                     else:
-                        print("\n❌ Invalid choice. Please enter a number between 1 and 24.")
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 26.")
                         input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
@@ -443,9 +451,11 @@ class Game:
             print("19. View Tribunal Status")
             print("20. View Timeline Analysis")
             print("21. View Director's Programmers")
-            print("22. End Turn")
-            print("23. Save Game")
-            print("24. Quit Game")
+            print("22. View Dynamic World Status")
+            print("23. View World Activity Feed")
+            print("24. End Turn")
+            print("25. Save Game")
+            print("26. Quit Game")
             
             self.print_separator()
             
@@ -459,7 +469,7 @@ class Game:
                 if total_supplies < 10:
                     print("📦 LOW SUPPLIES - Check option 12")
             
-            choice = input(f"\nEnter your choice (1-24): ")
+            choice = input(f"\nEnter your choice (1-26): ")
         
         return choice
 
@@ -1225,6 +1235,82 @@ class Game:
         self.print_separator()
         input("Press Enter to continue...")
 
+    def view_dynamic_world_status(self):
+        """View dynamic world events, Director's Core Programmers, and real-time activity feed"""
+        self.clear_screen()
+        self.print_header("DYNAMIC WORLD STATUS")
+        
+        if hasattr(self, 'messenger_system') and hasattr(self.messenger_system, 'dynamic_world_events'):
+            print("🌍 Dynamic World Events System Status:")
+            
+            # Show Director's Core Programmers status
+            print("\n👨‍💻 DIRECTOR'S CORE PROGRAMMERS:")
+            programmer_status = self.messenger_system.dynamic_world_events.get_programmer_status_summary()
+            
+            # Show loyal programmers
+            if programmer_status['loyal_programmers']:
+                print("  🟢 LOYAL PROGRAMMERS:")
+                for programmer in programmer_status['loyal_programmers']:
+                    mission_status = "🔄 Active" if programmer['current_mission'] else "⏸️  Idle"
+                    print(f"    • {programmer['name']}: {mission_status}")
+                    if programmer['current_mission']:
+                        print(f"      Mission: {programmer['current_mission']}")
+            
+            # Show defected programmers
+            if programmer_status['defected_programmers']:
+                print("  🔴 DEFECTED PROGRAMMERS:")
+                for programmer in programmer_status['defected_programmers']:
+                    print(f"    • {programmer['name']}: Faction {programmer['faction']}")
+            
+            # Show protection missions
+            if programmer_status['protection_missions']:
+                print(f"\n🛡️  ACTIVE PROTECTION MISSIONS: {len(programmer_status['protection_missions'])}")
+                for mission in programmer_status['protection_missions']:
+                    print(f"  • {mission['programmer']} protecting Director (ID: {mission['mission_id']})")
+                    print(f"    Time remaining: {mission['time_remaining']} turns, Success: {mission['success_chance']:.1%}")
+            
+            # Show threat assessment
+            threat_assessment = programmer_status['threat_assessment']
+            print(f"\n⚠️  THREAT ASSESSMENT:")
+            print(f"  • Loyal Programmers: {threat_assessment['loyal_programmers_count']}")
+            print(f"  • Defected Programmers: {threat_assessment['defected_programmers_count']}")
+            print(f"  • Overall Threat Level: {threat_assessment['threat_level']}")
+            print(f"  • Total Threat Score: {threat_assessment['total_threat']:.2f}")
+            
+            # Show active world events summary
+            world_summary = self.messenger_system.dynamic_world_events.get_active_world_summary()
+            print(f"\n🌍 ACTIVE WORLD EVENTS:")
+            print(f"  • NPC Missions: {len(world_summary['npc_missions'])}")
+            print(f"  • Faction Operations: {len(world_summary['faction_operations'])}")
+            print(f"  • Timeline Events: {len(world_summary['timeline_events'])}")
+            
+            # Show real-time world activity feed
+            print(f"\n📊 REAL-TIME WORLD ACTIVITY FEED:")
+            print("  (Use 'View World Activity Feed' for detailed information)")
+            
+        else:
+            print("🌍 Dynamic World Events System not initialized.")
+            print("This system manages Director's Core Programmers, NPCs, and factions in real-time.")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_world_activity_feed(self):
+        """View detailed real-time world activity feed with all current world state"""
+        self.clear_screen()
+        self.print_header("WORLD ACTIVITY FEED")
+        
+        if hasattr(self, 'messenger_system'):
+            # Import and call the global function to get the real-time feed
+            from messenger_system import get_world_activity_feed
+            get_world_activity_feed()
+        else:
+            print("🌍 Messenger system not initialized.")
+            print("Cannot access world activity feed.")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
     def end_turn(self):
         """End the current turn and advance the world"""
         self.clear_screen()
@@ -1244,6 +1330,12 @@ class Game:
         # Execute hacking system turn
         if hasattr(self, 'hacking_system'):
             self.hacking_system.execute_hacking_turn(self.get_game_state(), self.time_system)
+        
+        # Execute Dynamic World Events System turn (Director's Core Programmers, NPCs, Factions)
+        if hasattr(self, 'messenger_system') and hasattr(self.messenger_system, 'dynamic_world_events'):
+            print("\n🌍 Processing Dynamic World Events...")
+            self.messenger_system.dynamic_world_events.process_world_turn()
+            print("✅ Dynamic world events processed - Director's Core Programmers and NPCs acted!")
         
         print(f"\n✅ Turn {self.time_system.current_turn} completed!")
         input("Press Enter to continue...")
@@ -2601,6 +2693,14 @@ class Game:
         self.ai_world_controller = ai_world_controller.AIWorldController()
         self.dialogue_manager = dialogue_system.DialogueManager()
         self.hacking_system = hacking_system.HackingSystem()
+        
+        # Initialize Dynamic World Events System for real-time NPC and faction actions
+        print("🌍 Initializing Dynamic World Events System...")
+        self.messenger_system.dynamic_world_events.initialize_npc_mission_system()
+        print("  ✅ Director's Core Programmers initialized")
+        print("  ✅ NPC mission system active")
+        print("  ✅ Faction operations system active")
+        print("  ✅ Timeline events system active")
         
         # Set up system references
         self.mission_generation.time_system = self.time_system

@@ -1,38 +1,57 @@
 {
   "team_leader": {
-    "name": "Elijah",
-    "designation": "9015",
+    "name": "Ashley",
+    "designation": "6094",
     "role": "Team Leader",
-    "occupation": "Medic",
+    "occupation": "Historian",
     "skills": [
-      "Aerospace Engineering",
-      "Sociology",
-      "Statistics"
+      "Anthropology",
+      "Theater",
+      "Algorithm Design"
     ],
     "abilities": [
-      "Exceptional Pilot",
-      "Skilled Linguist"
+      "Skilled Survivalist",
+      "Exceptional Competitor"
     ],
-    "mission_count": 0,
+    "mission_count": 1,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Julie",
-      "designation": "3592",
+      "name": "Anthony",
+      "designation": "452",
       "role": "Historian",
+      "occupation": "Leader",
+      "skills": [
+        "Archery",
+        "Animal Science",
+        "Space Exploration"
+      ],
+      "abilities": [
+        "Master Chef",
+        "Exceptional Lockpick",
+        "Exceptional Storyteller"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Andrea",
+      "designation": "624",
+      "role": "Engineer",
       "occupation": "Soldier",
       "skills": [
-        "Deception",
-        "Film",
-        "Astronomy"
+        "Culinary Arts",
+        "Literature",
+        "Landscape Architecture"
       ],
       "abilities": [
-        "Exceptional Pilot",
-        "Master Author",
-        "Expert Cryptologist"
+        "Master Mentor",
+        "Exceptional Detective"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -40,43 +59,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "Hannah",
-      "designation": "6445",
-      "role": "Engineer",
-      "occupation": "Scientist",
-      "skills": [
-        "Navigation",
-        "Planetary Science",
-        "Tracking",
-        "Philosophy",
-        "Fashion Design"
-      ],
-      "abilities": [
-        "Gifted Inventor",
-        "Master Historian",
-        "Skilled Linguist"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Nicholas",
-      "designation": "8293",
+      "name": "Charlotte",
+      "designation": "6059",
       "role": "Medic",
-      "occupation": "Scientist",
+      "occupation": "Medic",
       "skills": [
-        "Film",
-        "Cryptography",
+        "Art",
         "Marketing",
-        "Electrical Engineering"
+        "Entrepreneurship",
+        "Fashion Design",
+        "Cybersecurity"
       ],
       "abilities": [
         "Master Codebreaker",
-        "Multilingualism",
-        "Exceptional Scientist",
-        "Exceptional Cartographer"
+        "Skilled First Responder"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -84,20 +80,18 @@
       "timeline_impact": 0
     },
     {
-      "name": "Matthew",
-      "designation": "2249",
+      "name": "Madison",
+      "designation": "1782",
       "role": "Tactician",
-      "occupation": "Scientist",
+      "occupation": "Leader",
       "skills": [
-        "Statistics",
-        "Toxicology",
-        "Mechanical Engineering",
-        "Planetary Science"
+        "Finance",
+        "Lockpicking",
+        "Linguistics"
       ],
       "abilities": [
-        "Gifted Arbitrator",
-        "Master Craftsman",
-        "Master Codebreaker"
+        "Master Historian",
+        "Expert Tactician"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -110,34 +104,43 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.54,
+  "timeline_stability": 0.943,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
+      "change": -0.02,
+      "actual_change": -0.026000000000000002,
+      "old_stability": 0.8,
+      "new_stability": 0.774,
+      "source": "mission_prevent_traveler_exposure_partial_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 15, 2018",
+      "change": -0.02,
+      "actual_change": -0.026000000000000002,
+      "old_stability": 0.774,
+      "new_stability": 0.748,
+      "source": "mission_prevent_historical_disaster_partial_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
+      "change": 0.05,
+      "actual_change": 0.065,
+      "old_stability": 0.748,
+      "new_stability": 0.813,
+      "source": "mission_prevent_traveler_exposure_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
       "change": 0.1,
       "actual_change": 0.13,
-      "old_stability": 0.8,
-      "new_stability": 0.93,
-      "source": "mission_prevent_historical_disaster_complete_success",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 15, 2018",
-      "change": -0.1,
-      "actual_change": -0.13,
-      "old_stability": 0.93,
-      "new_stability": 0.8,
-      "source": "mission_host_body_crisis_failure",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 15, 2018",
-      "change": -0.2,
-      "actual_change": -0.26,
-      "old_stability": 0.8,
-      "new_stability": 0.54,
-      "source": "mission_traveler_malfunction_critical_failure",
+      "old_stability": 0.813,
+      "new_stability": 0.943,
+      "source": "mission_traveler_malfunction_complete_success",
       "fragility_impact": 0.3
     }
   ]
