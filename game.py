@@ -65,8 +65,7 @@ class Game:
         self.save_file = "travelers_save.json"
         self.active_missions = []
         
-        # Timeline stability system
-        self.timeline_stability = 0.8  # Start with stable timeline
+        # Timeline stability system - now managed by GlobalWorldStateTracker
         self.timeline_fragility = 0.3  # How easily timeline can be disrupted
         self.timeline_events = []  # Track timeline-altering events
         
@@ -93,13 +92,24 @@ class Game:
 
     def update_timeline_stability(self, change, source="unknown"):
         """Update timeline stability based on actions and events"""
-        old_stability = self.timeline_stability
+        # Get real-time data from GlobalWorldStateTracker for consistency
+        from messenger_system import global_world_tracker
+        current_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.85)
+        old_stability = current_stability
         
         # Apply change with fragility modifier
         fragility_multiplier = 1.0 + self.timeline_fragility
         actual_change = change * fragility_multiplier
         
-        self.timeline_stability = max(0.0, min(1.0, self.timeline_stability + actual_change))
+        new_stability = max(0.0, min(1.0, current_stability + actual_change))
+        
+        # Update the GlobalWorldStateTracker
+        global_world_tracker.apply_single_effect({
+            "type": "attribute_change",
+            "target": "timeline_stability",
+            "value": actual_change,
+            "operation": "add"
+        })
         
         # Record timeline event
         event = {
@@ -107,35 +117,35 @@ class Game:
             "change": change,
             "actual_change": actual_change,
             "old_stability": old_stability,
-            "new_stability": self.timeline_stability,
+            "new_stability": new_stability,
             "source": source,
             "fragility_impact": self.timeline_fragility
         }
         self.timeline_events.append(event)
         
-        # Update living world timeline stability
-        if hasattr(self, 'living_world') and hasattr(self.living_world, 'timeline_stability'):
-            self.living_world.timeline_stability = self.timeline_stability
-        
-        return self.timeline_stability
+        return new_stability
 
     def get_timeline_status(self):
         """Get current timeline status and warnings"""
+        # Get real-time data from GlobalWorldStateTracker for consistency
+        from messenger_system import global_world_tracker
+        timeline_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.85)
+        
         status = {
-            "stability": self.timeline_stability,
+            "stability": timeline_stability,
             "fragility": self.timeline_fragility,
             "status": "Stable",
             "warnings": [],
             "recent_events": self.timeline_events[-5:] if self.timeline_events else []
         }
         
-        if self.timeline_stability < 0.3:
+        if timeline_stability < 0.3:
             status["status"] = "Critical"
             status["warnings"].append("Timeline is critically unstable - immediate intervention required")
-        elif self.timeline_stability < 0.5:
+        elif timeline_stability < 0.5:
             status["status"] = "Unstable"
             status["warnings"].append("Timeline is showing signs of instability")
-        elif self.timeline_stability < 0.7:
+        elif timeline_stability < 0.7:
             status["status"] = "Fragile"
             status["warnings"].append("Timeline is becoming fragile - exercise caution")
         
@@ -143,7 +153,11 @@ class Game:
 
     def handle_timeline_crisis(self):
         """Handle timeline crisis events when stability is critically low"""
-        if self.timeline_stability < 0.2:
+        # Get real-time data from GlobalWorldStateTracker for consistency
+        from messenger_system import global_world_tracker
+        timeline_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.85)
+        
+        if timeline_stability < 0.2:
             crisis_type = random.choice([
                 "temporal_paradox",
                 "reality_fracture", 
@@ -153,7 +167,7 @@ class Game:
             
             crisis = {
                 "type": crisis_type,
-                "severity": 1.0 - self.timeline_stability,
+                "severity": 1.0 - timeline_stability,
                 "required_action": "immediate_intervention",
                 "consequences": self._generate_crisis_consequences(crisis_type)
             }
@@ -190,6 +204,9 @@ class Game:
 
     def save_game(self):
         """Save the current game state"""
+        # Get real-time data from GlobalWorldStateTracker for consistency
+        from messenger_system import global_world_tracker
+        
         try:
             save_data = {
                 "team_leader": {
@@ -210,7 +227,7 @@ class Game:
                 "active_missions": self.active_missions,
                 "team_cohesion": self.team.team_cohesion,
                 "communication_level": self.team.communication_level,
-                "timeline_stability": self.timeline_stability,
+                "timeline_stability": global_world_tracker.world_state_cache.get("timeline_stability", 0.85),
                 "timeline_fragility": self.timeline_fragility,
                 "timeline_events": self.timeline_events
             }
@@ -291,7 +308,14 @@ class Game:
             
             # Restore timeline data
             if "timeline_stability" in save_data:
-                self.timeline_stability = save_data["timeline_stability"]
+                # Update the GlobalWorldStateTracker instead of local variable
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": save_data["timeline_stability"],
+                    "operation": "set"
+                })
             if "timeline_fragility" in save_data:
                 self.timeline_fragility = save_data["timeline_fragility"]
             if "timeline_events" in save_data:
@@ -459,19 +483,23 @@ class Game:
             print("25. End Turn")
             print("26. Save Game")
             print("27. Quit Game")
-            
-            self.print_separator()
-            
-            # Show status indicators
-            if not hasattr(self.team, 'base_of_operations') or not self.team.base_of_operations:
-                print("🏠 NO BASE OF OPERATIONS - Consider option 11")
-            
-            # Check for supplies
-            if hasattr(self.team, 'supplies'):
-                total_supplies = sum(self.team.supplies.values())
-                if total_supplies < 10:
-                    print("📦 LOW SUPPLIES - Check option 12")
-            
+        
+        self.print_separator()
+        
+        # Show status indicators
+        if hasattr(self, 'team') and hasattr(self.team, 'base_of_operations') and not self.team.base_of_operations:
+            print("🏠 NO BASE OF OPERATIONS - Consider option 11")
+        
+        # Check for supplies
+        if hasattr(self, 'team') and hasattr(self.team, 'supplies'):
+            total_supplies = sum(self.team.supplies.values())
+            if total_supplies < 10:
+                print("📦 LOW SUPPLIES - Check option 12")
+        
+        # Get choice based on game state
+        if not self.team_formed:
+            choice = input(f"\nEnter your choice (1-6): ")
+        else:
             choice = input(f"\nEnter your choice (1-27): ")
         
         return choice
@@ -1029,6 +1057,33 @@ class Game:
             print(f"Abilities: {', '.join(member.abilities)}")
             print("-" * 40)
 
+    def search_for_team_members(self):
+        """Search for and form a team"""
+        self.clear_screen()
+        self.print_header("TEAM FORMATION")
+        
+        print("🔍 Searching for your assigned team members...")
+        print("Scanning for Traveler consciousness signatures...")
+        
+        # Create the team with the player as leader
+        # The Team class automatically generates a complete team
+        self.team = traveler_character.Team(self.player_character)
+        
+        print(f"\n📡 Team formation complete!")
+        print(f"✅ Team assembled! Total members: {len(self.team.members)}")
+        
+        # Show team members
+        print(f"\n👥 TEAM ROSTER:")
+        for member in self.team.members:
+            role = getattr(member, 'role', 'Unassigned')
+            print(f"  • {member.name} ({member.designation}) - {role}")
+        
+        self.team_formed = True
+        print(f"\n🎯 Your team has been formed and is ready for missions.")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
     def view_team_roster(self):
         """View the current team roster"""
         self.clear_screen()
@@ -1103,7 +1158,15 @@ class Game:
         self.print_separator()
         
         print(f"📊 TIMELINE METRICS:")
-        print(f"• Timeline Stability: {self.timeline_stability:.1%}")
+        # Get real-time data from GlobalWorldStateTracker for consistency
+        from messenger_system import global_world_tracker
+        timeline_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.85)
+        director_control = global_world_tracker.world_state_cache.get("director_control", 0.92)
+        faction_influence = global_world_tracker.world_state_cache.get("faction_influence", 0.23)
+        
+        print(f"• Timeline Stability: {timeline_stability:.1%}")
+        print(f"• Director Control: {director_control:.1%}")
+        print(f"• Faction Influence: {faction_influence:.1%}")
         print(f"• Timeline Fragility: {self.timeline_fragility:.1%}")
         
         if hasattr(self, 'living_world'):
@@ -1128,7 +1191,15 @@ class Game:
         timeline_status = self.get_timeline_status()
         
         print(f"📊 CURRENT STATUS:")
-        print(f"• Stability: {self.timeline_stability:.1%} ({timeline_status['status']})")
+        # Get real-time data from GlobalWorldStateTracker for consistency
+        from messenger_system import global_world_tracker
+        timeline_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.85)
+        director_control = global_world_tracker.world_state_cache.get("director_control", 0.92)
+        faction_influence = global_world_tracker.world_state_cache.get("faction_influence", 0.23)
+        
+        print(f"• Stability: {timeline_stability:.1%} ({timeline_status['status']})")
+        print(f"• Director Control: {director_control:.1%}")
+        print(f"• Faction Influence: {faction_influence:.1%}")
         print(f"• Fragility: {self.timeline_fragility:.1%}")
         print(f"• Fragility Multiplier: {(1.0 + self.timeline_fragility):.2f}x")
         
@@ -1206,9 +1277,9 @@ class Game:
             # Show active world events
             if hasattr(self.living_world, 'world_events'):
                 active_events = [e for e in self.living_world.world_events if hasattr(e, 'active') and e.active]
-                if active_events:
-                    print(f"\n🌍 Active World Events: {len(active_events)}")
-                    for event in active_events[:3]:  # Show first 3
+            if active_events:
+                print(f"\n🌍 Active World Events: {len(active_events)}")
+                for event in active_events[:3]:  # Show first 3
                         if hasattr(event, 'description'):
                             print(f"• {event.description}")
                         else:
@@ -1221,9 +1292,9 @@ class Game:
             # Show active faction activities
             if hasattr(self.living_world, 'faction_activities'):
                 active_activities = [a for a in self.living_world.faction_activities if hasattr(a, 'active') and a.active]
-                if active_activities:
-                    print(f"\n🦹 Active Faction Activities: {len(active_activities)}")
-                    for activity in active_activities[:3]:  # Show first 3
+            if active_activities:
+                print(f"\n🦹 Active Faction Activities: {len(active_activities)}")
+                for activity in active_activities[:3]:  # Show first 3
                         if hasattr(activity, 'description'):
                             print(f"• {activity.description}")
                         else:
@@ -1245,6 +1316,7 @@ class Game:
         
         if hasattr(self, 'messenger_system') and hasattr(self.messenger_system, 'dynamic_world_events'):
             print("🌍 Dynamic World Events System Status:")
+            print("📊 Showing CURRENT REAL-TIME STATE (no changes made)")
             
             # Show Director's Core Programmers status
             print("\n👨‍💻 DIRECTOR'S CORE PROGRAMMERS:")
@@ -1287,9 +1359,52 @@ class Game:
             print(f"  • Faction Operations: {len(world_summary['faction_operations'])}")
             print(f"  • Timeline Events: {len(world_summary['timeline_events'])}")
             
-            # Show real-time world activity feed
-            print(f"\n📊 REAL-TIME WORLD ACTIVITY FEED:")
-            print("  (Use 'View World Activity Feed' for detailed information)")
+            # Show AI Traveler Teams real-time status
+            ai_teams = world_summary['ai_traveler_teams']
+            print(f"\n🤖 AI TRAVELER TEAMS (Real-Time):")
+            print(f"  • Total Teams: {ai_teams['total_teams']}")
+            print(f"  • Available: {ai_teams['active_teams']}")
+            print(f"  • On Mission: {ai_teams['on_mission_teams']}")
+            print(f"  • Cooldown: {ai_teams['cooldown_teams']}")
+            
+            if ai_teams['active_missions']:
+                print(f"  • Active Team Missions:")
+                for mission_info in ai_teams['active_missions']:
+                    team_name = mission_info['team']
+                    location = mission_info['location']
+                    missions = mission_info['missions']
+                    for mission in missions:
+                        print(f"    - {team_name}: {mission['type']} in {location}")
+                        print(f"      DC: {mission['dc']}, {mission.get('time_remaining', mission['duration'])} turns left")
+            
+            # Show real-time world state values
+            real_world_status = world_summary['real_world_status']
+            if real_world_status and isinstance(real_world_status, dict):
+                print(f"\n📊 REAL-TIME WORLD STATE:")
+                world_status_data = real_world_status.get('world_status', {})
+                if isinstance(world_status_data, dict):
+                    timeline_stability = world_status_data.get('timeline_stability', 0.85)
+                    world_status_value = world_status_data.get('world_status', 'Unknown')
+                else:
+                    timeline_stability = 0.85
+                    world_status_value = str(world_status_data) if world_status_data else 'Unknown'
+                
+                print(f"  • Timeline Stability: {timeline_stability*100:.1f}%")
+                print(f"  • World Status: {world_status_value}")
+                print(f"  • Turn: {real_world_status.get('turn_number', 0)}")
+                print(f"  • Active Changes: {real_world_status.get('total_changes', 0)}")
+                print(f"  • Ongoing Effects: {real_world_status.get('ongoing_effects', 0)}")
+            
+            # Show active effects summary
+            active_effects = world_summary['active_effects']
+            if active_effects:
+                print(f"\n⚡ ACTIVE ONGOING EFFECTS:")
+                for category, effects in active_effects.items():
+                    if effects:
+                        print(f"  • {category.upper()}: {len(effects)} effects")
+            
+            print(f"\n📊 DETAILED FEED:")
+            print("  (Use 'View World Activity Feed' for complete real-time information)")
             
         else:
             print("🌍 Dynamic World Events System not initialized.")
@@ -1322,23 +1437,28 @@ class Game:
         print("🔄 Ending current turn and advancing world...")
         print("All AI entities will take their actions...")
         
-        # Advance the world turn
-        turn_summary = self.advance_world_turn()
-        
-        # Execute AI world turn
+        # FIRST: Execute AI world turn
         if hasattr(self, 'ai_world_controller'):
+            print("\n🤖 Processing AI World Controller...")
             self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system)
             self.ai_world_controller.update_world_state_from_ai_turn(self.get_game_state())
+            print("✅ AI World Controller processed!")
         
-        # Execute hacking system turn
+        # SECOND: Execute hacking system turn
         if hasattr(self, 'hacking_system'):
+            print("\n💻 Processing Hacking System...")
             self.hacking_system.execute_hacking_turn(self.get_game_state(), self.time_system)
+            print("✅ Hacking System processed!")
         
-        # Execute Dynamic World Events System turn (Director's Core Programmers, NPCs, Factions)
+        # THIRD: Execute Dynamic World Events System turn (Director's Core Programmers, NPCs, Factions)
         if hasattr(self, 'messenger_system') and hasattr(self.messenger_system, 'dynamic_world_events'):
             print("\n🌍 Processing Dynamic World Events...")
             self.messenger_system.dynamic_world_events.process_world_turn()
             print("✅ Dynamic world events processed - Director's Core Programmers and NPCs acted!")
+        
+        # FINALLY: Advance the world turn and show summary (this will now use the updated real-time values)
+        print("\n📅 Generating Daily Summary with real-time world state...")
+        turn_summary = self.advance_world_turn()
         
         print(f"\n✅ Turn {self.time_system.current_turn} completed!")
         input("Press Enter to continue...")
@@ -2322,18 +2442,33 @@ class Game:
         
         # Apply timeline stability changes
         if "timeline_stability" in outcomes:
-            self.living_world.timeline_stability = max(0.0, min(1.0, 
-                self.living_world.timeline_stability + outcomes["timeline_stability"]))
+            from messenger_system import global_world_tracker
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "timeline_stability",
+                "value": outcomes["timeline_stability"],
+                "operation": "add"
+            })
         
         # Apply faction influence changes
         if "faction_influence" in outcomes:
-            self.living_world.faction_influence = max(0.0, min(1.0, 
-                self.living_world.faction_influence + outcomes["faction_influence"]))
+            from messenger_system import global_world_tracker
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "faction_influence",
+                "value": outcomes["faction_influence"],
+                "operation": "add"
+            })
         
         # Apply director control changes
         if "director_control" in outcomes:
-            self.living_world.director_control = max(0.0, min(1.0, 
-                self.living_world.director_control + outcomes["director_control"]))
+            from messenger_system import global_world_tracker
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "director_control",
+                "value": outcomes["director_control"],
+                "operation": "add"
+            })
         
         # Apply team cohesion changes
         if "team_cohesion" in outcomes:
@@ -2565,6 +2700,36 @@ class Game:
         # Advance the living world
         turn_summary = self.living_world.advance_turn(self.time_system)
         
+        # IMPORTANT: Replace the world status with real-time values from GlobalWorldStateTracker
+        if hasattr(self, 'messenger_system') and hasattr(self.messenger_system, 'dynamic_world_events'):
+            try:
+                from messenger_system import global_world_tracker
+                
+                # Get real-time values from the single source of truth
+                real_timeline_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.8)
+                real_faction_influence = global_world_tracker.world_state_cache.get("faction_influence", 0.2)
+                real_director_control = global_world_tracker.world_state_cache.get("director_control", 0.8)
+                
+                # Update the turn summary with real-time values
+                turn_summary['world_status'] = {
+                    "turn": turn_summary['world_status']['turn'],
+                    "timeline_stability": real_timeline_stability,
+                    "faction_influence": real_faction_influence,
+                    "director_control": real_director_control,
+                    "active_events": turn_summary['world_status']['active_events'],
+                    "active_faction_activities": turn_summary['world_status']['active_faction_activities'],
+                    "world_state": turn_summary['world_status']['world_state']
+                }
+                
+                print(f"📊 Using real-time world status from GlobalWorldStateTracker:")
+                print(f"   Timeline Stability: {real_timeline_stability:.1%}")
+                print(f"   Faction Influence: {real_faction_influence:.1%}")
+                print(f"   Director Control: {real_director_control:.1%}")
+                
+            except Exception as e:
+                print(f"⚠️  Warning: Could not get real-time world status: {e}")
+                print(f"   Using fallback values from LivingWorld")
+        
         # Show the day's summary
         self.display_daily_summary(turn_summary, scheduled_event)
         
@@ -2618,7 +2783,6 @@ class Game:
         print(f"• Timeline Stability: {status['timeline_stability']:.1%}")
         print(f"• Faction Influence: {status['faction_influence']:.1%}")
         print(f"• Director Control: {status['director_control']:.1%}")
-        
         print(f"{'='*60}")
         input("Press Enter to continue...")
 
@@ -2732,6 +2896,10 @@ class Game:
         # Initialize Director's Programmers
         print("🤖 Initializing Director's Programmers...")
         self.director_programmers = self.initialize_director_programmers()
+        
+        # Add this game's programmers to the Dynamic World Events tracking system
+        if hasattr(self.messenger_system, 'dynamic_world_events'):
+            self.messenger_system.dynamic_world_events.add_game_programmers(self.director_programmers)
         
         # Show procedural generation results
         active_count = len([p for p in self.director_programmers.values() if p['status'] == 'active'])
@@ -3006,479 +3174,309 @@ class Game:
         input("Press Enter to continue...")
     
     def view_director_programmers(self):
-        """View the Director's core programmers and their current status"""
-        self.clear_screen()
-        self.print_header("DIRECTOR'S PROGRAMMERS")
-        
-        if not self.director_programmers:
-            print("❌ No Director programmers are currently active in this timeline.")
-            print("They may be deployed on other missions or maintaining the Director's core systems.")
-        else:
-            print("🔍 DIRECTOR'S CORE PROGRAMMERS ACTIVE IN THIS TIMELINE:")
-            print("=" * 70)
+        """View Director's Core Programmers status and missions"""
+        while True:
+            self.clear_screen()
+            print(f"{'='*60}")
+            print(f"👨‍💻 DIRECTOR'S CORE PROGRAMMERS")
+            print(f"{'='*60}")
+            
+            # Get current programmer status
+            loyal_programmers = []
+            defected_programmers = []
             
             for name, data in self.director_programmers.items():
-                host = data.get("current_host", {})
-                status_icon = "🟢" if data["status"] == "active" else "🔴"
-                loyalty_icon = "🤖" if data["loyalty"] == "Director" else "⚔️"
-                
-                print(f"\n{status_icon} {name} (Designation: {data['designation']})")
-                print(f"   Role: {data['role']}")
-                print(f"   Specialty: {data['specialty']}")
-                print(f"   Loyalty: {loyalty_icon} {data['loyalty']}")
-                print(f"   Status: {data['status'].title()}")
-                
-                if host:
-                    print(f"   Current Host: {host['name']} ({host['age']})")
-                    print(f"   Cover Occupation: {host['occupation']}")
-                    print(f"   Location: {host['location']}")
-                    print(f"   Cover Story: {host['cover_story']}")
-                    print(f"   Access Level: {host['access_level']}")
-                    print(f"   Current Mission: {host['current_mission']}")
-                
-                print(f"   Notes: {data['notes']}")
-                print("-" * 70)
+                if data.get('status') == 'active':
+                    if data.get('loyalty') == 'Director':
+                        loyal_programmers.append((name, data))
+                    else:
+                        defected_programmers.append((name, data))
             
-            print(f"\n📊 SUMMARY:")
-            print(f"   • Total Active: {len([p for p in self.director_programmers.values() if p['status'] == 'active'])}")
-            print(f"   • Defected: {len([p for p in self.director_programmers.values() if p['status'] == 'defected'])}")
-            print(f"   • Director Loyal: {len([p for p in self.director_programmers.values() if p['loyalty'] == 'Director'])}")
-            print(f"   • Faction Members: {len([p for p in self.director_programmers.values() if p['loyalty'] == 'Faction'])}")
+            # Display loyal programmers
+            if loyal_programmers:
+                print(f"\n✅ LOYAL PROGRAMMERS ({len(loyal_programmers)}):")
+                print(f"{'-'*40}")
+                for name, data in loyal_programmers:
+                    print(f"👨‍💻 {name} (Designation: {data['designation']})")
+                    print(f"   Role: {data['role']}")
+                    print(f"   Specialty: {data['specialty']}")
+                    print(f"   Mission: {data['mission']}")
+                    if data.get('current_host'):
+                        host = data['current_host']
+                        print(f"   Host: {host['name']} - {host['occupation']} in {host['location']}")
+                    
+                    # NEW: Display defection risk information
+                    if hasattr(self, 'messenger_system') and hasattr(self.messenger_system, 'dynamic_world_events'):
+                        try:
+                            risk_info = self.messenger_system.dynamic_world_events.get_programmer_defection_status(name)
+                            if risk_info:
+                                print(f"   🚨 Defection Risk: {risk_info['risk_factors']['total_estimated_risk']:.1%}")
+                                print(f"   😰 Stress Level: {risk_info['stress_level']:.1%}")
+                                print(f"   🎯 Faction Exposure: {risk_info['faction_exposure']:.1%}")
+                        except:
+                            pass
+                    print()
             
-            print(f"\n⚠️  IMPORTANT:")
-            print("   • These are the architects of the Director itself")
-            print("   • They have maximum access to all Traveler systems")
-            print("   • Defected programmers are extremely dangerous")
-            print("   • Meeting one could be a mission opportunity or threat")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
+            # Display defected programmers
+            if defected_programmers:
+                print(f"\n❌ DEFECTED PROGRAMMERS ({len(defected_programmers)}):")
+                print(f"{'-'*40}")
+                for name, data in defected_programmers:
+                    print(f"💀 {name} (Designation: {data['designation']})")
+                    print(f"   Former Role: {data['role']}")
+                    print(f"   Former Specialty: {data['specialty']}")
+                    print(f"   Current Mission: {data['mission']}")
+                    if data.get('current_host'):
+                        host = data['current_host']
+                        print(f"   Host: {host['name']} - {host['occupation']} in {host['location']}")
+                    print()
+            
+            # Display menu options
+            print(f"\n📋 OPTIONS:")
+            print(f"1. View Defection Risk Analysis")
+            print(f"2. Assign Protection Missions")
+            print(f"3. Monitor Programmer Activities")
+            print(f"4. Return to Main Menu")
+            
+            choice = input(f"\nEnter your choice (1-4): ").strip()
+            
+            if choice == "1":
+                self.view_defection_risk_analysis()
+            elif choice == "2":
+                self.assign_protection_missions()
+            elif choice == "3":
+                self.monitor_programmer_activities()
+            elif choice == "4":
+                break
+            else:
+                print(f"❌ Invalid choice. Please enter 1-4.")
+                input("Press Enter to continue...")
     
-    def view_faction_status(self):
-        """View current Faction activities and threats"""
+    def view_defection_risk_analysis(self):
+        """Display detailed defection risk analysis for all programmers"""
         self.clear_screen()
-        self.print_header("FACTION STATUS")
+        print(f"{'='*60}")
+        print(f"🚨 DEFECTION RISK ANALYSIS")
+        print(f"{'='*60}")
         
-        print("🦹 THE FACTION - Human Opposition to the Director")
-        print("=" * 60)
-        print("The Faction opposes AI control over humanity's destiny.")
-        print("They believe humans should control their own future, even at catastrophic cost.")
-        
-        if hasattr(self, 'ai_world_controller') and hasattr(self.ai_world_controller, 'faction_operatives'):
-            faction_count = len(self.ai_world_controller.faction_operatives)
-            print(f"\n📊 FACTION ACTIVITIES:")
-            print(f"• Active Operatives: {faction_count}")
-            print(f"• Threat Level: {'High' if faction_count > 3 else 'Medium' if faction_count > 1 else 'Low'}")
-            
-            if faction_count > 0:
-                print(f"\n⚠️  CURRENT THREATS:")
-                print("• Attempting to hijack Director communications")
-                print("• Deploying space-time attenuators to block Director reach")
-                print("• Engineering biological weapons for population control")
-                print("• Recruiting disillusioned Travelers to their cause")
-        else:
-            print("\n📊 FACTION ACTIVITIES:")
-            print("• No active Faction operatives detected")
-            print("• Threat Level: Low")
-        
-        print(f"\n🎯 DIRECTOR'S RESPONSE:")
-        print("• Actively hunting down Faction members")
-        print("• Implementing enhanced security protocols")
-        print("• Monitoring for Faction recruitment attempts")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
-    
-    def establish_base_of_operations(self):
-        """Establish a base of operations for the team"""
-        self.clear_screen()
-        self.print_header("ESTABLISH BASE OF OPERATIONS")
-        
-        if not self.team_formed:
-            print("❌ You need a team before establishing a base.")
+        if not hasattr(self, 'messenger_system') or not hasattr(self.messenger_system, 'dynamic_world_events'):
+            print("❌ Dynamic world events system not available")
             input("Press Enter to continue...")
             return
         
-        print("🏠 ESTABLISHING BASE OF OPERATIONS")
-        print("=" * 50)
-        print("Your team needs a secure location to:")
-        print("• Coordinate missions and planning")
-        print("• Store equipment and supplies")
-        print("• Provide medical treatment")
-        print("• Establish secure communications")
+        try:
+            risk_assessment = self.messenger_system.dynamic_world_events.get_all_programmer_defection_risks()
+            
+            if not risk_assessment:
+                print("❌ No programmer risk data available")
+                input("Press Enter to continue...")
+                return
+            
+            # Sort by total risk (highest first)
+            sorted_programmers = sorted(
+                risk_assessment.items(),
+                key=lambda x: x[1]['risk_factors']['total_estimated_risk'],
+                reverse=True
+            )
+            
+            print(f"\n📊 PROGRAMMER DEFECTION RISK ASSESSMENT:")
+            print(f"{'='*60}")
+            
+            for name, risk_info in sorted_programmers:
+                risk_level = risk_info['risk_factors']['total_estimated_risk']
+                
+                # Color code risk levels
+                if risk_level >= 0.6:
+                    risk_indicator = "🔴 CRITICAL"
+                elif risk_level >= 0.4:
+                    risk_indicator = "🟡 HIGH"
+                elif risk_level >= 0.2:
+                    risk_indicator = "🟠 MODERATE"
+                else:
+                    risk_indicator = "🟢 LOW"
+                
+                print(f"\n{risk_indicator} {name}")
+                print(f"   Current Loyalty: {risk_info['loyalty']}")
+                print(f"   Total Risk: {risk_level:.1%}")
+                print(f"   Base Risk: {risk_info['risk_factors']['base_risk']:.1%}")
+                print(f"   Stress Contribution: {risk_info['risk_factors']['stress_contribution']:.1%}")
+                print(f"   Faction Exposure: {risk_info['risk_factors']['exposure_contribution']:.1%}")
+                print(f"   Current Stress: {risk_info['stress_level']:.1%}")
+                print(f"   Faction Exposure: {risk_info['faction_exposure']:.1%}")
+                
+                if risk_info.get('current_mission'):
+                    print(f"   Active Mission: {risk_info['current_mission']}")
+                
+                # Show defection triggers if any
+                if risk_info.get('defection_status', {}).get('recruitment_attempts', 0) > 0:
+                    print(f"   🎯 Faction Recruitment Attempts: {risk_info['defection_status']['recruitment_attempts']}")
+                
+                if risk_info['stress_level'] >= 0.8:
+                    print(f"   ⚠️  EXTREME STRESS - Defection risk very high!")
+                elif risk_info['faction_exposure'] >= 0.7:
+                    print(f"   ⚠️  HIGH FACTION EXPOSURE - Defection risk elevated!")
+            
+            print(f"\n{'='*60}")
+            print(f"📋 RISK FACTORS EXPLAINED:")
+            print(f"• Base Risk: Inherent risk based on programmer specialty")
+            print(f"• Stress: Increases with failed missions and crises")
+            print(f"• Faction Exposure: Increases with faction contact and recruitment attempts")
+            print(f"• Total Risk: Combined risk of all factors (capped at 80%)")
+            
+        except Exception as e:
+            print(f"❌ Error analyzing defection risks: {e}")
         
-        # Generate potential base locations
-        base_options = [
-            "Abandoned warehouse in industrial district",
-            "Underground parking garage",
-            "Vacant office building",
-            "Old hospital wing",
-            "School basement (summer break)",
-            "Church basement",
-            "Library storage area",
-            "Mall storage room"
-        ]
-        
-        print(f"\n📍 AVAILABLE LOCATIONS:")
-        for i, location in enumerate(base_options, 1):
-            print(f"{i}. {location}")
-        
-        print(f"\n🎯 RECOMMENDATION:")
-        recommended = random.choice(base_options)
-        print(f"   The Director suggests: {recommended}")
-        print(f"   This location offers good security and accessibility.")
-        
-        # Set the base
-        self.team.base_of_operations = recommended
-        
-        print(f"\n✅ BASE ESTABLISHED!")
-        print(f"   Location: {recommended}")
-        print(f"   Security Level: Medium")
-        print(f"   Accessibility: Good")
-        print(f"   Cover Story: 'Private research facility'")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
+        input("\nPress Enter to continue...")
     
-    def search_for_team_members(self):
-        """Search for and form a team"""
+    def assign_protection_missions(self):
+        """Assign protection missions to loyal programmers"""
         self.clear_screen()
-        self.print_header("TEAM FORMATION")
+        print(f"{'='*60}")
+        print(f"🛡️  ASSIGN PROTECTION MISSIONS")
+        print(f"{'='*60}")
         
-        print("🔍 Searching for your assigned team members...")
-        print("Scanning for Traveler consciousness signatures...")
-        
-        # Create the team with the player as leader
-        # The Team class automatically generates a complete team
-        self.team = traveler_character.Team(self.player_character)
-        
-        print(f"\n📡 Team formation complete!")
-        print(f"✅ Team assembled! Total members: {len(self.team.members)}")
-        
-        # Show team members
-        print(f"\n👥 TEAM ROSTER:")
-        for member in self.team.members:
-            role = getattr(member, 'role', 'Unassigned')
-            print(f"  • {member.name} ({member.designation}) - {role}")
-        
-        self.team_formed = True
-        print(f"\n🎯 Your team has been formed and is ready for missions.")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
-    
-    def view_team_status(self):
-        """View team status - alias for view_team_roster"""
-        self.view_team_roster()
-    
-    def manage_team_supplies(self):
-        """Manage team supplies and resources"""
-        self.clear_screen()
-        self.print_header("TEAM SUPPLIES")
-        
-        if not self.team_formed:
-            print("❌ You need a team before managing supplies.")
+        if not hasattr(self, 'messenger_system') or not hasattr(self.messenger_system, 'dynamic_world_events'):
+            print("❌ Dynamic world events system not available")
             input("Press Enter to continue...")
             return
         
-        print("📦 TEAM SUPPLIES MANAGEMENT")
-        print("=" * 50)
-        
-        # Generate random supply levels
-        medical_supplies = random.randint(20, 80)
-        weapons = random.randint(10, 50)
-        communication_devices = random.randint(5, 15)
-        food_water = random.randint(30, 90)
-        money = random.randint(1000, 10000)
-        
-        print(f"🏥 Medical Supplies: {medical_supplies}%")
-        print(f"🔫 Weapons & Ammunition: {weapons}%")
-        print(f"📱 Communication Devices: {communication_devices}%")
-        print(f"🍽️ Food & Water: {food_water}%")
-        print(f"💰 Available Funds: ${money:,}")
-        
-        print(f"\n📊 SUPPLY STATUS:")
-        if medical_supplies < 30:
-            print("  ⚠️  Medical supplies critically low!")
-        if weapons < 20:
-            print("  ⚠️  Weapons cache needs replenishment!")
-        if communication_devices < 8:
-            print("  ⚠️  Communication systems compromised!")
-        if food_water < 40:
-            print("  ⚠️  Food and water supplies low!")
-        
-        print(f"\n🎯 RECOMMENDATIONS:")
-        if medical_supplies < 50:
-            print("  • Raid medical facilities for supplies")
-        if weapons < 40:
-            print("  • Acquire weapons from military/police sources")
-        if communication_devices < 10:
-            print("  • Steal communication equipment")
-        if food_water < 60:
-            print("  • Secure food and water sources")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
-    
-    def view_host_body_complications(self):
-        """View host body complications and health status"""
-        self.clear_screen()
-        self.print_header("HOST BODY COMPLICATIONS")
-        
-        if hasattr(self, 'player_character') and self.player_character and hasattr(self.player_character, 'host_body'):
-            host_body = self.player_character.host_body
-            print("🏥 HOST BODY HEALTH STATUS")
-            print("=" * 50)
+        try:
+            risk_assessment = self.messenger_system.dynamic_world_events.get_all_programmer_defection_risks()
             
-            # Check for various complications
-            complications = []
-            if hasattr(host_body, 'health_status') and host_body.health_status != 'Healthy':
-                complications.append(f"Health: {host_body.health_status}")
+            # Get programmers at high risk who need protection
+            high_risk_programmers = [
+                name for name, risk_info in risk_assessment.items()
+                if (risk_info['loyalty'] == 'loyal' and 
+                    risk_info['risk_factors']['total_estimated_risk'] >= 0.4)
+            ]
             
-            if hasattr(host_body, 'mental_state') and host_body.mental_state != 'Stable':
-                complications.append(f"Mental State: {host_body.mental_state}")
+            if not high_risk_programmers:
+                print("✅ No programmers currently need protection missions")
+                input("Press Enter to continue...")
+                return
             
-            if hasattr(host_body, 'social_standing') and host_body.social_standing == 'Compromised':
-                complications.append(f"Social Standing: {host_body.social_standing}")
+            print(f"\n🚨 PROGRAMMERS NEEDING PROTECTION ({len(high_risk_programmers)}):")
+            print(f"{'-'*40}")
             
-            if hasattr(host_body, 'legal_status') and host_body.legal_status == 'Wanted':
-                complications.append(f"Legal Status: {host_body.legal_status}")
+            for name in high_risk_programmers:
+                risk_info = risk_assessment[name]
+                print(f"👨‍💻 {name} - Risk: {risk_info['risk_factors']['total_estimated_risk']:.1%}")
             
-            if complications:
-                print("⚠️  ACTIVE COMPLICATIONS:")
-                for comp in complications:
-                    print(f"  • {comp}")
+            print(f"\n📋 PROTECTION OPTIONS:")
+            print(f"1. Assign High-Priority Protection")
+            print(f"2. Deploy Security Teams")
+            print(f"3. Increase Surveillance")
+            print(f"4. Return to Previous Menu")
+            
+            choice = input(f"\nEnter your choice (1-4): ").strip()
+            
+            if choice == "1":
+                print(f"🛡️  Assigning high-priority protection to {len(high_risk_programmers)} programmers...")
+                # This would integrate with the protection mission system
+                print(f"✅ Protection missions assigned!")
+            elif choice == "2":
+                print(f"🚔 Deploying security teams...")
+                print(f"✅ Security teams deployed!")
+            elif choice == "3":
+                print(f"👁️  Increasing surveillance...")
+                print(f"✅ Surveillance increased!")
+            elif choice == "4":
+                pass
             else:
-                print("✅ No active complications detected")
+                print(f"❌ Invalid choice.")
             
-            # Show general host body info
-            print(f"\n📋 HOST BODY DETAILS:")
-            print(f"  • Name: {getattr(host_body, 'name', 'Unknown')}")
-            print(f"  • Age: {getattr(host_body, 'age', 'Unknown')}")
-            print(f"  • Occupation: {getattr(host_body, 'occupation', 'Unknown')}")
-            print(f"  • Location: {getattr(host_body, 'location', 'Unknown')}")
-        else:
-            print("❌ No host body information available")
+        except Exception as e:
+            print(f"❌ Error assigning protection missions: {e}")
         
-        self.print_separator()
-        input("Press Enter to continue...")
+        input("\nPress Enter to continue...")
     
-    def view_grand_plan_status(self):
-        """View the grand plan status and objectives"""
+    def monitor_programmer_activities(self):
+        """Monitor current programmer activities and missions"""
         self.clear_screen()
-        self.print_header("GRAND PLAN STATUS")
+        print(f"{'='*60}")
+        print(f"📊 PROGRAMMER ACTIVITY MONITOR")
+        print(f"{'='*60}")
         
-        print("🎯 GRAND PLAN OBJECTIVES")
-        print("=" * 50)
+        if not hasattr(self, 'messenger_system') or not hasattr(self.messenger_system, 'dynamic_world_events'):
+            print("❌ Dynamic world events system not available")
+            input("Press Enter to continue...")
+            return
         
-        # Generate random grand plan elements
-        objectives = [
-            "Establish secure communication network",
-            "Recruit additional Traveler consciousness",
-            "Gather intelligence on Director activities",
-            "Secure advanced technology resources",
-            "Establish safe houses across timeline",
-            "Develop countermeasures against Faction",
-            "Build alliance with sympathetic humans",
-            "Prepare for timeline crisis events"
-        ]
-        
-        completed = random.randint(2, 4)
-        active = random.randint(3, 5)
-        pending = len(objectives) - completed - active
-        
-        print(f"📊 PROGRESS: {completed}/{len(objectives)} objectives completed")
-        print(f"🔄 ACTIVE: {active} objectives in progress")
-        print(f"⏳ PENDING: {pending} objectives waiting")
-        
-        print(f"\n✅ COMPLETED OBJECTIVES:")
-        for i in range(completed):
-            print(f"  • {objectives[i]}")
-        
-        print(f"\n🔄 ACTIVE OBJECTIVES:")
-        for i in range(completed, completed + active):
-            if i < len(objectives):
-                print(f"  • {objectives[i]}")
-        
-        print(f"\n⏳ PENDING OBJECTIVES:")
-        for i in range(completed + active, len(objectives)):
-            print(f"  • {objectives[i]}")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
-    
-    def view_mission_revision_status(self):
-        """View mission revision and planning status"""
-        self.clear_screen()
-        self.print_header("MISSION REVISION STATUS")
-        
-        print("📋 MISSION PLANNING & REVISION")
-        print("=" * 50)
-        
-        # Show current mission planning
-        if hasattr(self, 'active_missions') and self.active_missions:
-            print(f"🎯 ACTIVE MISSIONS: {len(self.active_missions)}")
-            for i, mission_execution in enumerate(self.active_missions, 1):
-                mission = mission_execution.get('mission', {})
-                print(f"  {i}. {mission.get('type', 'Unknown Mission')}")
-                print(f"     Location: {mission.get('location', 'Unknown')}")
-                print(f"     Priority: {mission.get('priority', 'Unknown')}")
-                print(f"     Status: {mission_execution.get('status', 'Planning')}")
-        else:
-            print("📭 No active missions requiring revision")
-        
-        # Show mission planning tools
-        print(f"\n🛠️  PLANNING TOOLS AVAILABLE:")
-        planning_tools = [
-            "Timeline Analysis Software",
-            "Risk Assessment Matrix",
-            "Resource Allocation Calculator",
-            "Contingency Planning Templates",
-            "Team Capability Analyzer"
-        ]
-        
-        for tool in planning_tools:
-            status = "✅" if random.choice([True, False]) else "⚠️"
-            print(f"  {status} {tool}")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
-    
-    def view_consequence_tracking(self):
-        """View timeline consequences and tracking"""
-        self.clear_screen()
-        self.print_header("CONSEQUENCE TRACKING")
-        
-        print("📊 TIMELINE CONSEQUENCE TRACKING")
-        print("=" * 50)
-        
-        # Show timeline stability
-        stability = getattr(self, 'timeline_stability', 75)
-        fragility = getattr(self, 'timeline_fragility', 25)
-        
-        print(f"🌍 TIMELINE STABILITY: {stability}%")
-        print(f"⚠️  TIMELINE FRAGILITY: {fragility}%")
-        
-        # Show recent consequences
-        if hasattr(self, 'timeline_events') and self.timeline_events:
-            print(f"\n📈 RECENT TIMELINE EVENTS:")
-            recent_events = self.timeline_events[-5:]  # Last 5 events
-            for event in recent_events:
-                impact = getattr(event, 'impact', 'Unknown')
-                description = getattr(event, 'description', 'Unknown event')
-                print(f"  • {description} (Impact: {impact})")
-        else:
-            print(f"\n📈 No timeline events recorded yet")
-        
-        # Show consequence predictions
-        print(f"\n🔮 CONSEQUENCE PREDICTIONS:")
-        predictions = [
-            "Timeline stability expected to decrease by 5-10%",
-            "Increased Faction activity predicted",
-            "Government surveillance likely to intensify",
-            "Director programmers may become more active",
-            "Timeline crisis probability: 35%"
-        ]
-        
-        for prediction in predictions:
-            confidence = random.randint(60, 95)
-            print(f"  • {prediction} (Confidence: {confidence}%)")
-        
-        self.print_separator()
-        input("Press Enter to continue...")
-    
-    def show_traveler_designations(self):
-        """Show all Traveler designations and their meanings"""
-        self.clear_screen()
-        self.print_header("TRAVELER DESIGNATIONS")
-        
-        print("🏷️  TRAVELER DESIGNATION GUIDE")
-        print("=" * 50)
-        
-        designations = {
-            "Alpha": "Elite Traveler - Highest clearance and capabilities",
-            "Beta": "Specialist Traveler - Advanced skills in specific areas",
-            "Gamma": "Field Operative - Combat and infiltration specialist",
-            "Delta": "Support Traveler - Technical and logistical support",
-            "Epsilon": "Recruit Traveler - Newly awakened consciousness",
-            "Zeta": "Research Traveler - Scientific and analytical focus",
-            "Omega": "Command Traveler - Leadership and strategic planning"
-        }
-        
-        for designation, description in designations.items():
-            print(f"🔸 {designation}: {description}")
-        
-        print(f"\n📊 YOUR DESIGNATION:")
-        if hasattr(self, 'player_character') and self.player_character:
-            player_designation = getattr(self.player_character, 'designation', 'Unknown')
-            print(f"  • Current: {player_designation}")
+        try:
+            # Get current programmer status
+            for name, data in self.director_programmers.items():
+                if data.get('status') == 'active':
+                    print(f"\n👨‍💻 {name} (Designation: {data['designation']})")
+                    print(f"   Status: {data.get('loyalty', 'Unknown')}")
+                    print(f"   Specialty: {data.get('specialty', 'Unknown')}")
+                    
+                    # Get current mission info
+                    if hasattr(self.messenger_system.dynamic_world_events, 'directors_programmers'):
+                        programmer_info = self.messenger_system.dynamic_world_events.directors_programmers.get(name, {})
+                        current_mission = programmer_info.get('current_mission')
+                        
+                        if current_mission:
+                            print(f"   🎯 Current Mission: {current_mission}")
+                            print(f"   ⏰ Mission Cooldown: {programmer_info.get('mission_cooldown', 0)} turns")
+                        else:
+                            print(f"   🎯 Current Mission: None (Available)")
+                    
+                    # Show host information
+                    if data.get('current_host'):
+                        host = data['current_host']
+                        print(f"   👤 Host: {host['name']} - {host['occupation']}")
+                        print(f"   📍 Location: {host['location']}")
+                        print(f"   🎭 Cover Story: {host['cover_story']}")
+                    
+                    print(f"   {'-'*30}")
             
-            # Show designation benefits
-            if player_designation == "Alpha":
-                print(f"  • Benefits: Full system access, command authority, timeline manipulation")
-            elif player_designation == "Beta":
-                print(f"  • Benefits: Specialized equipment, advanced training, priority missions")
-            elif player_designation == "Gamma":
-                print(f"  • Benefits: Combat gear, infiltration tools, emergency protocols")
-            else:
-                print(f"  • Benefits: Standard equipment, basic training, support missions")
-        else:
-            print(f"  • No character information available")
+        except Exception as e:
+            print(f"❌ Error monitoring programmer activities: {e}")
         
-        self.print_separator()
-        input("Press Enter to continue...")
-    
-    def show_mission_history(self):
-        """Show mission history and outcomes"""
+        input("\nPress Enter to continue...")
+
+    def view_host_body_life(self):
+        """View host body life details"""
         self.clear_screen()
-        self.print_header("MISSION HISTORY")
+        self.print_header("HOST BODY LIFE")
         
-        print("📚 MISSION HISTORY & OUTCOMES")
-        print("=" * 50)
-        
-        # Show completed missions
-        if hasattr(self, 'completed_missions') and self.completed_missions:
-            print(f"✅ COMPLETED MISSIONS: {len(self.completed_missions)}")
-            for i, mission in enumerate(self.completed_missions[-10:], 1):  # Last 10
-                mission_type = mission.get('type', 'Unknown')
-                outcome = mission.get('outcome', 'Unknown')
-                date = mission.get('date', 'Unknown')
-                print(f"  {i}. {mission_type} - {outcome} ({date})")
-        else:
-            print(f"📭 No completed missions recorded")
-        
-        # Show mission statistics
-        print(f"\n📊 MISSION STATISTICS:")
-        if hasattr(self, 'completed_missions') and self.completed_missions:
-            total_missions = len(self.completed_missions)
-            successful = len([m for m in self.completed_missions if m.get('outcome') == 'Success'])
-            failed = len([m for m in self.completed_missions if m.get('outcome') == 'Failure'])
-            partial = total_missions - successful - failed
+        if self.player_character and self.player_character.host_body:
+            host = self.player_character.host_body
+            print(f"👤 Host: {self.player_character.name}")
+            print(f"📊 Age: {self.player_character.age}")
+            print(f"💼 Occupation: {host.occupation}")
+            print(f"🏠 Location: {host.location}")
+            print(f"📱 Cover Status: Maintaining host identity")
             
-            print(f"  • Total Missions: {total_missions}")
-            print(f"  • Successful: {successful}")
-            print(f"  • Failed: {failed}")
-            print(f"  • Partial Success: {partial}")
-            print(f"  • Success Rate: {(successful/total_missions*100):.1f}%")
+            print(f"\n👥 FAMILY SITUATION:")
+            print(f"   • {host.family_status}")
+            
+            print(f"\n🧬 BACKGROUND:")
+            print(f"   • {host.backstory}")
+            
+            print(f"\n🏥 MEDICAL STATUS:")
+            print(f"   • {host.medical_condition}")
+            
+            print(f"\n💰 FINANCIAL SITUATION:")
+            print(f"   • {host.medical_condition}")
+            
+            print(f"\n🤝 SOCIAL NETWORK:")
+            print(f"   • {host.social_connections}")
+            
+            print(f"\n📅 DAILY LIFE:")
+            print(f"   • {host.daily_routine}")
+            
+            print(f"\n⚠️ INTEGRATION CHALLENGES:")
+            print("   • Maintaining host's relationships while serving the mission")
+            print("   • Avoiding timeline contamination through host interactions")
+            print("   • Managing host body's existing commitments and responsibilities")
+            
         else:
-            print(f"  • No mission data available")
-        
-        # Show recent mission trends
-        print(f"\n📈 RECENT TRENDS:")
-        trends = [
-            "Mission success rate improving",
-            "Timeline stability maintained",
-            "Team coordination strengthening",
-            "Resource efficiency increasing"
-        ]
-        
-        for trend in trends:
-            status = "📈" if random.choice([True, False]) else "📉"
-            print(f"  {status} {trend}")
+            print("❌ No host body information available.")
         
         self.print_separator()
         input("Press Enter to continue...")
-    
+
     def view_tribunal_status(self):
         """View Tribunal status and activities"""
         self.clear_screen()
@@ -3538,45 +3536,366 @@ class Game:
         
         self.print_separator()
         input("Press Enter to continue...")
-    
-    def view_npc_interactions(self):
-        """View NPC interactions and relationships"""
+
+    def show_mission_history(self):
+        """Show mission history and outcomes"""
         self.clear_screen()
-        self.print_header("NPC INTERACTIONS")
+        self.print_header("MISSION HISTORY")
         
-        if not self.team_formed:
-            print("❌ You need a team before managing NPC interactions.")
-            input("Press Enter to continue...")
-            return
-        
-        print("🤝 NPC INTERACTIONS & RELATIONSHIPS")
+        print("📚 MISSION HISTORY & OUTCOMES")
         print("=" * 50)
         
-        # Generate random NPC relationships
-        npc_types = ["Local Police", "Hospital Staff", "Government Officials", "Business Owners", "Civilians"]
-        relationship_levels = ["Hostile", "Suspicious", "Neutral", "Friendly", "Trusted"]
+        # Show completed missions
+        if hasattr(self, 'completed_missions') and self.completed_missions:
+            print(f"✅ COMPLETED MISSIONS: {len(self.completed_missions)}")
+            for i, mission in enumerate(self.completed_missions[-10:], 1):  # Last 10
+                mission_type = mission.get('type', 'Unknown')
+                outcome = mission.get('outcome', 'Unknown')
+                date = mission.get('date', 'Unknown')
+                print(f"  {i}. {mission_type} - {outcome} ({date})")
+        else:
+            print(f"📭 No completed missions recorded")
         
-        print("📊 CURRENT NPC RELATIONSHIPS:")
-        for npc_type in npc_types:
-            relationship = random.choice(relationship_levels)
-            trust_level = random.randint(1, 10)
-            status_icon = "🔴" if relationship in ["Hostile", "Suspicious"] else "🟡" if relationship == "Neutral" else "🟢"
-            print(f"  {status_icon} {npc_type}: {relationship} (Trust: {trust_level}/10)")
+        # Show mission statistics
+        print(f"\n📊 MISSION STATISTICS:")
+        if hasattr(self, 'completed_missions') and self.completed_missions:
+            total_missions = len(self.completed_missions)
+            successful = len([m for m in self.completed_missions if m.get('outcome') == 'Success'])
+            failed = len([m for m in self.completed_missions if m.get('outcome') == 'Failure'])
+            partial = total_missions - successful - failed
+            
+            print(f"  • Total Missions: {total_missions}")
+            print(f"  • Successful: {successful}")
+            print(f"  • Failed: {failed}")
+            print(f"  • Partial Success: {partial}")
+            print(f"  • Success Rate: {(successful/total_missions*100):1f}%")
+        else:
+            print(f"  • No mission data available")
         
-        print(f"\n🎯 INTERACTION STRATEGIES:")
-        print("  • Use host body's existing relationships for cover")
-        print("  • Maintain consistent behavior patterns")
-        print("  • Avoid drawing attention to timeline inconsistencies")
-        print("  • Build trust through helpful actions")
+        # Show recent mission trends
+        print(f"\n📈 RECENT TRENDS:")
+        trends = [
+            "Mission success rate improving",
+            "Timeline stability maintained",
+            "Team coordination strengthening",
+            "Resource efficiency increasing"
+        ]
         
-        print(f"\n⚠️  WARNINGS:")
-        print("  • Don't reveal future knowledge")
-        print("  • Maintain host's personality traits")
-        print("  • Avoid protocol violations in public")
+        for trend in trends:
+            status = "📈" if random.choice([True, False]) else "📉"
+            print(f"  {status} {trend}")
         
         self.print_separator()
         input("Press Enter to continue...")
-    
+
+    def show_traveler_designations(self):
+        """Show all Traveler designations and their meanings"""
+        self.clear_screen()
+        self.print_header("TRAVELER DESIGNATIONS")
+        
+        print("🏷️  TRAVELER DESIGNATION GUIDE")
+        print("=" * 50)
+        
+        designations = {
+            "Alpha": "Elite Traveler - Highest clearance and capabilities",
+            "Beta": "Specialist Traveler - Advanced skills in specific areas",
+            "Gamma": "Field Operative - Combat and infiltration specialist",
+            "Delta": "Support Traveler - Technical and logistical support",
+            "Epsilon": "Recruit Traveler - Newly awakened consciousness",
+            "Zeta": "Research Traveler - Scientific and analytical focus",
+            "Omega": "Command Traveler - Leadership and strategic planning"
+        }
+        
+        for designation, description in designations.items():
+            print(f"🔸 {designation}: {description}")
+        
+        print(f"\n📊 YOUR DESIGNATION:")
+        if hasattr(self, 'player_character') and self.player_character:
+            player_designation = getattr(self.player_character, 'designation', 'Unknown')
+            print(f"  • Current: {player_designation}")
+            
+            # Show designation benefits
+            if player_designation == "Alpha":
+                print(f"  • Benefits: Full system access, command authority, timeline manipulation")
+            elif player_designation == "Beta":
+                print(f"  • Benefits: Specialized equipment, advanced training, priority missions")
+            elif player_designation == "Gamma":
+                print(f"  • Benefits: Combat gear, infiltration tools, emergency protocols")
+            else:
+                print(f"  • Benefits: Standard equipment, basic training, support missions")
+        else:
+            print(f"  • No character information available")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_consequence_tracking(self):
+        """View timeline consequences and tracking"""
+        self.clear_screen()
+        self.print_header("CONSEQUENCE TRACKING")
+        
+        print("📊 TIMELINE CONSEQUENCE TRACKING")
+        print("=" * 50)
+        
+        # Show timeline stability
+        stability = getattr(self, 'timeline_stability', 75)
+        fragility = getattr(self, 'timeline_fragility', 25)
+        
+        print(f"🌍 TIMELINE STABILITY: {stability}%")
+        print(f"⚠️  TIMELINE FRAGILITY: {fragility}%")
+        
+        # Show recent consequences
+        if hasattr(self, 'timeline_events') and self.timeline_events:
+            print(f"\n📈 RECENT TIMELINE EVENTS:")
+            recent_events = self.timeline_events[-5:]  # Last 5 events
+            for event in recent_events:
+                impact = getattr(event, 'impact', 'Unknown')
+                description = getattr(event, 'description', 'Unknown event')
+                print(f"  • {description} (Impact: {impact})")
+        else:
+            print(f"\n📈 No timeline events recorded yet")
+        
+        # Show consequence predictions
+        print(f"\n🔮 CONSEQUENCE PREDICTIONS:")
+        predictions = [
+            "Timeline stability expected to decrease by 5-10%",
+            "Increased Faction activity predicted",
+            "Government surveillance likely to intensify",
+            "Director programmers may become more active",
+            "Timeline crisis probability: 35%"
+        ]
+        
+        for prediction in predictions:
+            confidence = random.randint(60, 95)
+            print(f"  • {prediction} (Confidence: {confidence}%)")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_mission_revision_status(self):
+        """View mission revision and planning status"""
+        self.clear_screen()
+        self.print_header("MISSION REVISION STATUS")
+        
+        print("📋 MISSION PLANNING & REVISION")
+        print("=" * 50)
+        
+        # Show current mission planning
+        if hasattr(self, 'active_missions') and self.active_missions:
+            print(f"🎯 ACTIVE MISSIONS: {len(self.active_missions)}")
+            for i, mission_execution in enumerate(self.active_missions, 1):
+                mission = mission_execution.get('mission', {})
+                print(f"  {i}. {mission.get('type', 'Unknown Mission')}")
+                print(f"     Location: {mission.get('location', 'Unknown')}")
+                print(f"     Priority: {mission.get('priority', 'Unknown')}")
+                print(f"     Status: {mission_execution.get('status', 'Planning')}")
+        else:
+            print("📭 No active missions requiring revision")
+        
+        # Show mission planning tools
+        print(f"\n🛠️  PLANNING TOOLS AVAILABLE:")
+        planning_tools = [
+            "Timeline Analysis Software",
+            "Risk Assessment Matrix",
+            "Resource Allocation Calculator",
+            "Contingency Planning Templates",
+            "Team Capability Analyzer"
+        ]
+        
+        for tool in planning_tools:
+            status = "✅" if random.choice([True, False]) else "⚠️"
+            print(f"  {status} {tool}")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_grand_plan_status(self):
+        """View the grand plan status and objectives"""
+        self.clear_screen()
+        self.print_header("GRAND PLAN STATUS")
+        
+        print("🎯 GRAND PLAN OBJECTIVES")
+        print("=" * 50)
+        
+        # Generate random grand plan elements
+        objectives = [
+            "Establish secure communication network",
+            "Recruit additional Traveler consciousness",
+            "Gather intelligence on Director activities",
+            "Secure advanced technology resources",
+            "Establish safe houses across timeline",
+            "Develop countermeasures against Faction",
+            "Build alliance with sympathetic humans",
+            "Prepare for timeline crisis events"
+        ]
+        
+        completed = random.randint(2, 4)
+        active = random.randint(3, 5)
+        pending = len(objectives) - completed - active
+        
+        print(f"📊 PROGRESS: {completed}/{len(objectives)} objectives completed")
+        print(f"🔄 ACTIVE: {active} objectives in progress")
+        print(f"⏳ PENDING: {pending} objectives waiting")
+        
+        print(f"\n✅ COMPLETED OBJECTIVES:")
+        for i in range(completed):
+            print(f"  • {objectives[i]}")
+        
+        print(f"\n🔄 ACTIVE OBJECTIVES:")
+        for i in range(completed, completed + active):
+            if i < len(objectives):
+                print(f"  • {objectives[i]}")
+        
+        print(f"\n⏳ PENDING OBJECTIVES:")
+        for i in range(completed + active, len(objectives)):
+            print(f"  • {objectives[i]}")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def manage_team_supplies(self):
+        """Manage team supplies and resources"""
+        self.clear_screen()
+        self.print_header("TEAM SUPPLIES")
+        
+        if not self.team_formed:
+            print("❌ You need a team before managing supplies.")
+            input("Press Enter to continue...")
+            return
+        
+        print("📦 TEAM SUPPLIES MANAGEMENT")
+        print("=" * 50)
+        
+        # Generate random supply levels
+        medical_supplies = random.randint(20, 80)
+        weapons = random.randint(10, 50)
+        communication_devices = random.randint(5, 15)
+        food_water = random.randint(30, 90)
+        money = random.randint(1000, 10000)
+        
+        print(f"🏥 Medical Supplies: {medical_supplies}%")
+        print(f"🔫 Weapons & Ammunition: {weapons}%")
+        print(f"📱 Communication Devices: {communication_devices}%")
+        print(f"🍽️ Food & Water: {food_water}%")
+        print(f"💰 Available Funds: ${money:,}")
+        
+        print(f"\n📊 SUPPLY STATUS:")
+        if medical_supplies < 30:
+            print("  ⚠️  Medical supplies critically low!")
+        if weapons < 20:
+            print("  ⚠️  Weapons cache needs replenishment!")
+        if communication_devices < 8:
+            print("  ⚠️  Communication systems compromised!")
+        if food_water < 40:
+            print("  ⚠️  Food and water supplies low!")
+        
+        print(f"\n🎯 RECOMMENDATIONS:")
+        if medical_supplies < 50:
+            print("  • Raid medical facilities for supplies")
+        if weapons < 40:
+            print("  • Acquire weapons from military/police sources")
+        if communication_devices < 10:
+            print("  • Steal communication equipment")
+        if food_water < 60:
+            print("  • Secure food and water sources")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def establish_base_of_operations(self):
+        """Establish a base of operations for the team"""
+        self.clear_screen()
+        self.print_header("ESTABLISH BASE OF OPERATIONS")
+        
+        if not self.team_formed:
+            print("❌ You need a team before establishing a base.")
+            input("Press Enter to continue...")
+            return
+        
+        print("🏠 ESTABLISHING BASE OF OPERATIONS")
+        print("=" * 50)
+        print("Your team needs a secure location to:")
+        print("• Coordinate missions and planning")
+        print("• Store equipment and supplies")
+        print("• Provide medical treatment")
+        print("• Establish secure communications")
+        
+        # Generate potential base locations
+        base_options = [
+            "Abandoned warehouse in industrial district",
+            "Underground parking garage",
+            "Vacant office building",
+            "Old hospital wing",
+            "School basement (summer break)",
+            "Church basement",
+            "Library storage area",
+            "Mall storage room"
+        ]
+        
+        print(f"\n📍 AVAILABLE LOCATIONS:")
+        for i, location in enumerate(base_options, 1):
+            print(f"{i}. {location}")
+        
+        print(f"\n🎯 RECOMMENDATION:")
+        recommended = random.choice(base_options)
+        print(f"   The Director suggests: {recommended}")
+        print(f"   This location offers good security and accessibility.")
+        
+        # Set the base
+        self.team.base_of_operations = recommended
+        
+        print(f"\n✅ BASE ESTABLISHED!")
+        print(f"   Location: {recommended}")
+        print(f"   Security Level: Medium")
+        print(f"   Accessibility: Good")
+        print(f"   Cover Story: 'Private research facility'")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_host_body_complications(self):
+        """View host body complications and health status"""
+        self.clear_screen()
+        self.print_header("HOST BODY COMPLICATIONS")
+        
+        if hasattr(self, 'player_character') and self.player_character and hasattr(self.player_character, 'host_body'):
+            host_body = self.player_character.host_body
+            print("🏥 HOST BODY HEALTH STATUS")
+            print("=" * 50)
+            
+            # Check for various complications
+            complications = []
+            if hasattr(host_body, 'health_status') and host_body.health_status != 'Healthy':
+                complications.append(f"Health: {host_body.health_status}")
+            
+            if hasattr(host_body, 'mental_state') and host_body.mental_state != 'Stable':
+                complications.append(f"Mental State: {host_body.mental_state}")
+            
+            if hasattr(host_body, 'social_standing') and host_body.social_standing == 'Compromised':
+                complications.append(f"Social Standing: {host_body.social_standing}")
+            
+            if hasattr(host_body, 'legal_status') and host_body.legal_status == 'Wanted':
+                complications.append(f"Legal Status: {host_body.legal_status}")
+            
+            if complications:
+                print("⚠️  ACTIVE COMPLICATIONS:")
+                for comp in complications:
+                    print(f"  • {comp}")
+            else:
+                print("✅ No active complications detected")
+            
+            # Show general host body info
+            print(f"\n📋 HOST BODY DETAILS:")
+            print(f"  • Name: {getattr(host_body, 'name', 'Unknown')}")
+            print(f"  • Age: {getattr(host_body, 'age', 'Unknown')}")
+            print(f"  • Occupation: {getattr(host_body, 'occupation', 'Unknown')}")
+            print(f"  • Location: {getattr(host_body, 'location', 'Unknown')}")
+        else:
+            print("❌ No host body information available")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
     def view_hacking_system(self):
         """View hacking system status and operations"""
         self.clear_screen()
@@ -3585,7 +3904,7 @@ class Game:
         print("🖥️  HACKING SYSTEM STATUS")
         print("=" * 50)
         
-        if hasattr(self, 'hacking_system') and self.hacking_system:
+        if hasattr(self, 'player_character') and self.player_character:
             # Show hacking statistics
             total_hackers = len(getattr(self.hacking_system, 'hackers', []))
             total_targets = len(getattr(self.hacking_system, 'targets', []))
@@ -3637,49 +3956,84 @@ class Game:
         
         self.print_separator()
         input("Press Enter to continue...")
-    
-    def view_host_body_life(self):
-        """View host body life details"""
+
+    def view_npc_interactions(self):
+        """View NPC interactions and relationships"""
         self.clear_screen()
-        self.print_header("HOST BODY LIFE")
+        self.print_header("NPC INTERACTIONS")
         
-        if self.player_character and self.player_character.host_body:
-            host = self.player_character.host_body
-            print(f"👤 Host: {self.player_character.name}")
-            print(f"📊 Age: {self.player_character.age}")
-            print(f"💼 Occupation: {host.occupation}")
-            print(f"🏠 Location: {host.location}")
-            print(f"📱 Cover Status: Maintaining host identity")
-            
-            print(f"\n👥 FAMILY SITUATION:")
-            print(f"   • {host.family_status}")
-            
-            print(f"\n🧬 BACKGROUND:")
-            print(f"   • {host.backstory}")
-            
-            print(f"\n🏥 MEDICAL STATUS:")
-            print(f"   • {host.medical_condition}")
-            
-            print(f"\n💰 FINANCIAL SITUATION:")
-            print(f"   • {host.financial_status}")
-            
-            print(f"\n🤝 SOCIAL NETWORK:")
-            print(f"   • {host.social_connections}")
-            
-            print(f"\n📅 DAILY LIFE:")
-            print(f"   • {host.daily_routine}")
-            
-            print(f"\n⚠️ INTEGRATION CHALLENGES:")
-            print("   • Maintaining host's relationships while serving the mission")
-            print("   • Avoiding timeline contamination through host interactions")
-            print("   • Managing host body's existing commitments and responsibilities")
-            
-        else:
-            print("❌ No host body information available.")
+        if not self.team_formed:
+            print("❌ You need a team before managing NPC interactions.")
+            input("Press Enter to continue...")
+            return
+        
+        print("🤝 NPC INTERACTIONS & RELATIONSHIPS")
+        print("=" * 50)
+        
+        # Generate random NPC relationships
+        npc_types = ["Local Police", "Hospital Staff", "Government Officials", "Business Owners", "Civilians"]
+        relationship_levels = ["Hostile", "Suspicious", "Neutral", "Friendly", "Trusted"]
+        
+        print("📊 CURRENT NPC RELATIONSHIPS:")
+        for npc_type in npc_types:
+            relationship = random.choice(relationship_levels)
+            trust_level = random.randint(1, 10)
+            status_icon = "🔴" if relationship in ["Hostile", "Suspicious"] else "🟡" if relationship == "Neutral" else "🟢"
+            print(f"  {status_icon} {npc_type}: {relationship} (Trust: {trust_level}/10)")
+        
+        print(f"\n🎯 INTERACTION STRATEGIES:")
+        print("  • Use host body's existing relationships for cover")
+        print("  • Maintain consistent behavior patterns")
+        print("  • Avoid drawing attention to timeline inconsistencies")
+        print("  • Build trust through helpful actions")
+        
+        print(f"\n⚠️  WARNINGS:")
+        print("  • Don't reveal future knowledge")
+        print("  • Maintain host's personality traits")
+        print("  • Avoid protocol violations in public")
         
         self.print_separator()
         input("Press Enter to continue...")
-    
+
+    def view_team_status(self):
+        """View team status - alias for view_team_roster"""
+        self.view_team_roster()
+
+    def view_faction_status(self):
+        """View current Faction activities and threats"""
+        self.clear_screen()
+        self.print_header("FACTION STATUS")
+        
+        print("🦹 THE FACTION - Human Opposition to the Director")
+        print("=" * 60)
+        print("The Faction opposes AI control over humanity's destiny.")
+        print("They believe humans should control their own future, even at catastrophic cost.")
+        
+        if hasattr(self, 'ai_world_controller') and hasattr(self.ai_world_controller, 'faction_operatives'):
+            faction_count = len(self.ai_world_controller.faction_operatives)
+            print(f"\n📊 FACTION ACTIVITIES:")
+            print(f"• Active Operatives: {faction_count}")
+            print(f"• Threat Level: {'High' if faction_count > 3 else 'Medium' if faction_count > 1 else 'Low'}")
+            
+            if faction_count > 0:
+                print(f"\n⚠️  CURRENT THREATS:")
+                print("• Attempting to hijack Director communications")
+                print("• Deploying space-time attenuators to block Director reach")
+                print("• Engineering biological weapons for population control")
+                print("• Recruiting disillusioned Travelers to their cause")
+        else:
+            print("\n📊 FACTION ACTIVITIES:")
+            print("• No active Faction operatives detected")
+            print("• Threat Level: Low")
+        
+        print(f"\n🎯 DIRECTOR'S RESPONSE:")
+        print("• Actively hunting down Faction members")
+        print("• Implementing enhanced security protocols")
+        print("• Monitoring for Faction recruitment attempts")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
     def view_government_news_and_status(self):
         """View government news and operational status"""
         self.clear_screen()
@@ -3752,10 +4106,10 @@ class Game:
                 if active_consequences:
                     print(f"\n🌍 ACTIVE WORLD CONSEQUENCES:")
                     for consequence in active_consequences:
-                        print(f"   • {consequence['event_type'].replace('_', ' ').title()}")
-                        print(f"     Location: {consequence['location']}")
-                        print(f"     Method: {consequence['method']}")
-                        print(f"     Status: {consequence['status']}")
+                        print(f"  • {consequence['event_type'].replace('_', ' ').title()}")
+                        print(f"    Location: {consequence['location']}")
+                        print(f"    Method: {consequence['method']}")
+                        print(f"    Status: {consequence['status']}")
             
             print(f"\n⚠️  IMPORTANT NOTES:")
             print("   • Government does not know about Travelers or the Faction")

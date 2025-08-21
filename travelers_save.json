@@ -1,17 +1,18 @@
 {
   "team_leader": {
-    "name": "Eli",
-    "designation": "4755",
+    "name": "Morgan",
+    "designation": "7444",
     "role": "Team Leader",
-    "occupation": "Leader",
+    "occupation": "Scientist",
     "skills": [
-      "Cosmology",
-      "Data Mining",
-      "Horticulture"
+      "Sociology",
+      "Intimidation",
+      "Dance",
+      "Film"
     ],
     "abilities": [
-      "Skilled Engineer",
-      "Expert Negotiator"
+      "Gifted Investigator",
+      "Master Trainer"
     ],
     "mission_count": 0,
     "success_rate": 0.0,
@@ -20,21 +21,22 @@
   },
   "team_members": [
     {
-      "name": "Joseph",
-      "designation": "8966",
+      "name": "Bryson",
+      "designation": "5785",
       "role": "Historian",
-      "occupation": "Historian",
+      "occupation": "Scientist",
       "skills": [
-        "Marksmanship",
-        "Piloting",
-        "Linguistics",
-        "Accounting"
+        "Volcanology",
+        "Astronomy",
+        "Toxicology",
+        "Data Analysis",
+        "First Aid"
       ],
       "abilities": [
-        "Master Sailor",
-        "Master Mediator",
-        "Expert Forger",
-        "Master of Disguise"
+        "Expert Journalist",
+        "Master of Escape",
+        "Photographic Memory",
+        "Exceptional Competitor"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -42,22 +44,19 @@
       "timeline_impact": 0
     },
     {
-      "name": "Mark",
-      "designation": "6257",
+      "name": "Brandon",
+      "designation": "3008",
       "role": "Engineer",
       "occupation": "Scientist",
       "skills": [
-        "Toxicology",
-        "Athletics",
-        "Space Exploration",
-        "Environmental Science",
-        "Astronomy"
+        "Penetration Testing",
+        "Fashion Design",
+        "Management"
       ],
       "abilities": [
-        "Master Entrepreneur",
-        "Master Trainer",
-        "Expert Coach",
-        "Expert Sommelier"
+        "Skilled Driver",
+        "Expert Forger",
+        "Exceptional Scientist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -65,19 +64,22 @@
       "timeline_impact": 0
     },
     {
-      "name": "Alyssa",
-      "designation": "4548",
+      "name": "Cole",
+      "designation": "9065",
       "role": "Medic",
-      "occupation": "Scientist",
+      "occupation": "Leader",
       "skills": [
-        "Vulnerability Assessment",
-        "Data Warehousing",
-        "Horticulture"
+        "Marketing",
+        "Psychology",
+        "Algorithm Design",
+        "Persuasion",
+        "Networking"
       ],
       "abilities": [
-        "Exceptional Researcher",
-        "Skilled Linguist",
-        "Expert Manager"
+        "Exceptional Peacemaker",
+        "Gifted Coach",
+        "Photographic Memory",
+        "Skilled Writer"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -85,19 +87,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "Natalie",
-      "designation": "7221",
+      "name": "Larry",
+      "designation": "8381",
       "role": "Tactician",
-      "occupation": "Scientist",
+      "occupation": "Medic",
       "skills": [
-        "Horticulture",
-        "Vulnerability Assessment",
-        "Literature"
+        "Forensics",
+        "Agriculture",
+        "Architecture",
+        "Electrical Engineering",
+        "Mathematics"
       ],
       "abilities": [
-        "Master of Escape",
-        "Expert Tracker",
-        "Master Surgeon"
+        "Exceptional Scientist",
+        "Skilled Negotiator"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -110,16 +113,25 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.774,
+  "timeline_stability": 0.765,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
-      "change": -0.02,
-      "actual_change": -0.026000000000000002,
-      "old_stability": 0.8,
-      "new_stability": 0.774,
-      "source": "mission_protocol_violation_cleanup_partial_success",
+      "change": -0.2,
+      "actual_change": -0.26,
+      "old_stability": 0.85,
+      "new_stability": 0.59,
+      "source": "mission_prevent_historical_disaster_critical_failure",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
+      "change": 0.1,
+      "actual_change": 0.13,
+      "old_stability": 0.635,
+      "new_stability": 0.765,
+      "source": "mission_prevent_traveler_exposure_complete_success",
       "fragility_impact": 0.3
     }
   ]

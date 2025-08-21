@@ -1,6 +1,7 @@
 # messenger_system.py
 import random
 import time
+from datetime import datetime, timedelta
 
 class Messenger:
     def __init__(self, name, age, location, message_type, message_content):
@@ -217,32 +218,8 @@ class MessengerSystem:
     
     def apply_ongoing_world_effects(self, game_ref):
         """Apply ongoing effects of active world events to the game"""
-        if not hasattr(game_ref, 'living_world'):
-            return
-        
-        living_world = game_ref.living_world
-        
-        for event in self.active_world_events:
-            if event["active"] and "effects" in event:
-                for effect_key, effect_value in event["effects"].items():
-                    if hasattr(living_world, effect_key):
-                        current_value = getattr(living_world, effect_key)
-                        if isinstance(current_value, (int, float)):
-                            # Apply percentage changes
-                            if "+" in str(effect_value):
-                                percentage = float(effect_value.replace("+", "").replace("%", "")) / 100
-                                new_value = current_value * (1 + percentage)
-                            elif "-" in str(effect_value):
-                                percentage = float(effect_value.replace("-", "").replace("%", "")) / 100
-                                new_value = current_value * (1 - percentage)
-                            else:
-                                new_value = current_value
-                            
-                            # Ensure values stay within bounds
-                            if effect_key in ["timeline_stability", "director_control", "faction_influence"]:
-                                new_value = max(0.0, min(1.0, new_value))
-                            
-                            setattr(living_world, effect_key, new_value)
+        # Note: World effects are now handled by GlobalWorldStateTracker
+        # This method is kept for compatibility but no longer actively modifies world state
         
         # Clean up expired events
         self.cleanup_expired_events()
@@ -450,7 +427,10 @@ class MessengerSystem:
         
         # Execute the mission automatically
         print(f"\n⚡ EXECUTING URGENT MISSION...")
-        print(f"Team Leader {game_ref.team.leader.designation} taking point.")
+        if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader') and game_ref.team.leader:
+            print(f"Team Leader {game_ref.team.leader.designation} taking point.")
+        else:
+            print("Team Leader taking point (team details not yet available).")
         
         # Simulate mission execution
         success, total_progress, phase_results = self.simulate_messenger_mission(messenger, game_ref)
@@ -560,7 +540,7 @@ class MessengerSystem:
         # Calculate base D20 roll modifier (behind the scenes)
         base_modifier = 0
         
-        if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader'):
+        if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader') and game_ref.team.leader:
             # Adjust based on team leader stats
             leader = game_ref.team.leader
             if leader.protocol_violations > 2:
@@ -569,6 +549,17 @@ class MessengerSystem:
                 base_modifier -= 2   # Low stability hurts performance
             if leader.mission_count > 5:
                 base_modifier += 2   # Experience helps
+        else:
+            # Create a default leader if team not available
+            leader = {
+                "designation": "Unknown",
+                "name": "Team Leader",
+                "role": "Traveler",
+                "skills": ["Investigation", "Analysis"],
+                "mission_count": 0,
+                "consciousness_stability": 1.0,
+                "timeline_contamination": 0.0
+            }
         
         # Mission difficulty affects DC (Difficulty Class) - behind the scenes
         if "EXTREME" in messenger.message_content or "Protocol Alpha" in messenger.message_content:
@@ -618,7 +609,7 @@ class MessengerSystem:
                 print(f"⚠️  {phase['name']} complications (Roll: {roll} + {base_modifier} = {phase_total})")
                 phase_results.append(False)
                 base_modifier -= 1  # Failure penalty for next phase
-            
+        
             total_progress += phase_progress
             
             # Show progress bar
@@ -692,10 +683,11 @@ class MessengerSystem:
                 print(f"• Timeline stability significantly improved")
                 print(f"• Local law enforcement coordination enhanced")
                 print(f"• Civilian casualties prevented")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.12)
-                    game_ref.living_world.faction_influence = max(0.0, game_ref.living_world.faction_influence - 0.08)
-                    game_ref.living_world.director_control = min(1.0, game_ref.living_world.director_control + 0.06)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", 0.12, "increase")
+                global_world_tracker.apply_single_effect("faction_influence", -0.08, "decrease")
+                global_world_tracker.apply_single_effect("director_control", 0.06, "increase")
                     
             elif "dr. delaney" in messenger.message_content.lower():
                 print(f"• Dr. Delaney protected successfully")
@@ -703,8 +695,9 @@ class MessengerSystem:
                 print(f"• Assassination plot thwarted")
                 print(f"• Scientific community remains intact")
                 print(f"• Future technology development secured")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.08)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", 0.08, "increase")
                     
             elif "001" in messenger.message_content:
                 print(f"• Traveler 001 movements tracked")
@@ -712,8 +705,9 @@ class MessengerSystem:
                 print(f"• No direct confrontation avoided")
                 print(f"• Strategic intelligence advantage gained")
                 print(f"• Faction operational patterns revealed")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.faction_influence = max(0.0, game_ref.living_world.faction_influence - 0.04)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("faction_influence", -0.04, "decrease")
                     
             elif "protocol violation" in messenger.message_content.lower() or "host body rejection" in messenger.message_content.lower():
                 print(f"• Host body rejection symptoms stabilized")
@@ -721,8 +715,9 @@ class MessengerSystem:
                 print(f"• Medical protocols updated and refined")
                 print(f"• Host body integration improved")
                 print(f"• Timeline contamination minimized")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.06)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", 0.06, "increase")
                     
             elif "faction" in messenger.message_content.lower():
                 print(f"• Faction operations disrupted successfully")
@@ -730,9 +725,10 @@ class MessengerSystem:
                 print(f"• Government agencies coordinate response")
                 print(f"• Civilian safety improved")
                 print(f"• Infrastructure security enhanced")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.08)
-                    game_ref.living_world.faction_influence = max(0.0, game_ref.living_world.faction_influence - 0.05)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", 0.08, "increase")
+                global_world_tracker.apply_single_effect("faction_influence", -0.05, "decrease")
                     
             elif "emergency" in messenger.message_content.lower() or "critical mission" in messenger.message_content.lower() or "protocol alpha" in messenger.message_content.lower():
                 print(f"• Emergency response protocols successful")
@@ -740,9 +736,10 @@ class MessengerSystem:
                 print(f"• Director communications restored")
                 print(f"• Timeline stability maintained")
                 print(f"• Emergency protocols validated")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.10)
-                    game_ref.living_world.director_control = min(1.0, game_ref.living_world.director_control + 0.08)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", 0.10, "increase")
+                global_world_tracker.apply_single_effect("director_control", 0.08, "increase")
                     
             else:
                 # Fallback for any other message types
@@ -751,8 +748,9 @@ class MessengerSystem:
                 print(f"• Host body integration strengthened")
                 print(f"• Operational protocols successful")
                 print(f"• Director control enhanced")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.04)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", 0.04, "increase")
                     
             # Reward team leader
             if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader'):
@@ -768,9 +766,10 @@ class MessengerSystem:
                 print(f"• Timeline instability increases")
                 print(f"• Civilian casualties likely")
                 print(f"• Local infrastructure damage")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.08)
-                    game_ref.living_world.faction_influence = min(1.0, game_ref.living_world.faction_influence + 0.06)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", -0.08, "decrease")
+                global_world_tracker.apply_single_effect("faction_influence", 0.06, "increase")
                     
             elif "dr. delaney" in messenger.message_content.lower():
                 print(f"• Dr. Delaney assassination successful")
@@ -778,8 +777,9 @@ class MessengerSystem:
                 print(f"• Future technology development compromised")
                 print(f"• Scientific community destabilized")
                 print(f"• Research funding diverted")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.12)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", -0.12, "decrease")
                     
             elif "protocol violation" in messenger.message_content.lower() or "host body rejection" in messenger.message_content.lower():
                 print(f"• Host body rejection symptoms worsen")
@@ -787,8 +787,9 @@ class MessengerSystem:
                 print(f"• Medical protocols compromised")
                 print(f"• Host body integration weakened")
                 print(f"• Timeline contamination increases")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.10)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", -0.10, "decrease")
                     
             elif "faction" in messenger.message_content.lower():
                 print(f"• Faction operations continue unchecked")
@@ -796,9 +797,10 @@ class MessengerSystem:
                 print(f"• Government agencies lose control")
                 print(f"• Civilian safety compromised")
                 print(f"• Infrastructure security weakened")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.08)
-                    game_ref.living_world.faction_influence = min(1.0, game_ref.living_world.faction_influence + 0.06)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", -0.08, "decrease")
+                global_world_tracker.apply_single_effect("faction_influence", 0.06, "increase")
                     
             elif "president" in messenger.message_content.lower() and "assassination" in messenger.message_content.lower():
                 print(f"🚨 PRESIDENTIAL ASSASSINATION MISSION FAILED!")
@@ -817,9 +819,10 @@ class MessengerSystem:
                 print(f"• Director communications compromised")
                 print(f"• Timeline stability threatened")
                 print(f"• Emergency protocols need review")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.10)
-                    game_ref.living_world.director_control = max(0.0, game_ref.living_world.director_control - 0.08)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", -0.10, "decrease")
+                global_world_tracker.apply_single_effect("director_control", -0.08, "decrease")
                     
             else:
                 # Fallback for any other message types
@@ -828,8 +831,9 @@ class MessengerSystem:
                 print(f"• Host body integration weakened")
                 print(f"• Operational protocols failing")
                 print(f"• Director control diminished")
-                if hasattr(game_ref, 'living_world'):
-                    game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.06)
+                # Update world state through GlobalWorldStateTracker
+                from messenger_system import global_world_tracker
+                global_world_tracker.apply_single_effect("timeline_stability", -0.06, "decrease")
                     
             # Penalize team leader
             if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader'):
@@ -883,10 +887,10 @@ class MessengerSystem:
                     "Emergency services response time improved by 30%"
                 ])
                 world_changes["world_state_updates"].update({
-                    "seattle_police_alert": "HIGH",
+                    "seattle_police_alert": 0.8,  # HIGH = 0.8
                     "faction_operatives_captured": 3,
-                    "power_grid_security": "ENHANCED",
-                    "emergency_response": "IMPROVED"
+                    "power_grid_security": 0.9,  # ENHANCED = 0.9
+                    "emergency_response": 0.85   # IMPROVED = 0.85
                 })
             else:
                 world_changes["immediate_events"].extend([
@@ -897,10 +901,10 @@ class MessengerSystem:
                     "Emergency services stretched thin"
                 ])
                 world_changes["world_state_updates"].update({
-                    "seattle_police_alert": "CRITICAL",
+                    "seattle_police_alert": 1.0,  # CRITICAL = 1.0
                     "civilian_casualties": 5,
-                    "property_damage": "EXTENSIVE",
-                    "power_grid_status": "COMPROMISED"
+                    "property_damage": 0.9,      # EXTENSIVE = 0.9
+                    "power_grid_status": 0.3     # COMPROMISED = 0.3
                 })
                 
         elif "protocol violation" in message_content or "host body rejection" in message_content:
@@ -913,10 +917,10 @@ class MessengerSystem:
                     "Medical staff receive new protocols"
                 ])
                 world_changes["world_state_updates"].update({
-                    "host_body_integration": "STABLE",
-                    "medical_protocols": "UPDATED",
-                    "emergency_transfer": "READY",
-                    "timeline_contamination": "MINIMAL"
+                    "host_body_integration": 0.8,  # STABLE = 0.8
+                    "medical_protocols": 0.9,      # UPDATED = 0.9
+                    "emergency_transfer": 0.95,    # READY = 0.95
+                    "timeline_contamination": 0.2  # MINIMAL = 0.2
                 })
             else:
                 world_changes["immediate_events"].extend([
@@ -927,10 +931,10 @@ class MessengerSystem:
                     "Host body integration protocols failing"
                 ])
                 world_changes["world_state_updates"].update({
-                    "host_body_integration": "CRITICAL",
-                    "medical_protocols": "COMPROMISED",
-                    "emergency_transfer": "FAILED",
-                    "timeline_contamination": "INCREASING"
+                    "host_body_integration": 0.2,  # CRITICAL = 0.2
+                    "medical_protocols": 0.3,      # COMPROMISED = 0.3
+                    "emergency_transfer": 0.1,     # FAILED = 0.1
+                    "timeline_contamination": 0.8  # INCREASING = 0.8
                 })
                 
         elif "faction" in message_content:
@@ -943,10 +947,10 @@ class MessengerSystem:
                     "Infrastructure security enhanced"
                 ])
                 world_changes["world_state_updates"].update({
-                    "faction_operations": "DISRUPTED",
-                    "law_enforcement_intel": "ENHANCED",
-                    "government_coordination": "ACTIVE",
-                    "civilian_safety": "IMPROVED"
+                    "faction_operations": 0.3,  # DISRUPTED = 0.3
+                    "law_enforcement_intel": 0.8,  # ENHANCED = 0.8
+                    "government_coordination": 0.9,  # ACTIVE = 0.9
+                    "civilian_safety": 0.85  # IMPROVED = 0.85
                 })
             else:
                 world_changes["immediate_events"].extend([
@@ -957,10 +961,10 @@ class MessengerSystem:
                     "Infrastructure security weakened"
                 ])
                 world_changes["world_state_updates"].update({
-                    "faction_operations": "UNCHECKED",
-                    "law_enforcement_status": "OVERWHELMED",
-                    "government_control": "DIMINISHED",
-                    "civilian_safety": "COMPROMISED"
+                    "faction_operations": 0.8,  # UNCHECKED = 0.8
+                    "law_enforcement_status": 0.2,  # OVERWHELMED = 0.2
+                    "government_control": 0.3,  # DIMINISHED = 0.3
+                    "civilian_safety": 0.2  # COMPROMISED = 0.2
                 })
         
         elif "emergency" in message_content or "critical mission" in message_content or "protocol alpha" in message_content:
@@ -973,10 +977,10 @@ class MessengerSystem:
                     "Emergency protocols validated"
                 ])
                 world_changes["world_state_updates"].update({
-                    "emergency_response": "SUCCESSFUL",
-                    "critical_threat": "NEUTRALIZED",
-                    "director_communications": "RESTORED",
-                    "timeline_stability": "MAINTAINED"
+                    "emergency_response": 1.0,  # SUCCESSFUL = 1.0
+                    "critical_threat": 0.0,    # NEUTRALIZED = 0.0
+                    "director_communications": 1.0,  # RESTORED = 1.0
+                    "timeline_stability": 1.0  # MAINTAINED = 1.0
                 })
             else:
                 world_changes["immediate_events"].extend([
@@ -987,10 +991,10 @@ class MessengerSystem:
                     "Emergency protocols need review"
                 ])
                 world_changes["world_state_updates"].update({
-                    "emergency_response": "FAILED",
-                    "critical_threat": "ACTIVE",
-                    "director_communications": "COMPROMISED",
-                    "timeline_stability": "THREATENED"
+                    "emergency_response": 0.0,  # FAILED = 0.0
+                    "critical_threat": 1.0,    # ACTIVE = 1.0
+                    "director_communications": 0.0,  # COMPROMISED = 0.0
+                    "timeline_stability": 0.0  # THREATENED = 0.0
                 })
         
         # Apply timeline alterations
@@ -1076,9 +1080,7 @@ class MessengerSystem:
                 "Public confidence shaken"
             ])
         
-        # Apply changes to game world if available
-        if hasattr(game_ref, 'living_world'):
-            self.apply_changes_to_living_world(world_changes, game_ref.living_world)
+        # Note: World changes are now applied through GlobalWorldStateTracker and track_mission_outcome
         
         # Track this messenger mission with the global world tracker
         mission_effects = []
@@ -1102,28 +1104,7 @@ class MessengerSystem:
         
         return world_changes
 
-    def apply_changes_to_living_world(self, world_changes, living_world):
-        """Apply the world changes to the living world system"""
-        # Update world state based on changes
-        for key, value in world_changes["world_state_updates"].items():
-            if hasattr(living_world, key):
-                setattr(living_world, key, value)
-            else:
-                # Store in a dynamic attributes dictionary
-                if not hasattr(living_world, '_dynamic_attributes'):
-                    living_world._dynamic_attributes = {}
-                living_world._dynamic_attributes[key] = value
-        
-        # Update timeline stability based on mission outcome
-        if "timeline_stability" in world_changes["world_state_updates"]:
-            living_world.timeline_stability = world_changes["world_state_updates"]["timeline_stability"]
-        
-        # Update faction influence
-        if "faction_operations" in world_changes["world_state_updates"]:
-            if world_changes["world_state_updates"]["faction_operations"] == "DISRUPTED":
-                living_world.faction_influence = max(0.0, living_world.faction_influence - 0.05)
-            elif world_changes["world_state_updates"]["faction_operations"] == "UNCHECKED":
-                living_world.faction_influence = min(1.0, living_world.faction_influence + 0.05)
+
 
     def show_applied_world_changes(self, world_changes):
         """Show the real-time world changes that were applied"""
@@ -1393,25 +1374,29 @@ class MessengerSystem:
 
     def show_timeline_metrics(self, game_ref):
         """Show current timeline stability metrics"""
-        if hasattr(game_ref, 'living_world'):
-            world = game_ref.living_world
-            print(f"• Current Timeline Stability: {world.timeline_stability:.1%}")
-            print(f"• Director Control Level: {world.director_control:.1%}")
-            print(f"• Faction Influence: {world.faction_influence:.1%}")
-            
-            # Calculate timeline health
-            timeline_health = (world.timeline_stability + world.director_control + (1.0 - world.faction_influence)) / 3
-            if timeline_health > 0.7:
-                status = "🟢 HEALTHY"
-            elif timeline_health > 0.4:
-                status = "🟡 STABLE"
-            else:
-                status = "🔴 CRITICAL"
-            
-            print(f"• Overall Timeline Health: {status} ({timeline_health:.1%})")
+        # Import the global world tracker to get real-time data
+        from messenger_system import global_world_tracker
+        
+        # Get current values from the global world tracker
+        timeline_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.85)
+        director_control = global_world_tracker.world_state_cache.get("director_control", 0.92)
+        faction_influence = global_world_tracker.world_state_cache.get("faction_influence", 0.23)
+        
+        print(f"• Current Timeline Stability: {timeline_stability:.1%}")
+        print(f"• Director Control Level: {director_control:.1%}")
+        print(f"• Faction Influence: {faction_influence:.1%}")
+        
+        # Calculate timeline health
+        timeline_health = (timeline_stability + director_control + (1.0 - faction_influence)) / 3
+        if timeline_health > 0.7:
+            status = "🟢 HEALTHY"
+        elif timeline_health > 0.4:
+            status = "🟡 STABLE"
         else:
-            print(f"• Timeline metrics unavailable")
-            print(f"• Living world system not initialized")
+            status = "🔴 CRITICAL"
+        
+        print(f"• Overall Timeline Health: {status} ({timeline_health:.1%})")
+        print(f"• Data Source: Global World State Tracker (Real-time)")
 
     def check_for_messenger_events(self, game_state):
         """Check if a messenger should arrive based on game state"""
@@ -1432,11 +1417,89 @@ class MessengerSystem:
         
         return random.randint(1, 20) <= int(base_chance * 20)  # Convert percentage to D20 roll
     
+
+
     def has_urgent_messages(self):
         """Check if there are any urgent messages that need attention"""
         # For now, randomly determine if there are urgent messages
         # In a more complex system, this would check actual message queues
         return random.choice([True, False])
+
+    def _handle_presidential_assassination_failure(self, messenger, game_ref):
+        """Handle the consequences of a failed presidential assassination prevention mission"""
+        try:
+            # Import the government consequences system
+            from government_consequences_system import initialize_government_consequences, report_presidential_assassination_consequence
+            
+            # Initialize the system if not already done
+            if not hasattr(game_ref, 'government_consequences'):
+                game_ref.government_consequences = initialize_government_consequences(game_ref)
+            
+            # Extract location and method from message content
+            location = self._extract_location_from_message(messenger.message_content)
+            method = self._extract_method_from_message(messenger.message_content)
+            
+            # Report the presidential assassination and trigger consequences
+            consequence_event = report_presidential_assassination_consequence(
+                location=location,
+                method=method,
+                mission_failed=True
+            )
+            
+            if consequence_event:
+                print(f"\n🚨 PRESIDENTIAL ASSASSINATION CONSEQUENCES TRIGGERED:")
+                print(f"• Location: {location}")
+                print(f"• Method: {method}")
+                print(f"• Government crisis response activated")
+                print(f"• Real-time consequences applied to game world")
+                print(f"• Government news system updated")
+                
+                # Show immediate world state changes
+                from messenger_system import global_world_tracker
+                current_state = global_world_tracker.world_state_cache
+                print(f"\n🌍 IMMEDIATE WORLD STATE CHANGES:")
+                print(f"• Timeline Stability: {current_state.get('timeline_stability', 0.85):.1%}")
+                print(f"• Government Control: {current_state.get('government_control', 0.75):.1%}")
+                print(f"• Faction Influence: {current_state.get('faction_influence', 0.23):.1%}")
+                print(f"• National Security: {current_state.get('national_security', 0.60):.1%}")
+                
+                # Show government operations initiated
+                gov_ops = game_ref.government_consequences.get_government_operations_status()
+                print(f"\n🏛️ GOVERNMENT OPERATIONS INITIATED:")
+                print(f"• Active Operations: {gov_ops['active_operations']}")
+                print(f"• Crisis Effects: {gov_ops['crisis_effects']['national_emergency']}")
+                print(f"• Military Alert Level: {gov_ops['crisis_effects']['military_alert_level']}")
+                
+        except ImportError:
+            print(f"⚠️ Warning: Government consequences system not available")
+            print(f"• Presidential assassination consequences not fully processed")
+        except Exception as e:
+            print(f"⚠️ Error processing presidential assassination consequences: {e}")
+    
+    def _extract_location_from_message(self, message_content: str) -> str:
+        """Extract location from presidential assassination message"""
+        # Default to Washington D.C. if no specific location found
+        if "washington" in message_content.lower() or "dc" in message_content.lower():
+            return "Washington D.C."
+        elif "white house" in message_content.lower():
+            return "White House, Washington D.C."
+        elif "camp david" in message_content.lower():
+            return "Camp David, Maryland"
+        else:
+            return "Washington D.C."  # Default location
+    
+    def _extract_method_from_message(self, message_content: str) -> str:
+        """Extract assassination method from message"""
+        if "sniper" in message_content.lower() or "shooting" in message_content.lower():
+            return "Sniper attack"
+        elif "bomb" in message_content.lower() or "explosive" in message_content.lower():
+            return "Explosive device"
+        elif "poison" in message_content.lower():
+            return "Poisoning"
+        elif "vehicle" in message_content.lower() or "car" in message_content.lower():
+            return "Vehicle attack"
+        else:
+            return "Coordinated attack"  # Default method
 
     def get_messenger_stats(self):
         """Get statistics about messenger usage"""
@@ -1634,27 +1697,261 @@ def import_game_state(world_state_data):
 class GlobalWorldStateTracker:
     """Comprehensive tracker for ALL world state changes in real-time"""
     
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(GlobalWorldStateTracker, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
-        self.all_world_changes = []           # Every single change that happens
-        self.active_world_events = []         # Currently active events
-        self.world_state_cache = {}           # Current world state
-        self.change_categories = {
-            "missions": [],                   # All mission outcomes
-            "host_body_events": [],           # Host body life changes
-            "npc_interactions": [],           # NPC relationship changes
-            "hacking_operations": [],         # Hacking system changes
-            "faction_activities": [],         # Faction operations
-            "government_actions": [],         # Government responses
-            "timeline_events": [],            # Timeline alterations
-            "team_decisions": [],             # Team choices
-            "resource_changes": [],           # Resource management
-            "world_events": [],               # Random world events
-            "ai_actions": [],                 # AI world controller actions
-            "player_actions": []              # Direct player actions
+        # Only initialize once
+        if hasattr(self, '_initialized'):
+            return
+        self._initialized = True
+        
+        # Initialize only if not already done
+        if not hasattr(self, 'world_state_cache') or not self.world_state_cache:
+            self.all_world_changes = []           # Every single change that happens
+            self.active_world_events = []         # Currently active events
+            self.world_state_cache = {}           # Current world state
+            self.change_categories = {
+                "missions": [],                   # All mission outcomes
+                "host_body_events": [],           # Host body life changes
+                "npc_interactions": [],           # NPC relationship changes
+                "hacking_operations": [],         # Hacking system changes
+                "faction_activities": [],         # Faction operations
+                "government_actions": [],         # Government responses
+                "timeline_events": [],            # Timeline alterations
+                "team_decisions": [],             # Team choices
+                "resource_changes": [],           # Resource management
+                "world_events": [],               # Random world events
+                "ai_actions": [],                 # AI world controller actions
+                "player_actions": []              # Direct player actions
+            }
+            self.ongoing_effects = {}            # Active ongoing effects
+            self.world_history = []              # Complete world history
+            self.turn_tracker = 0                # Current turn number
+            # In-game time context (mirrors TimeSystem defaults if game_ref not wired)
+            self.game_start_date = datetime.strptime("2018-03-15", "%Y-%m-%d")
+            self.game_current_date = self.game_start_date
+            
+            # Initialize with default world state values
+            self.initialize_default_world_state()
+            
+            # Create some sample ongoing effects for demonstration
+            self.create_sample_ongoing_effects()
+    
+    def initialize_default_world_state(self):
+        """Initialize the world state cache with default values"""
+        # Only initialize if not already done
+        if hasattr(self, 'world_state_cache') and self.world_state_cache:
+            return
+            
+        self.world_state_cache = {
+            "timeline_stability": 0.85,
+            "director_control": 0.92,
+            "faction_influence": 0.23,
+            "government_control": 0.78,
+            "national_security": 0.81,
+            "civil_unrest": 0.15,
+            "economic_stability": 0.73,
+            "international_relations": 0.68,
+            "consciousness_stability": 0.89,
+            "host_body_survival": 0.94,
+            "power_grid_status": 0.87,
+            "medical_protocols": 0.82,
+            "emergency_response_time": 0.76,
+            "threat_detection": 0.79,
+            "data_integrity": 0.91,
+            "system_efficiency": 0.84,
+            "infrastructure_status": 0.85,
+            "quantum_anomaly": 0.0,
+            "temporal_distortion": 0.0,
+            "faction_threat": 0.0,
+            "quantum_fluctuation": 0.0
         }
-        self.ongoing_effects = {}            # Active ongoing effects
-        self.world_history = []              # Complete world history
-        self.turn_tracker = 0                # Current turn number
+        print(f"🌍 World state initialized with {len(self.world_state_cache)} default values")
+    
+    def create_sample_ongoing_effects(self):
+        """Create some sample ongoing effects to demonstrate the system"""
+        sample_effects = [
+            {
+                "id": "1_missions",
+                "category": "missions",
+                "effects": [
+                    {"type": "attribute_change", "target": "timeline_stability", "value": -0.001, "operation": "add"},
+                    {"type": "attribute_change", "target": "faction_influence", "value": 0.002, "operation": "add"}
+                ],
+                "duration": 3,
+                "description": "Ongoing mission effects"
+            },
+            {
+                "id": "2_missions", 
+                "category": "missions",
+                "effects": [
+                    {"type": "attribute_change", "target": "government_control", "value": -0.001, "operation": "add"},
+                    {"type": "attribute_change", "target": "national_security", "value": 0.001, "operation": "add"}
+                ],
+                "duration": 5,
+                "description": "Government mission outcomes"
+            },
+            {
+                "id": "3_missions",
+                "category": "missions", 
+                "effects": [
+                    {"type": "attribute_change", "target": "consciousness_stability", "value": 0.002, "operation": "add"},
+                    {"type": "attribute_change", "target": "host_body_survival", "value": 0.001, "operation": "add"}
+                ],
+                "duration": 5,
+                "description": "Host body mission effects"
+            },
+            {
+                "id": "4_timeline_events",
+                "category": "timeline_events",
+                "effects": [
+                    {"type": "attribute_change", "target": "timeline_stability", "value": -0.002, "operation": "add"},
+                    {"type": "world_event", "target": "temporal_anomaly", "value": "ACTIVE"}
+                ],
+                "duration": 8,
+                "description": "Temporal anomaly effects"
+            },
+            {
+                "id": "5_world_events",
+                "category": "world_events",
+                "effects": [
+                    {"type": "attribute_change", "target": "faction_influence", "value": 0.003, "operation": "add"},
+                    {"type": "world_event", "target": "world_events", "value": "Faction operations continue unchecked"}
+                ],
+                "duration": 3,
+                "description": "Faction activity effects"
+            },
+            {
+                "id": "6_world_events",
+                "category": "world_events",
+                "effects": [
+                    {"type": "attribute_change", "target": "civil_unrest", "value": 0.002, "operation": "add"},
+                    {"type": "world_event", "target": "world_events", "value": "Local law enforcement overwhelmed"}
+                ],
+                "duration": 3,
+                "description": "Civil unrest effects"
+            },
+            {
+                "id": "7_world_events",
+                "category": "world_events",
+                "effects": [
+                    {"type": "attribute_change", "target": "government_control", "value": -0.002, "operation": "add"},
+                    {"type": "world_event", "target": "world_events", "value": "Government agencies lose control"}
+                ],
+                "duration": 3,
+                "description": "Government control effects"
+            }
+        ]
+        
+        # Create the ongoing effects
+        for effect_data in sample_effects:
+            effect_id = effect_data["id"]
+            self.ongoing_effects[effect_id] = {
+                "source_change": len(self.all_world_changes) + 1,
+                "effects": effect_data["effects"],
+                "duration": effect_data["duration"],
+                "turns_remaining": effect_data["duration"],
+                "active": True,
+                "description": effect_data["description"]
+            }
+        
+        # Create some sample world events
+        self.active_world_events = [
+            {
+                "type": "world_events",
+                "value": "Faction operations continue unchecked",
+                "timestamp": time.time(),
+                "start_turn": self.turn_tracker,
+                "active": True
+            },
+            {
+                "type": "world_events", 
+                "value": "Local law enforcement overwhelmed",
+                "timestamp": time.time(),
+                "start_turn": self.turn_tracker,
+                "active": True
+            },
+            {
+                "type": "world_events",
+                "value": "Government agencies lose control", 
+                "timestamp": time.time(),
+                "start_turn": self.turn_tracker,
+                "active": True
+            },
+            {
+                "type": "world_events",
+                "value": "Civilian safety compromised",
+                "timestamp": time.time(), 
+                "start_turn": self.turn_tracker,
+                "active": True
+            },
+            {
+                "type": "world_events",
+                "value": "Infrastructure security weakened",
+                "timestamp": time.time(),
+                "start_turn": self.turn_tracker,
+                "active": True
+            },
+            {
+                "type": "timeline_event",
+                "value": "temporal_anomaly_0.16",
+                "timestamp": time.time(),
+                "start_turn": self.turn_tracker,
+                "active": True
+            },
+            {
+                "type": "timeline_event_temporal_anomaly",
+                "value": "ACTIVE",
+                "timestamp": time.time(),
+                "start_turn": self.turn_tracker,
+                "active": True
+            }
+        ]
+        
+        print(f"🌍 Created {len(self.ongoing_effects)} sample ongoing effects and {len(self.active_world_events)} world events")
+        
+        # Create some sample changes to demonstrate the tracking system
+        self.create_sample_world_changes()
+        
+    def create_sample_world_changes(self):
+        """Create some sample world changes to demonstrate the tracking system"""
+        sample_changes = [
+            {
+                "category": "missions",
+                "description": "Sample mission completed successfully",
+                "effects": ["timeline_stability +0.01", "faction_influence -0.005"],
+                "timestamp": time.time(),
+                "turn_number": 0
+            },
+            {
+                "category": "timeline_events", 
+                "description": "Temporal anomaly detected and contained",
+                "effects": ["timeline_stability -0.002", "quantum_fluctuation +0.001"],
+                "timestamp": time.time(),
+                "turn_number": 0
+            },
+            {
+                "category": "world_events",
+                "description": "Random world event: temporal_anomaly timeline event started",
+                "effects": ["faction_influence +0.003", "civil_unrest +0.001"],
+                "timestamp": time.time(),
+                "turn_number": 0
+            }
+        ]
+        
+        # Add these changes to demonstrate the system
+        for change in sample_changes:
+            self.all_world_changes.append(change)
+            category = change["category"]
+            if category in self.change_categories:
+                self.change_categories[category].append(change)
+        
+        print(f"🌍 Created {len(sample_changes)} sample world changes for demonstration")
         
     def track_change(self, change_data):
         """Track ANY change that happens in the game world"""
@@ -1712,30 +2009,56 @@ class GlobalWorldStateTracker:
         operation = effect.get("operation", "set")
         
         if effect_type == "attribute_change":
-            if hasattr(self, target):
-                current_value = getattr(self, target)
-                if operation == "add":
-                    new_value = current_value + value
-                elif operation == "subtract":
-                    new_value = current_value - value
-                elif operation == "multiply":
-                    new_value = current_value * value
-                elif operation == "divide":
-                    new_value = current_value / value
-                else:  # set
-                    new_value = value
-                
-                # Ensure values stay within bounds
-                if target in ["timeline_stability", "director_control", "faction_influence"]:
-                    new_value = max(0.0, min(1.0, new_value))
-                
-                setattr(self, target, new_value)
+            # Get current value from cache, or use default
+            current_value = self.world_state_cache.get(target, 0.0)
+            
+            # Ensure value is numeric
+            try:
+                if isinstance(value, str):
+                    # Try to convert string to float
+                    if value.replace('.', '').replace('-', '').isdigit():
+                        value = float(value)
+                    else:
+                        print(f"⚠️  Warning: Cannot convert '{value}' to number for {target}")
+                        return  # Skip this effect
+                elif not isinstance(value, (int, float)):
+                    print(f"⚠️  Warning: Invalid value type {type(value)} for {target}: {value}")
+                    return  # Skip this effect
+            except (ValueError, TypeError):
+                print(f"⚠️  Warning: Failed to convert value '{value}' to number for {target}")
+                return  # Skip this effect
+            
+            # Ensure current_value is numeric
+            if not isinstance(current_value, (int, float)):
+                current_value = 0.0
+            
+            # Apply operation
+            if operation == "add":
+                new_value = current_value + value
+            elif operation == "subtract":
+                new_value = current_value - value
+            elif operation == "multiply":
+                new_value = current_value * value
+            elif operation == "divide":
+                new_value = current_value / value if value != 0 else current_value
+            else:  # set
+                new_value = value
+            
+            # Ensure values stay within bounds
+            if target in ["timeline_stability", "director_control", "faction_influence", 
+                         "government_control", "national_security", "consciousness_stability", 
+                         "host_body_survival"]:
+                new_value = max(0.0, min(1.0, new_value))
+            
+            # Update the cache
+            self.world_state_cache[target] = new_value
         
         elif effect_type == "world_event":
             self.active_world_events.append({
                 "type": target,
                 "value": value,
                 "timestamp": time.time(),
+                "start_turn": self.turn_tracker,
                 "active": True
             })
     
@@ -1756,6 +2079,8 @@ class GlobalWorldStateTracker:
     def process_turn(self):
         """Process ongoing effects at the start of each turn"""
         self.turn_tracker += 1
+        # Advance in-game date by one day per turn
+        self.game_current_date = self.game_start_date + timedelta(days=self.turn_tracker)
         print(f"\n🔄 Processing Turn {self.turn_tracker} - Ongoing Effects...")
         
         # Process all ongoing effects
@@ -1808,6 +2133,7 @@ class GlobalWorldStateTracker:
             "active_events": len(self.active_world_events),
             "ongoing_effects": len(self.ongoing_effects),
             "world_status": self.calculate_world_status(),
+            "game_date": self.game_current_date.strftime("%B %d, %Y"),
             "recent_changes": self.get_recent_changes(5),  # Last 5 turns
             "category_summary": {cat: len(changes) for cat, changes in self.change_categories.items()}
         }
@@ -1888,6 +2214,7 @@ class DynamicWorldEventsSystem:
     """System that makes NPCs, factions, and timeline events actually happen in real-time"""
     
     def __init__(self):
+        
         self.active_npc_missions = {}        # NPCs currently on missions
         self.active_faction_operations = {}  # Faction operations happening now
         self.timeline_events = []            # Active timeline events
@@ -1904,6 +2231,50 @@ class DynamicWorldEventsSystem:
         self.protection_missions = {}        # Track protection missions
         self.programmer_interactions = {}    # Track interactions between programmers
         
+        # NEW: Multiple AI Traveler Teams System
+        self.ai_traveler_teams = {}         # All AI Traveler teams working simultaneously
+        self.team_mission_assignments = {}  # Which teams are on which missions
+        self.team_competition = {}          # Teams competing for same objectives
+        self.team_cooperation = {}          # Teams working together
+        self.global_timeline_mission_queue = []  # Director's priority missions for all teams
+        
+        # Initialize faction agendas
+        self.faction_agendas = {
+            "The Faction": {
+                "current_operations": [],
+                "long_term_goals": ["destabilize_timeline", "recruit_defectors", "sabotage_infrastructure", "eliminate_director"],
+                "resources": 100,
+                "influence": 0.3,
+                "operatives": 15,
+                "defected_programmers": []  # NEW: Track defected programmers
+            },
+            "Government Agencies": {
+                "current_operations": [],
+                "long_term_goals": ["maintain_order", "protect_timeline", "eliminate_threats", "protect_director"],
+                "resources": 200,
+                "influence": 0.6,
+                "operatives": 25
+            },
+            "Director's Office": {
+                "current_operations": [],
+                "long_term_goals": ["stabilize_timeline", "manage_hosts", "coordinate_response", "maintain_security"],
+                "resources": 150,
+                "influence": 0.5,
+                "operatives": 20
+            }
+        }
+        
+        # Initialize NPC mission system first
+        self.initialize_npc_mission_system()
+        
+        # NEW: Initialize Multiple AI Traveler Teams
+        try:
+            self.initialize_ai_traveler_teams()
+        except Exception as e:
+            print(f"❌ Error initializing AI Traveler Teams: {e}")
+            import traceback
+            traceback.print_exc()
+    
     def initialize_npc_mission_system(self):
         """Initialize NPCs with their mission schedules"""
         self.npc_schedules = {
@@ -1979,6 +2350,7 @@ class DynamicWorldEventsSystem:
                 "current_mission": None,
                 "mission_cooldown": 0,
                 "success_rate": 0.6,
+                "loyalty": "faction",
                 "consequences": {
                     "infrastructure_sabotage": {"power_grid_status": "COMPROMISED", "civilian_safety": -0.1},
                     "intelligence_gathering": {"faction_intel": 0.2, "government_secrets": "EXPOSED"},
@@ -1987,38 +2359,185 @@ class DynamicWorldEventsSystem:
             }
         }
         
-        # NEW: Initialize Director's Core Programmers tracking
-        self.directors_programmers = {
-            "Director's Programmer Alpha": {"loyalty": "loyal", "threat_level": 0.0, "protection_priority": "high"},
-            "Director's Programmer Beta": {"loyalty": "loyal", "threat_level": 0.0, "protection_priority": "high"},
-            "Director's Programmer Gamma": {"loyalty": "loyal", "threat_level": 0.0, "protection_priority": "high"}
-        }
+        # Initialize the directors_programmers dictionary with data from npc_schedules
+        self.initialize_directors_programmers()
+    
+    def initialize_directors_programmers(self):
+        """Initialize the directors_programmers tracking system with data from npc_schedules"""
+        # Start with empty system - will be populated by game instances
+        self.directors_programmers = {}
+        self.defection_status = {}
+        print(f"✅ Director's Programmers system initialized (empty - will be populated by game instances)")
+    
+    def add_game_programmers(self, game_programmers):
+        """Add Director's Programmers from a specific game instance"""
+        if not game_programmers:
+            return
         
-        # Initialize faction agendas
-        self.faction_agendas = {
-            "The Faction": {
-                "current_operations": [],
-                "long_term_goals": ["destabilize_timeline", "recruit_defectors", "sabotage_infrastructure", "eliminate_director"],
-                "resources": 100,
-                "influence": 0.3,
-                "operatives": 15,
-                "defected_programmers": []  # NEW: Track defected programmers
+        print(f"🔄 Adding {len(game_programmers)} game-specific programmers to tracking system...")
+        
+        for name, data in game_programmers.items():
+            if data.get('status') == 'active':
+                # Convert game programmer data to tracking format
+                self.directors_programmers[name] = {
+                    "role": data.get("role", "Core Programmer"),
+                    "missions": self._get_programmer_missions(data.get("specialty", "General")),
+                    "current_mission": None,  # Start with no mission
+                    "mission_cooldown": 0,
+                    "success_rate": 0.8,  # Default success rate
+                    "loyalty": "loyal" if data.get("loyalty") == "Director" else "defected",
+                    "threat_level": 0.0,  # Start with no threat
+                    "protection_priority": "MEDIUM",  # Default protection priority
+                    "consequences": self._get_programmer_consequences(data.get("specialty", "General")),
+                    # NEW: Dynamic defection tracking
+                    "loyalty_score": 100,  # 0-100 scale, 100 = completely loyal
+                    "defection_risk": self._calculate_defection_risk(data.get("specialty", "General")),
+                    "last_loyalty_check": 0,  # Turn number of last check
+                    "defection_triggers": [],  # Events that could trigger defection
+                    "stress_level": 0.0,  # 0.0-1.0, increases with failed missions
+                    "faction_exposure": 0.0  # 0.0-1.0, increases with faction contact
+                }
+                
+                # Initialize defection status
+                self.defection_status[name] = {
+                    "defected": data.get("loyalty") != "Director",
+                    "defection_turn": None,
+                    "target_faction": "The Faction" if data.get("loyalty") != "Director" else None,
+                    "emergency_responded": False,
+                    # NEW: Enhanced defection tracking
+                    "defection_method": None,  # How they defected
+                    "defection_reason": None,  # Why they defected
+                    "recruitment_attempts": 0,  # Number of faction recruitment attempts
+                    "last_recruitment_turn": None
+                }
+                
+                print(f"   👨‍💻 Added {name} ({data.get('specialty', 'General')}) - Loyalty: {data.get('loyalty', 'Unknown')}")
+        
+        print(f"✅ Director's Programmers tracking system now has {len(self.directors_programmers)} programmers")
+    
+    def _calculate_defection_risk(self, specialty):
+        """Calculate base defection risk based on programmer specialty"""
+        risk_factors = {
+            "Quantum Frame Architecture": 0.15,  # High access, moderate risk
+            "Temporal Mechanics": 0.10,          # Critical role, low risk
+            "Quantum Frame Construction": 0.20,   # High access, high risk
+            "AI Consciousness Transfer": 0.25,    # Very high access, very high risk
+            "Director Core Systems": 0.05,       # Grace Day, extremely low risk
+            "Deep Web Networks": 0.30,           # Jones' specialty, highest risk
+            "General": 0.15                      # Default risk
+        }
+        return risk_factors.get(specialty, 0.15)
+    
+    def _get_programmer_missions(self, specialty):
+        """Get appropriate missions based on programmer specialty"""
+        mission_map = {
+            "Quantum Frame Architecture": ["code_analysis", "security_audit", "director_protection"],
+            "Temporal Mechanics": ["threat_analysis", "timeline_stabilization", "director_protection"],
+            "Quantum Frame Construction": ["data_recovery", "system_optimization", "director_protection"],
+            "AI Consciousness Transfer": ["intelligence_gathering", "host_body_monitoring", "director_protection"],
+            "General": ["security_audit", "threat_analysis", "director_protection"]
+        }
+        return mission_map.get(specialty, mission_map["General"])
+    
+    def _get_programmer_consequences(self, specialty):
+        """Get appropriate consequences based on programmer specialty"""
+        consequence_map = {
+            "Quantum Frame Architecture": {
+                "security_audit": {"security_level": 0.05, "threat_detection": "ENHANCED"},
+                "code_analysis": {"system_efficiency": 0.04, "code_quality": "IMPROVED"},
+                "director_protection": {"director_security": 0.12, "threat_level": -0.06}
             },
-            "Government Agencies": {
-                "current_operations": [],
-                "long_term_goals": ["maintain_order", "protect_timeline", "eliminate_threats", "protect_director"],
-                "resources": 200,
-                "influence": 0.6,
-                "operatives": 25
+            "Temporal Mechanics": {
+                "threat_analysis": {"threat_level": -0.04, "timeline_stability": 0.03},
+                "timeline_stabilization": {"timeline_stability": 0.05, "quantum_fluctuation": "REDUCED"},
+                "director_protection": {"director_security": 0.10, "threat_level": -0.05}
             },
-            "Director's Office": {
-                "current_operations": [],
-                "long_term_goals": ["stabilize_timeline", "manage_hosts", "coordinate_response", "maintain_security"],
-                "resources": 150,
-                "influence": 0.5,
-                "operatives": 20
+            "Quantum Frame Construction": {
+                "data_recovery": {"data_integrity": 0.06, "system_backup": "ACTIVE"},
+                "system_optimization": {"system_efficiency": 0.05, "performance": "IMPROVED"},
+                "director_protection": {"director_security": 0.11, "threat_level": -0.05}
+            },
+            "AI Consciousness Transfer": {
+                "intelligence_gathering": {"government_intel": 0.06, "threat_detection": "ENHANCED"},
+                "host_body_monitoring": {"consciousness_stability": 0.04, "host_survival": "ENHANCED"},
+                "director_protection": {"director_security": 0.09, "threat_level": -0.04}
+            },
+            "General": {
+                "security_audit": {"security_level": 0.04, "threat_detection": "ENHANCED"},
+                "threat_analysis": {"threat_level": -0.03, "security_alert": "ACTIVE"},
+                "director_protection": {"director_security": 0.10, "threat_level": -0.05}
             }
         }
+        return consequence_map.get(specialty, consequence_map["General"])
+    
+    def initialize_ai_traveler_teams(self):
+        """Initialize multiple AI Traveler teams that work simultaneously"""
+        team_designations = [
+            "Traveler Team 0027", "Traveler Team 0034", "Traveler Team 0041", 
+            "Traveler Team 0048", "Traveler Team 0055", "Traveler Team 0062",
+            "Traveler Team 0069", "Traveler Team 0076", "Traveler Team 0083"
+        ]
+        
+        base_locations = [
+            "Seattle Metro", "Columbia District", "Government Quarter", "Industrial Zone",
+            "Residential Sector", "Downtown Core", "Archive Wing", "Research Campus", "Metro Hub"
+        ]
+        
+        for i, designation in enumerate(team_designations):
+            team_id = f"team_{i+1:03d}"
+            location = base_locations[i % len(base_locations)]
+            
+            # Generate team with random composition
+            team_size = random.randint(4, 6)  # 4-6 members per team
+            members = []
+            
+            for j in range(team_size):
+                member = {
+                    "designation": f"{designation}-{j+1:02d}",
+                    "name": f"Agent {chr(65+j)}",  # A, B, C, etc.
+                    "role": random.choice(["Historian", "Engineer", "Medic", "Tactician", "Specialist"]),
+                    "skills": self._generate_team_member_skills(),
+                    "success_rate": random.uniform(0.6, 0.9),
+                    "mission_count": random.randint(5, 25),
+                    "consciousness_stability": random.uniform(0.7, 1.0),
+                    "host_body_survival": random.uniform(0.8, 1.0)
+                }
+                members.append(member)
+            
+            self.ai_traveler_teams[team_id] = {
+                "designation": designation,
+                "location": location,
+                "members": members,
+                "active_missions": [],
+                "mission_cooldown": 0,
+                "success_rate": sum(m["success_rate"] for m in members) / len(members),
+                "total_missions": sum(m["mission_count"] for m in members),
+                "status": "active",  # active, on_mission, cooldown, compromised
+                "last_mission": None,
+                "timeline_impact": 0.0,
+                "competition_level": 0.0,  # How much they compete with other teams
+                "cooperation_level": 0.0   # How much they work with other teams
+            }
+    
+    def _generate_team_member_skills(self):
+        """Generate skills for team members"""
+        skill_pools = {
+            "Historian": ["Investigation", "Research", "Analysis", "Memory", "Timeline_Knowledge"],
+            "Engineer": ["Technology", "Engineering", "Repair", "Construction", "Innovation"],
+            "Medic": ["Medicine", "Biology", "Emergency_Response", "Psychology", "Healing"],
+            "Tactician": ["Strategy", "Leadership", "Combat", "Planning", "Coordination"],
+            "Specialist": ["Hacking", "Stealth", "Infiltration", "Surveillance", "Specialization"]
+        }
+        
+        role = random.choice(list(skill_pools.keys()))
+        skills = skill_pools[role]
+        # Add 1-2 random additional skills
+        additional_skills = random.sample([
+            "Communication", "Adaptability", "Problem_Solving", "Teamwork", "Resilience",
+            "Creativity", "Critical_Thinking", "Empathy", "Patience", "Courage"
+        ], random.randint(1, 2))
+        
+        return skills + additional_skills
     
     def force_programmer_defection(self, programmer_name, target_faction="The Faction"):
         """Force a Director's programmer to defect to a faction"""
@@ -2199,7 +2718,87 @@ class DynamicWorldEventsSystem:
         }
         
         return summary
-
+    
+    def process_mission_timers(self):
+        """Process all active mission timers and complete finished missions"""
+        completed_missions = []
+        
+        for mission_id, mission in list(self.mission_timers.items()):
+            if mission["active"]:
+                # Decrease time remaining
+                mission["time_remaining"] -= 1
+                
+                # Check if mission is complete
+                if mission["time_remaining"] <= 0:
+                    # Mission completed - determine success/failure
+                    success = random.random() < mission["success_chance"]
+                    
+                    if success:
+                        print(f"✅ {mission['npc']} successfully completed {mission['mission_type']} mission")
+                        # Apply positive consequences
+                        self.apply_mission_consequences(mission["consequences"], success=True)
+                    else:
+                        print(f"❌ {mission['npc']} failed {mission['mission_type']} mission")
+                        # Apply negative consequences
+                        self.apply_mission_consequences(mission["consequences"], success=False)
+                    
+                    # Mark for completion with success status
+                    completed_missions.append((mission_id, success))
+        
+        # Complete finished missions
+        print(f"   🔄 Completing {len(completed_missions)} finished missions...")
+        for mission_id, success in completed_missions:
+            print(f"      📋 Completing mission {mission_id} (success: {success})")
+            self.complete_npc_mission(mission_id, success)
+        
+        return len(completed_missions)
+    
+    def calculate_mission_duration(self, mission_type):
+        """Calculate how long a mission will take"""
+        base_duration = {
+            "security_audit": 3,
+            "threat_analysis": 2,
+            "director_protection": 4,
+            "counter_intelligence": 5,
+            "code_analysis": 2,
+            "data_recovery": 3,
+            "system_optimization": 2,
+            "intelligence_gathering": 4,
+            "medical_research": 3,
+            "host_body_monitoring": 1,
+            "emergency_response": 1,
+            "crisis_intervention": 2,
+            "host_extraction": 3,
+            "timeline_stabilization": 4,
+            "infrastructure_sabotage": 3,
+            "recruitment": 2
+        }
+        return base_duration.get(mission_type, 3)  # Default 3 turns
+    
+    def apply_mission_consequences(self, consequences, success=True):
+        """Apply mission consequences to the world state"""
+        multiplier = 1.0 if success else -0.5  # Success gives full effect, failure gives negative effect
+        
+        for target, value in consequences.items():
+            if isinstance(value, (int, float)):
+                # Numeric effect - apply to world state
+                effect_value = value * multiplier
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": target,
+                    "value": effect_value,
+                    "operation": "add"
+                })
+                print(f"   🌍 Applied {target}: {effect_value:+.3f}")
+            else:
+                # String effect - track as world event
+                global_world_tracker.apply_single_effect({
+                    "type": "world_event",
+                    "target": target,
+                    "value": value
+                })
+                print(f"   🌍 Applied {target}: {value}")
+    
     def start_npc_mission(self, npc_name, mission_type):
         """Start an NPC on a mission with real consequences"""
         if npc_name not in self.npc_schedules:
@@ -2223,6 +2822,11 @@ class DynamicWorldEventsSystem:
             "consequences": npc["consequences"][mission_type],
             "active": True
         }
+        
+        # Update directors_programmers tracking if this is a Director's Programmer
+        if npc_name in self.directors_programmers:
+            self.directors_programmers[npc_name]["current_mission"] = mission_type
+            print(f"👨‍💻 Updated {npc_name} mission tracking: {mission_type}")
         
         # Track this mission
         track_npc_interaction(
@@ -2273,6 +2877,39 @@ class DynamicWorldEventsSystem:
         
         return operation_id
     
+    def complete_npc_mission(self, mission_id, success=True):
+        """Complete an NPC mission and update tracking systems"""
+        print(f"      🔧 Completing mission {mission_id} (success: {success})")
+        if mission_id not in self.mission_timers:
+            print(f"      ⚠️  Mission {mission_id} not found in timers")
+            return False
+            
+        mission = self.mission_timers[mission_id]
+        npc_name = mission["npc"]
+        print(f"      👤 NPC: {npc_name}")
+        
+        # Update npc_schedules
+        if npc_name in self.npc_schedules:
+            self.npc_schedules[npc_name]["current_mission"] = None
+            cooldown = random.randint(2, 5)  # Random cooldown
+            self.npc_schedules[npc_name]["mission_cooldown"] = cooldown
+            print(f"      📋 Updated npc_schedules for {npc_name}")
+        
+        # Update directors_programmers tracking
+        if npc_name in self.directors_programmers:
+            self.directors_programmers[npc_name]["current_mission"] = None
+            self.directors_programmers[npc_name]["mission_cooldown"] = cooldown
+            print(f"👨‍💻 Completed mission for {npc_name}, cooldown: {cooldown} turns")
+        
+        # Remove from active missions
+        if mission_id in self.mission_timers:
+            del self.mission_timers[mission_id]
+            print(f"✅ Mission {mission_id} completed for {npc_name} and removed from timers")
+        else:
+            print(f"⚠️  Mission {mission_id} not found in timers during completion")
+        
+        return True
+    
     def start_timeline_event(self, event_type, magnitude):
         """Start a timeline event that affects the world"""
         event_id = f"timeline_{event_type}_{int(time.time())}"
@@ -2305,57 +2942,674 @@ class DynamicWorldEventsSystem:
         return event_id
     
     def process_world_turn(self):
-        """Process all active missions, operations, and events - REAL TIME TRACKING"""
-        print(f"\n🌍 PROCESSING WORLD TURN - Active Events:")
-        print(f"{'='*60}")
+        """Process one turn of world events and NPC actions"""
+        print(f"🔄 Processing world turn...")
         
-        # Process NPC missions
-        self.process_npc_missions()
+        # Process existing mission timers
+        self.process_mission_timers()
         
-        # Process faction operations
-        self.process_faction_operations()
+        # NEW: Process programmer defection checks
+        try:
+            # Get game reference from global tracker if available
+            game_ref = getattr(global_world_tracker, 'game_reference', None)
+            if game_ref:
+                defection_events = self.process_programmer_defection_checks(game_ref)
+                if defection_events:
+                    print(f"🚨 Defection events processed: {len(defection_events)} programmers")
+        except:
+            pass  # Game reference might not be available
         
-        # Process timeline events
-        self.process_timeline_events()
+        # Process AI Traveler Teams
+        self.process_ai_traveler_teams()
         
-        # NEW: Process programmer interactions (loyal vs defected)
-        self.process_programmer_interactions()
-        
-        # Generate new events (but track them as REAL events)
+        # Generate random world events
         self.generate_random_world_events()
         
-        # Update world status
-        self.update_world_status()
+        # Update ongoing effects
+        self.update_ongoing_effects()
         
-        # Track this world turn with the global system
-        track_world_event(
-            event_type="world_turn_processed",
-            description=f"World turn processed - {len(self.active_npc_missions)} missions, {len(self.active_faction_operations)} operations, {len(self.timeline_events)} timeline events, programmer interactions processed",
-            effects=[{"type": "attribute_change", "target": "world_activity_level", "value": len(self.active_npc_missions) + len(self.active_faction_operations) + len(self.timeline_events), "operation": "set"}]
-        )
-        
-        print(f"✅ World turn processed successfully - All events tracked in real-time")
+        print(f"✅ World turn processed")
     
-    def process_npc_missions(self):
-        """Process all active NPC missions"""
-        expired_missions = []
+    def generate_random_world_events(self):
+        """Generate random world events including potential defection triggers"""
+        # Base chance for random events
+        if random.randint(1, 20) <= 3:  # 15% chance per turn
+            event_type = random.choice([
+                "faction_recruitment", "system_compromise", "host_life_crisis",
+                "timeline_instability", "government_pressure", "personal_conflict"
+            ])
+            
+            if event_type == "faction_recruitment":
+                self._generate_faction_recruitment_event()
+            elif event_type == "system_compromise":
+                self._generate_system_compromise_event()
+            elif event_type == "host_life_crisis":
+                self._generate_host_life_crisis_event()
+            elif event_type == "timeline_instability":
+                self._generate_timeline_instability_event()
+            elif event_type == "government_pressure":
+                self._generate_government_pressure_event()
+            elif event_type == "personal_conflict":
+                self._generate_personal_conflict_event()
+    
+    def _generate_faction_recruitment_event(self):
+        """Generate a Faction recruitment attempt on a Director's programmer"""
+        loyal_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data["loyalty"] == "loyal"
+        ]
         
-        for mission_id, mission in self.mission_timers.items():
-            if mission["active"]:
-                mission["time_remaining"] -= 1
+        if not loyal_programmers:
+            return
+            
+        target_programmer = random.choice(loyal_programmers)
+        programmer_data = self.directors_programmers[target_programmer]
+        
+        # D20 roll for recruitment success
+        recruitment_roll = random.randint(1, 20)
+        success_threshold = 15  # Hard to recruit loyal programmers
+        
+        if recruitment_roll >= success_threshold:
+            # Recruitment successful - increase faction exposure
+            self.increase_faction_exposure(target_programmer, 0.25)
+            
+            recruitment_event = {
+                "type": "faction_recruitment",
+                "target": target_programmer,
+                "success": True,
+                "roll": recruitment_roll,
+                "description": f"Faction successfully recruited {target_programmer}",
+                "consequences": {
+                    "faction_influence": 0.10,
+                    "director_control": -0.05
+                }
+            }
+            
+            print(f"🎯 Faction recruitment event: {target_programmer} contacted by Faction agents!")
+            print(f"   Roll: {recruitment_roll}/20 (Success threshold: {success_threshold})")
+            print(f"   {target_programmer}'s faction exposure increased!")
+        else:
+            # Recruitment failed - but still increases exposure slightly
+            self.increase_faction_exposure(target_programmer, 0.10)
+            
+            recruitment_event = {
+                "type": "faction_recruitment",
+                "target": target_programmer,
+                "success": False,
+                "roll": recruitment_roll,
+                "description": f"Faction failed to recruit {target_programmer}",
+                "consequences": {
+                    "director_control": 0.02  # Slight loyalty boost for resisting
+                }
+            }
+            
+            print(f"🎯 Faction recruitment event: {target_programmer} resisted Faction recruitment!")
+            print(f"   Roll: {recruitment_roll}/20 (Success threshold: {success_threshold})")
+            print(f"   {target_programmer} remains loyal but exposure increased slightly")
+        
+        # Add to world events
+        self.world_events.append(recruitment_event)
+        
+        # Update recruitment tracking
+        if target_programmer in self.defection_status:
+            self.defection_status[target_programmer]["recruitment_attempts"] += 1
+            self.defection_status[target_programmer]["last_recruitment_turn"] = getattr(global_world_tracker, 'current_turn', 0)
+    
+    def _generate_system_compromise_event(self):
+        """Generate a system compromise event that could affect programmer loyalty"""
+        loyal_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data["loyalty"] == "loyal" and data.get("specialty") in ["Quantum Frame Architecture", "Director Core Systems"]
+        ]
+        
+        if not loyal_programmers:
+            return
+            
+        target_programmer = random.choice(loyal_programmers)
+        
+        # D20 roll for compromise severity
+        compromise_roll = random.randint(1, 20)
+        
+        if compromise_roll >= 18:  # Critical compromise (15% chance)
+            severity = "CRITICAL"
+            stress_increase = 0.3
+            print(f"🚨 CRITICAL system compromise affecting {target_programmer}!")
+        elif compromise_roll >= 15:  # Major compromise (20% chance)
+            severity = "MAJOR"
+            stress_increase = 0.2
+            print(f"⚠️  Major system compromise affecting {target_programmer}!")
+        else:  # Minor compromise (25% chance)
+            severity = "MINOR"
+            stress_increase = 0.1
+            print(f"ℹ️  Minor system compromise affecting {target_programmer}!")
+        
+        # Increase programmer stress
+        self.increase_programmer_stress(target_programmer, stress_increase)
+        
+        compromise_event = {
+            "type": "system_compromise",
+            "target": target_programmer,
+            "severity": severity,
+            "roll": compromise_roll,
+            "description": f"System compromise ({severity.lower()}) affecting {target_programmer}",
+            "consequences": {
+                "system_security": -0.05 if severity == "CRITICAL" else -0.02,
+                "programmer_stress": stress_increase
+            }
+        }
+        
+        self.world_events.append(compromise_event)
+    
+    def _generate_host_life_crisis_event(self):
+        """Generate a host life crisis that could influence programmer loyalty"""
+        loyal_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data["loyalty"] == "loyal"
+        ]
+        
+        if not loyal_programmers:
+            return
+            
+        target_programmer = random.choice(loyal_programmers)
+        
+        crisis_types = [
+            "family_emergency", "financial_pressure", "health_crisis",
+            "relationship_breakdown", "career_setback", "legal_trouble"
+        ]
+        
+        crisis_type = random.choice(crisis_types)
+        
+        # D20 roll for crisis impact
+        crisis_roll = random.randint(1, 20)
+        
+        if crisis_roll >= 16:  # Severe crisis (25% chance)
+            impact = "SEVERE"
+            stress_increase = 0.25
+            print(f"😰 Severe host life crisis for {target_programmer}: {crisis_type}!")
+        elif crisis_roll >= 12:  # Moderate crisis (25% chance)
+            impact = "MODERATE"
+            stress_increase = 0.15
+            print(f"😟 Moderate host life crisis for {target_programmer}: {crisis_type}!")
+        else:  # Minor crisis (50% chance)
+            impact = "MINOR"
+            stress_increase = 0.05
+            print(f"😐 Minor host life crisis for {target_programmer}: {crisis_type}!")
+        
+        # Increase programmer stress
+        self.increase_programmer_stress(target_programmer, stress_increase)
+        
+        crisis_event = {
+            "type": "host_life_crisis",
+            "target": target_programmer,
+            "crisis_type": crisis_type,
+            "impact": impact,
+            "roll": crisis_roll,
+            "description": f"Host life crisis: {crisis_type} ({impact.lower()}) for {target_programmer}",
+            "consequences": {
+                "programmer_stress": stress_increase,
+                "host_life_stability": -0.1 if impact == "SEVERE" else -0.05
+            }
+        }
+        
+        self.world_events.append(crisis_event)
+    
+    def _generate_timeline_instability_event(self):
+        """Generate timeline instability that could affect programmer confidence"""
+        # This event affects all loyal programmers
+        loyal_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data["loyalty"] == "loyal"
+        ]
+        
+        if not loyal_programmers:
+            return
+            
+        # D20 roll for instability severity
+        instability_roll = random.randint(1, 20)
+        
+        if instability_roll >= 18:  # Critical instability (15% chance)
+            severity = "CRITICAL"
+            stress_increase = 0.2
+            print(f"🌪️  CRITICAL timeline instability detected!")
+        elif instability_roll >= 15:  # Major instability (20% chance)
+            severity = "MAJOR"
+            stress_increase = 0.15
+            print(f"🌪️  Major timeline instability detected!")
+        else:  # Minor instability (25% chance)
+            severity = "MINOR"
+            stress_increase = 0.1
+            print(f"🌪️  Minor timeline instability detected!")
+        
+        # Increase stress for all loyal programmers
+        for programmer_name in loyal_programmers:
+            self.increase_programmer_stress(programmer_name, stress_increase)
+        
+        instability_event = {
+            "type": "timeline_instability",
+            "severity": severity,
+            "roll": instability_roll,
+            "affected_programmers": len(loyal_programmers),
+            "description": f"Timeline instability ({severity.lower()}) affecting all loyal programmers",
+            "consequences": {
+                "timeline_stability": -0.05 if severity == "CRITICAL" else -0.02,
+                "programmer_stress": stress_increase * len(loyal_programmers)
+            }
+        }
+        
+        self.world_events.append(instability_event)
+    
+    def _generate_government_pressure_event(self):
+        """Generate government pressure that could affect programmer operations"""
+        loyal_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data["loyalty"] == "loyal" and data.get("specialty") in ["AI Consciousness Transfer", "Deep Web Networks"]
+        ]
+        
+        if not loyal_programmers:
+            return
+            
+        target_programmer = random.choice(loyal_programmers)
+        
+        pressure_types = [
+            "surveillance_increase", "regulatory_pressure", "legal_investigation",
+            "media_exposure", "political_pressure", "security_audit"
+        ]
+        
+        pressure_type = random.choice(pressure_types)
+        
+        # D20 roll for pressure intensity
+        pressure_roll = random.randint(1, 20)
+        
+        if pressure_roll >= 17:  # Intense pressure (20% chance)
+            intensity = "INTENSE"
+            stress_increase = 0.2
+            print(f"🏛️  Intense government pressure on {target_programmer}: {pressure_type}!")
+        elif pressure_roll >= 13:  # Moderate pressure (25% chance)
+            intensity = "MODERATE"
+            stress_increase = 0.15
+            print(f"🏛️  Moderate government pressure on {target_programmer}: {pressure_type}!")
+        else:  # Light pressure (55% chance)
+            intensity = "LIGHT"
+            stress_increase = 0.05
+            print(f"🏛️  Light government pressure on {target_programmer}: {pressure_type}!")
+        
+        # Increase programmer stress
+        self.increase_programmer_stress(target_programmer, stress_increase)
+        
+        pressure_event = {
+            "type": "government_pressure",
+            "target": target_programmer,
+            "pressure_type": pressure_type,
+            "intensity": intensity,
+            "roll": pressure_roll,
+            "description": f"Government pressure: {pressure_type} ({intensity.lower()}) on {target_programmer}",
+            "consequences": {
+                "government_control": 0.02 if intensity == "INTENSE" else 0.01,
+                "programmer_stress": stress_increase
+            }
+        }
+        
+        self.world_events.append(pressure_event)
+    
+    def _generate_personal_conflict_event(self):
+        """Generate personal conflicts between programmers that could affect loyalty"""
+        loyal_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data["loyalty"] == "loyal"
+        ]
+        
+        if len(loyal_programmers) < 2:
+            return
+            
+        # Select two random programmers for conflict
+        programmer1, programmer2 = random.sample(loyal_programmers, 2)
+        
+        conflict_types = [
+            "ideological_disagreement", "resource_competition", "credit_dispute",
+            "methodology_conflict", "personality_clash", "priority_disagreement"
+        ]
+        
+        conflict_type = random.choice(conflict_types)
+        
+        # D20 roll for conflict severity
+        conflict_roll = random.randint(1, 20)
+        
+        if conflict_roll >= 16:  # Major conflict (25% chance)
+            severity = "MAJOR"
+            stress_increase = 0.2
+            print(f"⚔️  Major conflict between {programmer1} and {programmer2}: {conflict_type}!")
+        elif conflict_roll >= 11:  # Minor conflict (30% chance)
+            severity = "MINOR"
+            stress_increase = 0.1
+            print(f"⚔️  Minor conflict between {programmer1} and {programmer2}: {conflict_type}!")
+        else:  # Resolved conflict (45% chance)
+            severity = "RESOLVED"
+            stress_increase = 0.0
+            print(f"🤝 Conflict resolved between {programmer1} and {programmer2}: {conflict_type}!")
+        
+        # Increase stress for both programmers
+        self.increase_programmer_stress(programmer1, stress_increase)
+        self.increase_programmer_stress(programmer2, stress_increase)
+        
+        conflict_event = {
+            "type": "personal_conflict",
+            "programmers": [programmer1, programmer2],
+            "conflict_type": conflict_type,
+            "severity": severity,
+            "roll": conflict_roll,
+            "description": f"Personal conflict: {conflict_type} ({severity.lower()}) between {programmer1} and {programmer2}",
+            "consequences": {
+                "team_cohesion": -0.05 if severity == "MAJOR" else -0.02,
+                "programmer_stress": stress_increase * 2
+            }
+        }
+        
+        self.world_events.append(conflict_event)
+    
+    def process_ai_traveler_teams(self):
+        """Process all AI Traveler teams - Multiple teams working simultaneously on timeline stabilization"""
+        print(f"\n🤖 AI TRAVELER TEAMS - Processing {len(self.ai_traveler_teams)} teams simultaneously")
+        
+        # Check timeline stability to determine mission urgency
+        current_timeline_stability = global_world_tracker.world_state_cache.get("timeline_stability", 0.85)
+        
+        # Director's priority: When timeline stability is low, ALL teams get urgent missions
+        if current_timeline_stability < 0.7:  # Critical threshold
+            print(f"🚨 TIMELINE STABILITY CRITICAL ({current_timeline_stability:.1%}) - Director deploying ALL teams!")
+            self._deploy_all_teams_emergency()
+        elif current_timeline_stability < 0.8:  # Warning threshold
+            print(f"⚠️  Timeline stability low ({current_timeline_stability:.1%}) - Director deploying multiple teams")
+            self._deploy_multiple_teams_warning()
+        else:
+            # Normal operations - some teams on routine missions
+            print(f"✅ Timeline stability acceptable ({current_timeline_stability:.1%}) - Normal team operations")
+            self._process_normal_team_operations()
+        
+        # Process active missions for all teams
+        self._process_team_missions()
+    
+    def _deploy_all_teams_emergency(self):
+        """Deploy ALL teams on emergency timeline stabilization missions"""
+        available_teams = [team_id for team_id, team in self.ai_traveler_teams.items() 
+                          if team["status"] == "active" and team["mission_cooldown"] <= 0]
+        
+        if not available_teams:
+            print(f"   ⚠️  No teams available for emergency deployment")
+            return
+        
+        print(f"   🚨 Deploying {len(available_teams)} teams on emergency missions:")
+        
+        # Get current temporal anomalies and timeline threats
+        timeline_threats = self._get_current_timeline_threats()
+        
+        for team_id in available_teams:
+            team = self.ai_traveler_teams[team_id]
+            
+            # Assign emergency mission based on team capabilities
+            mission = self._assign_emergency_mission(team, timeline_threats)
+            
+            if mission:
+                team["active_missions"].append(mission)
+                team["status"] = "on_mission"
+                team["mission_cooldown"] = mission["duration"] + 1
                 
-                if mission["time_remaining"] <= 0:
-                    # Mission completed - determine success/failure
-                    success = random.random() < mission["success_chance"]
-                    self.complete_npc_mission(mission_id, success)
-                    expired_missions.append(mission_id)
-                else:
-                    # Mission in progress - apply ongoing effects
-                    self.apply_mission_ongoing_effects(mission_id)
+                print(f"      • {team['designation']} → {mission['type']} in {mission['location']} (DC: {mission['dc']})")
+                
+                # Track this as a real world event
+                track_world_event(
+                    event_type="ai_team_emergency_deployment",
+                    description=f"{team['designation']} deployed on emergency {mission['type']} mission",
+                    effects=[
+                        {"type": "attribute_change", "target": "timeline_stability", "value": 0.005, "operation": "add"},
+                        {"type": "world_event", "target": "ai_team_mission", "value": f"{team['designation']}_{mission['type']}"}
+                    ]
+                )
+    
+    def _deploy_multiple_teams_warning(self):
+        """Deploy multiple teams on warning-level timeline missions"""
+        available_teams = [team_id for team_id, team in self.ai_traveler_teams.items() 
+                          if team["status"] == "active" and team["mission_cooldown"] <= 0]
         
-        # Remove expired missions
-        for mission_id in expired_missions:
-            del self.mission_timers[mission_id]
+        # Deploy 60-80% of available teams
+        deploy_count = max(2, int(len(available_teams) * random.uniform(0.6, 0.8)))
+        selected_teams = random.sample(available_teams, min(deploy_count, len(available_teams)))
+        
+        if not selected_teams:
+            print(f"   ⚠️  No teams available for warning deployment")
+            return
+        
+        print(f"   ⚠️  Deploying {len(selected_teams)} teams on warning missions:")
+        
+        timeline_threats = self._get_current_timeline_threats()
+        
+        for team_id in selected_teams:
+            team = self.ai_traveler_teams[team_id]
+            mission = self._assign_warning_mission(team, timeline_threats)
+            
+            if mission:
+                team["active_missions"].append(mission)
+                team["status"] = "on_mission"
+                team["mission_cooldown"] = mission["duration"] + 1
+                
+                print(f"      • {team['designation']} → {mission['type']} in {mission['location']} (DC: {mission['dc']})")
+    
+    def _process_normal_team_operations(self):
+        """Process normal team operations - some teams on routine missions"""
+        available_teams = [team_id for team_id, team in self.ai_traveler_teams.items() 
+                          if team["status"] == "active" and team["mission_cooldown"] <= 0]
+        
+        # 30-50% of teams on routine missions
+        routine_count = max(1, int(len(available_teams) * random.uniform(0.3, 0.5)))
+        selected_teams = random.sample(available_teams, min(routine_count, len(available_teams)))
+        
+        if selected_teams:
+            print(f"   ✅ {len(selected_teams)} teams on routine operations")
+            
+            for team_id in selected_teams:
+                team = self.ai_traveler_teams[team_id]
+                mission = self._assign_routine_mission(team)
+                
+                if mission:
+                    team["active_missions"].append(mission)
+                    team["status"] = "on_mission"
+                    team["mission_cooldown"] = mission["duration"] + 1
+    
+    def _get_current_timeline_threats(self):
+        """Get current timeline threats that need team attention"""
+        threats = []
+        
+        # Check for temporal anomalies
+        temporal_anomalies = [event for event in global_world_tracker.active_world_events 
+                             if event.get('type') == 'temporal_anomaly' and event.get('active')]
+        
+        for anomaly in temporal_anomalies:
+            if isinstance(anomaly.get('value'), dict) and 'anomaly_type' in anomaly['value']:
+                anomaly_data = anomaly['value']
+                threats.append({
+                    "type": "temporal_anomaly",
+                    "location": anomaly_data['location'],
+                    "anomaly_type": anomaly_data['anomaly_type'],
+                    "magnitude": anomaly_data['magnitude'],
+                    "priority": "critical" if anomaly_data['magnitude'] > 0.5 else "high",
+                    "mission_data": anomaly_data['mission_data']
+                })
+        
+        # Check for other timeline threats
+        if global_world_tracker.world_state_cache.get("timeline_stability", 0.85) < 0.8:
+            threats.append({
+                "type": "timeline_stabilization",
+                "location": "Global",
+                "priority": "high",
+                "dc": 15,
+                "duration": 3
+            })
+        
+        return threats
+    
+    def _assign_emergency_mission(self, team, threats):
+        """Assign emergency mission to team based on capabilities and current threats"""
+        if not threats:
+            return None
+        
+        # Prioritize by threat priority
+        critical_threats = [t for t in threats if t.get("priority") == "critical"]
+        high_threats = [t for t in threats if t.get("priority") == "high"]
+        
+        available_threats = critical_threats + high_threats
+        
+        if not available_threats:
+            return None
+        
+        threat = random.choice(available_threats)
+        
+        # Create mission based on threat type
+        if threat["type"] == "temporal_anomaly":
+            return {
+                "type": f"Emergency {threat['anomaly_type'].title()} Resolution",
+                "location": threat["location"],
+                "dc": threat["mission_data"]["total_dc"] - 2,  # Emergency bonus
+                "duration": max(2, threat["mission_data"]["estimated_duration"] - 1),
+                "priority": "emergency",
+                "threat": threat
+            }
+        else:
+            return {
+                "type": "Emergency Timeline Stabilization",
+                "location": threat["location"],
+                "dc": threat.get("dc", 15) - 2,
+                "duration": threat.get("duration", 3),
+                "priority": "emergency",
+                "threat": threat
+            }
+    
+    def _assign_warning_mission(self, team, threats):
+        """Assign warning-level mission to team"""
+        if not threats:
+            return None
+        
+        threat = random.choice(threats)
+        
+        if threat["type"] == "temporal_anomaly":
+            return {
+                "type": f"Warning {threat['anomaly_type'].title()} Containment",
+                "location": threat["location"],
+                "dc": threat["mission_data"]["total_dc"],
+                "duration": threat["mission_data"]["estimated_duration"],
+                "priority": "warning",
+                "threat": threat
+            }
+        else:
+            return {
+                "type": "Timeline Stabilization",
+                "location": threat["location"],
+                "dc": threat.get("dc", 15),
+                "duration": threat.get("duration", 3),
+                "priority": "warning",
+                "threat": threat
+            }
+    
+    def _assign_routine_mission(self, team):
+        """Assign routine mission to team"""
+        routine_missions = [
+            {"type": "Timeline Monitoring", "location": team["location"], "dc": 10, "duration": 2, "priority": "routine"},
+            {"type": "Host Body Maintenance", "location": team["location"], "dc": 8, "duration": 1, "priority": "routine"},
+            {"type": "Infrastructure Check", "location": team["location"], "dc": 12, "duration": 2, "priority": "routine"},
+            {"type": "Civilian Observation", "location": team["location"], "dc": 9, "duration": 1, "priority": "routine"}
+        ]
+        
+        return random.choice(routine_missions)
+    
+    def _process_team_missions(self):
+        """Process active missions for all teams"""
+        for team_id, team in self.ai_traveler_teams.items():
+            if team["status"] == "on_mission" and team["active_missions"]:
+                for mission in team["active_missions"][:]:  # Copy list to modify during iteration
+                    mission["time_remaining"] = mission.get("time_remaining", mission["duration"])
+                    mission["time_remaining"] -= 1
+                    
+                    if mission["time_remaining"] <= 0:
+                        # Mission completed
+                        success = self._resolve_team_mission(team, mission)
+                        team["active_missions"].remove(mission)
+                        
+                        if not team["active_missions"]:
+                            team["status"] = "active"
+                    
+                    # Reduce cooldown
+                    if team["mission_cooldown"] > 0:
+                        team["mission_cooldown"] -= 1
+    
+    def _resolve_team_mission(self, team, mission):
+        """Resolve a team mission and apply consequences"""
+        # Calculate success chance based on team capabilities and mission DC
+        base_success = team["success_rate"]
+        dc_modifier = (20 - mission["dc"]) / 20  # Higher DC = lower success chance
+        final_success_chance = base_success * (0.5 + dc_modifier)
+        
+        success = random.random() < final_success_chance
+        
+        if success:
+            print(f"      ✅ {team['designation']} successfully completed {mission['type']}")
+            
+            # Apply positive effects
+            priority = mission.get("priority", "routine")
+            if priority == "emergency":
+                timeline_boost = 0.01  # Emergency missions give bigger boost
+            elif priority == "warning":
+                timeline_boost = 0.005
+            else:
+                timeline_boost = 0.002
+            
+            # Track success as real world event
+            track_world_event(
+                event_type="ai_team_mission_success",
+                description=f"{team['designation']} successfully completed {mission['type']}",
+                effects=[
+                    {"type": "attribute_change", "target": "timeline_stability", "value": timeline_boost, "operation": "add"},
+                    {"type": "world_event", "target": "ai_team_success", "value": f"{team['designation']}_{mission['type']}"}
+                ]
+            )
+        else:
+            print(f"      ❌ {team['designation']} failed {mission['type']}")
+            
+            # Apply negative effects
+            priority = mission.get("priority", "routine")
+            timeline_penalty = -0.003 if priority == "emergency" else -0.001
+            
+            track_world_event(
+                event_type="ai_team_mission_failure",
+                description=f"{team['designation']} failed {mission['type']}",
+                effects=[
+                    {"type": "attribute_change", "target": "timeline_stability", "value": timeline_penalty, "operation": "add"},
+                    {"type": "world_event", "target": "ai_team_failure", "value": f"{team['designation']}_{mission['type']}"}
+                ]
+            )
+        
+        return success
+    
+    def update_ongoing_effects(self):
+        """Update ongoing effects and their durations"""
+        # Update ongoing world effects
+        if hasattr(global_world_tracker, 'ongoing_effects'):
+            for effect_id, effect in list(global_world_tracker.ongoing_effects.items()):
+                if 'duration' in effect and effect['duration'] > 0:
+                    effect['duration'] -= 1
+                    if effect['duration'] <= 0:
+                        # Effect expired, remove it
+                        del global_world_tracker.ongoing_effects[effect_id]
+                        print(f"⏰ Ongoing effect expired: {effect.get('description', 'Unknown effect')}")
+        
+        # Update ongoing world changes
+        if hasattr(global_world_tracker, 'ongoing_world_changes'):
+            for change_id, change in list(global_world_tracker.ongoing_world_changes.items()):
+                if 'duration' in change and change['duration'] > 0:
+                    change['duration'] -= 1
+                    if change['duration'] <= 0:
+                        # Change expired, remove it
+                        del global_world_tracker.ongoing_world_changes[change_id]
+                        print(f"⏰ Ongoing world change expired: {change.get('description', 'Unknown change')}")
+    
+    # REMOVED: Duplicate process_npc_missions method - using process_mission_timers instead
     
     def process_faction_operations(self):
         """Process all active faction operations"""
@@ -2398,63 +3652,7 @@ class DynamicWorldEventsSystem:
         for event in expired_events:
             self.timeline_events.remove(event)
     
-    def complete_npc_mission(self, mission_id, success):
-        """Complete an NPC mission and apply consequences"""
-        mission = self.mission_timers[mission_id]
-        npc_name = mission["npc"]
-        mission_type = mission["mission_type"]
-        
-        # Get NPC data
-        npc = self.npc_schedules[npc_name]
-        
-        # Apply consequences based on success/failure
-        if success:
-            consequences = mission["consequences"]
-            print(f"✅ {npc_name} completed {mission_type} successfully!")
-            
-            # Apply positive consequences
-            for key, value in consequences.items():
-                if isinstance(value, (int, float)):
-                    # Numeric value - apply as attribute change
-                    track_npc_interaction(
-                        npc_name=npc_name,
-                        interaction_type=f"mission_success_{mission_type}",
-                        relationship_change=0.2,
-                        effects=[{"type": "attribute_change", "target": key, "value": value, "operation": "add"}]
-                    )
-                else:
-                    # String value - apply as world event
-                    track_npc_interaction(
-                        npc_name=npc_name,
-                        interaction_type=f"mission_success_{mission_type}",
-                        relationship_change=0.2,
-                        effects=[{"type": "world_event", "target": key, "value": value}]
-                    )
-        else:
-            print(f"❌ {npc_name} failed {mission_type}!")
-            
-            # Apply negative consequences (reverse of positive)
-            for key, value in mission["consequences"].items():
-                if isinstance(value, (int, float)):
-                    # Numeric value - apply negative effect
-                    track_npc_interaction(
-                        npc_name=npc_name,
-                        interaction_type=f"mission_failure_{mission_type}",
-                        relationship_change=-0.1,
-                        effects=[{"type": "attribute_change", "target": key, "value": -value, "operation": "add"}]
-                    )
-                else:
-                    # String value - apply negative world event
-                    track_npc_interaction(
-                        npc_name=npc_name,
-                        interaction_type=f"mission_failure_{mission_type}",
-                        relationship_change=-0.1,
-                        effects=[{"type": "world_event", "target": key, "value": "FAILED"}]
-                    )
-        
-        # Reset NPC mission status
-        npc["current_mission"] = None
-        npc["mission_cooldown"] = 3  # 3 turn cooldown before next mission
+    # REMOVED: Duplicate complete_npc_mission method - using the one at line 2800 instead
     
     def complete_faction_operation(self, operation_id, success):
         """Complete a faction operation and apply consequences"""
@@ -2516,65 +3714,6 @@ class DynamicWorldEventsSystem:
                         effects=[{"type": "world_event", "target": key, "value": value}]
                     )
     
-    def generate_random_world_events(self):
-        """Generate random world events based on current state - TRACKED AS REAL EVENTS"""
-        # 20% chance of new NPC mission
-        if random.random() < 0.2:
-            available_npcs = [name for name, npc in self.npc_schedules.items() 
-                             if npc["current_mission"] is None and npc["mission_cooldown"] <= 0]
-            if available_npcs:
-                npc_name = random.choice(available_npcs)
-                npc = self.npc_schedules[npc_name]
-                mission_type = random.choice(npc["missions"])
-                mission_id = self.start_npc_mission(npc_name, mission_type)
-                
-                # Track this as a REAL world event
-                track_world_event(
-                    event_type="random_npc_mission_started",
-                    description=f"Random world event: {npc_name} started {mission_type} mission",
-                    effects=[
-                        {"type": "world_event", "target": "npc_mission", "value": f"{npc_name}_{mission_type}"},
-                        {"type": "attribute_change", "target": "world_activity_level", "value": 1, "operation": "add"}
-                    ]
-                )
-                print(f"🌍 Random world event: {npc_name} started {mission_type} mission (Tracked as real event)")
-        
-        # 15% chance of new faction operation
-        if random.random() < 0.15:
-            faction_name = random.choice(list(self.faction_agendas.keys()))
-            operation_types = ["infrastructure_sabotage", "intelligence_gathering", "recruitment", "counter_operation"]
-            operation_type = random.choice(operation_types)
-            operation_id = self.start_faction_operation(faction_name, operation_type)
-            
-            # Track this as a REAL world event
-            track_world_event(
-                event_type="random_faction_operation_started",
-                description=f"Random world event: {faction_name} started {operation_type} operation",
-                effects=[
-                    {"type": "world_event", "target": "faction_operation", "value": f"{faction_name}_{operation_type}"},
-                    {"type": "attribute_change", "target": "world_activity_level", "value": 1, "operation": "add"}
-                ]
-            )
-            print(f"🌍 Random world event: {faction_name} started {operation_type} operation (Tracked as real event)")
-        
-        # 10% chance of new timeline event
-        if random.random() < 0.1:
-            event_types = ["quantum_fluctuation", "temporal_anomaly", "host_body_crisis", "faction_escalation"]
-            event_type = random.choice(event_types)
-            magnitude = random.uniform(0.1, 0.5)
-            event_id = self.start_timeline_event(event_type, magnitude)
-            
-            # Track this as a REAL world event
-            track_world_event(
-                event_type="random_timeline_event_started",
-                description=f"Random world event: {event_type} timeline event started (magnitude: {magnitude:.2f})",
-                effects=[
-                    {"type": "world_event", "target": "timeline_event", "value": f"{event_type}_{magnitude:.2f}"},
-                    {"type": "attribute_change", "target": "world_activity_level", "value": 1, "operation": "add"}
-                ]
-            )
-            print(f"🌍 Random world event: {event_type} timeline event started (magnitude: {magnitude:.2f}) (Tracked as real event)")
-    
     def get_faction_operation_consequences(self, faction_name, operation_type):
         """Get consequences for faction operations"""
         consequences = {
@@ -2594,6 +3733,172 @@ class DynamicWorldEventsSystem:
             "faction_escalation": {"faction_influence": 0.1 * magnitude, "threat_level": "ELEVATED"}
         }
         return consequences.get(event_type, {})
+    
+    def generate_temporal_anomaly(self, magnitude=None, anomaly_type=None, location=None):
+        """Generate a comprehensive temporal anomaly with D20 mission hooks"""
+        if magnitude is None:
+            magnitude = random.uniform(0.05, 0.8)  # Minor to severe
+        
+        if anomaly_type is None:
+            anomaly_types = ["loop", "desync", "echo", "anchor_break", "causal_inversion", "probability_warp"]
+            anomaly_type = random.choice(anomaly_types)
+        
+        if location is None:
+            locations = [
+                "Columbia District", "Metro Hub", "Archive Wing", "Research Campus", 
+                "Government Quarter", "Industrial Zone", "Residential Sector", "Downtown Core"
+            ]
+            location = random.choice(locations)
+        
+        # Generate anomaly ID
+        anomaly_id = f"anomaly_{location.replace(' ', '_')}_{self.get_current_game_date()}"
+        
+        # Calculate effects based on type and magnitude
+        effects = self._calculate_anomaly_effects(anomaly_type, magnitude)
+        
+        # Generate D20 mission data
+        mission_data = self._generate_anomaly_mission(anomaly_type, magnitude, location)
+        
+        # Create the anomaly event
+        anomaly_event = {
+            "id": anomaly_id,
+            "type": "temporal_anomaly",
+            "anomaly_type": anomaly_type,
+            "magnitude": magnitude,
+            "location": location,
+            "start_turn": self.get_current_turn(),
+            "turns_remaining": self._calculate_anomaly_duration(magnitude),
+            "effects": effects,
+            "mission_data": mission_data,
+            "status": "active",
+            "timestamp": time.time(),
+            "active": True
+        }
+        
+        return anomaly_event
+    
+    def _calculate_anomaly_effects(self, anomaly_type, magnitude):
+        """Calculate the effects of a temporal anomaly based on type and magnitude"""
+        base_effects = []
+        
+        if anomaly_type == "loop":
+            base_effects = [
+                {"type": "attribute_change", "target": "timeline_stability", "value": -0.003 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "civil_unrest", "value": 0.002 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "infrastructure_status", "value": -0.002 * magnitude, "operation": "add"}
+            ]
+        elif anomaly_type == "desync":
+            base_effects = [
+                {"type": "attribute_change", "target": "timeline_stability", "value": -0.004 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "government_control", "value": -0.002 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "national_security", "value": -0.001 * magnitude, "operation": "add"}
+            ]
+        elif anomaly_type == "echo":
+            base_effects = [
+                {"type": "attribute_change", "target": "timeline_stability", "value": -0.005 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "government_control", "value": -0.003 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "data_integrity", "value": -0.002 * magnitude, "operation": "add"}
+            ]
+        elif anomaly_type == "anchor_break":
+            base_effects = [
+                {"type": "attribute_change", "target": "timeline_stability", "value": -0.006 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "national_security", "value": -0.004 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "civil_unrest", "value": 0.003 * magnitude, "operation": "add"}
+            ]
+        elif anomaly_type == "causal_inversion":
+            base_effects = [
+                {"type": "attribute_change", "target": "timeline_stability", "value": -0.007 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "consciousness_stability", "value": -0.003 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "threat_detection", "value": -0.002 * magnitude, "operation": "add"}
+            ]
+        elif anomaly_type == "probability_warp":
+            base_effects = [
+                {"type": "attribute_change", "target": "timeline_stability", "value": -0.004 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "system_efficiency", "value": -0.003 * magnitude, "operation": "add"},
+                {"type": "attribute_change", "target": "emergency_response_time", "value": -0.002 * magnitude, "operation": "add"}
+            ]
+        
+        # Add world event effect
+        base_effects.append({
+            "type": "world_event", 
+            "target": "temporal_anomaly", 
+            "value": f"{anomaly_type}_{magnitude:.2f}"
+        })
+        
+        return base_effects
+    
+    def _generate_anomaly_mission(self, anomaly_type, magnitude, location):
+        """Generate D20 mission data for anomaly resolution"""
+        # Base DC calculation
+        base_dc = 10 + int(magnitude * 20)  # DC 11-26 based on magnitude
+        
+        # Mission phases
+        mission_phases = {
+            "detection": {
+                "name": "Anomaly Detection Sweep",
+                "description": f"Conduct comprehensive scan of {location} for temporal distortions",
+                "dc": base_dc - 2,
+                "skills": ["Investigation", "Technology", "Science"],
+                "duration": 1,
+                "equipment_bonus": 2
+            },
+            "containment": {
+                "name": "Temporal Containment Setup",
+                "description": f"Establish containment field around {location} anomaly",
+                "dc": base_dc,
+                "skills": ["Engineering", "Security", "Technology"],
+                "duration": 2,
+                "equipment_bonus": 3
+            },
+            "stabilization": {
+                "name": "Anomaly Stabilization",
+                "description": f"Gradually reduce temporal distortion in {location}",
+                "dc": base_dc + 2,
+                "skills": ["Science", "Arcana", "Medicine"],
+                "duration": max(2, int(3 * magnitude)),
+                "equipment_bonus": 1
+            },
+            "resolution": {
+                "name": "Anomaly Resolution",
+                "description": f"Final phase: eliminate or lock-in {location} anomaly",
+                "dc": base_dc + 4,
+                "skills": ["Arcana", "Science", "Leadership"],
+                "duration": 1,
+                "equipment_bonus": 4
+            }
+        }
+        
+        # Complications table (on natural 1-3)
+        complications = [
+            "Cascade Effect: Anomaly spawns child anomalies in adjacent sectors",
+            "Causal Backlash: Mission failure causes timeline regression",
+            "Intel Corruption: Anomaly affects mission data and communications",
+            "Attention Drawn: Faction or government agents detect the operation",
+            "Equipment Failure: Temporal distortion damages mission gear",
+            "Memory Distortion: Team members experience timeline confusion"
+        ]
+        
+        return {
+            "phases": mission_phases,
+            "complications": complications,
+            "total_dc": base_dc,
+            "estimated_duration": sum(phase["duration"] for phase in mission_phases.values()),
+            "location": location,
+            "anomaly_type": anomaly_type,
+            "magnitude": magnitude
+        }
+    
+    def _calculate_anomaly_duration(self, magnitude):
+        """Calculate how long an anomaly lasts before auto-resolution"""
+        return max(3, int(8 * magnitude))  # 3-10 turns based on magnitude
+    
+    def get_current_turn(self):
+        """Get current turn number from world tracker"""
+        return global_world_tracker.turn_tracker
+    
+    def get_current_game_date(self):
+        """Get current game date as string"""
+        return global_world_tracker.game_current_date.strftime("%Y-%m-%d")
     
     def calculate_mission_duration(self, mission_type):
         """Calculate how long a mission takes"""
@@ -2667,6 +3972,11 @@ class DynamicWorldEventsSystem:
     
     def get_active_world_summary(self):
         """Get summary of all active world events - REAL DATA ONLY"""
+        # Get AI Teams status
+        active_teams = [team for team in self.ai_traveler_teams.values() if team["status"] == "active"]
+        on_mission_teams = [team for team in self.ai_traveler_teams.values() if team["status"] == "on_mission"]
+        cooldown_teams = [team for team in self.ai_traveler_teams.values() if team["status"] == "cooldown"]
+        
         return {
             "npc_missions": {mid: mission for mid, mission in self.mission_timers.items() if mission["active"]},
             "faction_operations": {oid: operation for oid, operation in self.active_faction_operations.items() if operation["active"]},
@@ -2674,8 +3984,94 @@ class DynamicWorldEventsSystem:
             "npc_schedules": self.npc_schedules,
             "faction_agendas": self.faction_agendas,
             "real_world_status": get_current_world_status(),
-            "active_effects": get_active_effects()
+            "active_effects": get_active_effects(),
+            "ai_traveler_teams": {
+                "total_teams": len(self.ai_traveler_teams),
+                "active_teams": len(active_teams),
+                "on_mission_teams": len(on_mission_teams),
+                "cooldown_teams": len(cooldown_teams),
+                "teams_detail": self.ai_traveler_teams,
+                "active_missions": [
+                    {
+                        "team": team["designation"],
+                        "location": team["location"],
+                        "missions": team["active_missions"]
+                    }
+                    for team in on_mission_teams
+                ]
+            }
         }
+    
+    def _resolve_team_mission(self, team, mission):
+        """Resolve a team mission and apply consequences"""
+        # Calculate success chance based on team capabilities and mission DC
+        base_success = team["success_rate"]
+        dc_modifier = (20 - mission["dc"]) / 20  # Higher DC = lower success chance
+        final_success_chance = base_success * (0.5 + dc_modifier)
+        
+        success = random.random() < final_success_chance
+        
+        if success:
+            print(f"      ✅ {team['designation']} successfully completed {mission['type']}")
+            
+            # Apply positive effects
+            priority = mission.get("priority", "routine")
+            if priority == "emergency":
+                timeline_boost = 0.01  # Emergency missions give bigger boost
+            elif priority == "warning":
+                timeline_boost = 0.005
+            else:
+                timeline_boost = 0.002
+            
+            # Track success as real world event
+            track_world_event(
+                event_type="ai_team_mission_success",
+                description=f"{team['designation']} successfully completed {mission['type']}",
+                effects=[
+                    {"type": "attribute_change", "target": "timeline_stability", "value": timeline_boost, "operation": "add"},
+                    {"type": "world_event", "target": "ai_team_success", "value": f"{team['designation']}_{mission['type']}"}
+                ]
+            )
+        else:
+            print(f"      ❌ {team['designation']} failed {mission['type']}")
+            
+            # Apply negative effects
+            priority = mission.get("priority", "routine")
+            timeline_penalty = -0.003 if priority == "emergency" else -0.001
+            
+            track_world_event(
+                event_type="ai_team_mission_failure",
+                description=f"{team['designation']} failed {mission['type']}",
+                effects=[
+                    {"type": "attribute_change", "target": "timeline_stability", "value": timeline_penalty, "operation": "add"},
+                    {"type": "world_event", "target": "ai_team_failure", "value": f"{team['designation']}_{mission['type']}"}
+                ]
+            )
+        
+        return success
+    
+    def update_ongoing_effects(self):
+        """Update ongoing effects and their durations"""
+        # Update ongoing world effects
+        if hasattr(global_world_tracker, 'ongoing_effects'):
+            for effect_id, effect in list(global_world_tracker.ongoing_effects.items()):
+                if 'duration' in effect and effect['duration'] > 0:
+                    effect['duration'] -= 1
+                    if effect['duration'] <= 0:
+                        # Effect expired, remove it
+                        del global_world_tracker.ongoing_effects[effect_id]
+                        print(f"⏰ Ongoing effect expired: {effect.get('description', 'Unknown effect')}")
+        
+        # Update ongoing world changes
+        if hasattr(global_world_tracker, 'ongoing_world_changes'):
+            for change_id, change in list(global_world_tracker.ongoing_world_changes.items()):
+                if 'duration' in change and change['duration'] > 0:
+                    change['duration'] -= 1
+                    if change['duration'] <= 0:
+                        # Change expired, remove it
+                        del global_world_tracker.ongoing_world_changes[change_id]
+                        print(f"⏰ Ongoing world change expired: {change.get('description', 'Unknown change')}")
+
 
 # Create global instance
 dynamic_world_events = DynamicWorldEventsSystem()
@@ -2873,9 +4269,9 @@ def get_world_activity_feed():
     print(f"{'='*60}")
     
     # Get REAL current world state from the global tracker
-    world_status = get_current_world_status()
+    world_status = global_world_tracker.get_world_summary()
     
-    print(f"\n📊 CURRENT WORLD STATUS (Turn {world_status['turn_number']}):")
+    print(f"\n📊 CURRENT WORLD STATUS (Turn {world_status['turn_number']} - {world_status.get('game_date','')}):")
     print(f"  • World Status: {world_status['world_status']}")
     print(f"  • Total Changes Tracked: {world_status['total_changes']}")
     print(f"  • Active Ongoing Effects: {world_status['ongoing_effects']}")
@@ -2894,15 +4290,52 @@ def get_world_activity_feed():
     else:
         print(f"\n🔄 RECENT REAL WORLD CHANGES: None in last 3 turns")
     
-    # Show REAL active ongoing effects
-    active_effects = get_active_effects()
-    if active_effects:
+    # Show REAL active ongoing effects with proper categorization
+    ongoing_effects = global_world_tracker.ongoing_effects
+    if ongoing_effects:
         print(f"\n⚡ ACTIVE ONGOING EFFECTS (Real-time):")
-        for category, effects in active_effects.items():
-            print(f"  • {category.upper()}:")
-            for effect in effects:
-                turns_left = effect['turns_remaining']
-                print(f"    - {turns_left} turns remaining: {effect['effects']}")
+        
+        # Group effects by category
+        missions = []
+        timeline_events = []
+        world_events = []
+        other_effects = []
+        
+        for effect_id, effect_data in ongoing_effects.items():
+            if effect_data["active"]:
+                category = effect_id.split("_")[1] if "_" in effect_id else "other"
+                turns_left = effect_data["turns_remaining"]
+                effects = effect_data["effects"]
+                
+                if "missions" in category:
+                    missions.append((turns_left, effects))
+                elif "timeline" in category:
+                    timeline_events.append((turns_left, effects))
+                elif "world" in category:
+                    world_events.append((turns_left, effects))
+                else:
+                    other_effects.append((turns_left, effects))
+        
+        # Display grouped effects
+        if missions:
+            print(f"  • MISSIONS:")
+            for turns_left, effects in missions:
+                print(f"    - {turns_left} turns remaining: {len(effects)} effects")
+        
+        if timeline_events:
+            print(f"  • TIMELINE:")
+            for turns_left, effects in timeline_events:
+                print(f"    - {turns_left} turns remaining: {len(effects)} effects")
+        
+        if world_events:
+            print(f"  • WORLD:")
+            for turns_left, effects in world_events:
+                print(f"    - {turns_left} turns remaining: {len(effects)} effects")
+        
+        if other_effects:
+            print(f"  • OTHER:")
+            for turns_left, effects in other_effects:
+                print(f"    - {turns_left} turns remaining: {len(effects)} effects")
     else:
         print(f"\n⚡ ACTIVE ONGOING EFFECTS: None currently active")
     
@@ -2916,122 +4349,492 @@ def get_world_activity_feed():
     
     # Show REAL world state cache (current actual values)
     world_cache = global_world_tracker.world_state_cache
+    
     if world_cache:
         print(f"\n🏛️  CURRENT WORLD STATE VALUES:")
         for key, value in world_cache.items():
             if isinstance(value, (int, float)):
-                print(f"  • {key.replace('_', ' ').title()}: {value:.3f}")
+                if key in ["timeline_stability", "director_control", "faction_influence", 
+                          "government_control", "national_security", "consciousness_stability", 
+                          "host_body_survival"]:
+                    print(f"  • {key.replace('_', ' ').title()}: {value:.1%}")
+                else:
+                    print(f"  • {key.replace('_', ' ').title()}: {value:.3f}")
             else:
                 print(f"  • {key.replace('_', ' ').title()}: {value}")
     else:
-        print(f"\n🏛️  CURRENT WORLD STATE VALUES: None currently tracked")
+        print(f"\n🏛️  CURRENT WORLD STATE VALUES: No data available")
     
-    # Show REAL ongoing effects with more detail
-    ongoing_effects = global_world_tracker.ongoing_effects
-    if ongoing_effects:
-        print(f"\n⏳ DETAILED ONGOING EFFECTS:")
-        for effect_id, effect_data in ongoing_effects.items():
-            if effect_data["active"]:
-                turns_left = effect_data["turns_remaining"]
-                effects = effect_data["effects"]
-                print(f"  • {effect_id} ({turns_left} turns left):")
-                for effect in effects:
-                    effect_type = effect.get("type", "unknown")
-                    target = effect.get("target", "unknown")
-                    value = effect.get("value", "unknown")
-                    operation = effect.get("operation", "set")
-                    print(f"    - {effect_type}: {target} {operation} {value}")
-    else:
-        print(f"\n⏳ DETAILED ONGOING EFFECTS: None currently active")
-    
-    # Show REAL active world events (not simulated)
+    # Show REAL active world events with human-readable descriptions
     active_events = global_world_tracker.active_world_events
     if active_events:
         print(f"\n🚨 ACTIVE REAL WORLD EVENTS:")
         for event in active_events:
             if event.get('active'):
-                print(f"  • {event['type']}: {event['value']}")
-                print(f"    Active since: {event['timestamp']}")
+                event_type = event.get('type', 'unknown')
+                event_value = event.get('value', 'unknown')
+                
+                # Convert event types to human-readable descriptions
+                if event_type == 'world_events':
+                    if 'faction' in str(event_value).lower():
+                        description = "Faction operations continue unchecked"
+                    elif 'law enforcement' in str(event_value).lower():
+                        description = "Local law enforcement overwhelmed"
+                    elif 'government' in str(event_value).lower():
+                        description = "Government agencies lose control"
+                    elif 'civilian' in str(event_value).lower():
+                        description = "Civilian safety compromised"
+                    elif 'infrastructure' in str(event_value).lower():
+                        description = "Infrastructure security weakened"
+                    else:
+                        description = str(event_value)
+                elif event_type == 'timeline_event':
+                    if 'temporal_anomaly' in str(event_value).lower():
+                        # Extract magnitude from the value
+                        magnitude = str(event_value).replace('temporal_anomaly_', '')
+                        try:
+                            magnitude_float = float(magnitude)
+                            description = f"Temporal anomaly detected (magnitude: {magnitude_float:.2f})"
+                        except ValueError:
+                            description = f"Temporal anomaly detected (magnitude: {magnitude})"
+                    else:
+                        description = f"Timeline event: {event_value}"
+                elif event_type == 'timeline_event_temporal_anomaly':
+                    description = "Temporal anomaly system active"
+                elif event_type == 'temporal_anomaly':
+                    # Handle comprehensive temporal anomaly data
+                    if isinstance(event_value, dict) and 'anomaly_type' in event_value:
+                        anomaly = event_value
+                        description = f"{anomaly['anomaly_type'].title()} anomaly in {anomaly['location']} (magnitude: {anomaly['magnitude']:.2f})"
+                    else:
+                        description = f"Temporal anomaly: {event_value}"
+                else:
+                    description = f"{event_type}: {event_value}"
+
+                # Turn-based and in-game date
+                start_turn = event.get('start_turn', global_world_tracker.turn_tracker)
+                active_turns = max(0, global_world_tracker.turn_tracker - start_turn)
+                # Compute in-game date for start_turn
+                start_game_date = (global_world_tracker.game_start_date + timedelta(days=start_turn)).strftime('%B %d, %Y')
+                
+                print(f"  • {event_type}: {description}")
+                print(f"    Started on Turn {start_turn} (active for {active_turns} turns)")
+                print(f"    Since: {start_game_date}")
     else:
         print(f"\n🚨 ACTIVE REAL WORLD EVENTS: None currently active")
     
-    def _handle_presidential_assassination_failure(self, messenger, game_ref):
-        """Handle the consequences of a failed presidential assassination prevention mission"""
-        try:
-            # Import the government consequences system
-            from government_consequences_system import initialize_government_consequences, report_presidential_assassination_consequence
+    # Show AI Traveler Teams status
+    try:
+        # Access AI teams through the messenger system
+        from messenger_system import DynamicWorldEventsSystem
+        temp_system = DynamicWorldEventsSystem()
+        ai_teams = temp_system.ai_traveler_teams
+        
+        if ai_teams:
+            print(f"\n🤖 AI TRAVELER TEAMS STATUS:")
+            active_teams = [team for team in ai_teams.values() if team["status"] == "active"]
+            on_mission_teams = [team for team in ai_teams.values() if team["status"] == "on_mission"]
+            cooldown_teams = [team for team in ai_teams.values() if team["status"] == "cooldown"]
             
-            # Initialize the system if not already done
-            if not hasattr(game_ref, 'government_consequences'):
-                game_ref.government_consequences = initialize_government_consequences(game_ref)
+            print(f"  • Total Teams: {len(ai_teams)}")
+            print(f"  • Available: {len(active_teams)}")
+            print(f"  • On Mission: {len(on_mission_teams)}")
+            print(f"  • Cooldown: {len(cooldown_teams)}")
             
-            # Extract location and method from message content
-            location = self._extract_location_from_message(messenger.message_content)
-            method = self._extract_method_from_message(messenger.message_content)
-            
-            # Report the presidential assassination and trigger consequences
-            consequence_event = report_presidential_assassination_consequence(
-                location=location,
-                method=method,
-                mission_failed=True
-            )
-            
-            if consequence_event:
-                print(f"\n🚨 PRESIDENTIAL ASSASSINATION CONSEQUENCES TRIGGERED:")
-                print(f"• Location: {location}")
-                print(f"• Method: {method}")
-                print(f"• Government crisis response activated")
-                print(f"• Real-time consequences applied to game world")
-                print(f"• Government news system updated")
-                
-                # Show immediate world state changes
-                if hasattr(game_ref, 'living_world'):
-                    lw = game_ref.living_world
-                    print(f"\n🌍 IMMEDIATE WORLD STATE CHANGES:")
-                    print(f"• Timeline Stability: {lw.timeline_stability:.1%} (was {lw.timeline_stability + 0.25:.1%})")
-                    print(f"• Government Control: {lw.government_control:.1%} (was {lw.government_control + 0.15:.1%})")
-                    print(f"• Faction Influence: {lw.faction_influence:.1%} (was {lw.faction_influence - 0.20:.1%})")
-                    print(f"• National Security: {lw.national_security:.1%} (was {lw.national_security + 0.30:.1%})")
-                
-                # Show government operations initiated
-                gov_ops = game_ref.government_consequences.get_government_operations_status()
-                print(f"\n🏛️ GOVERNMENT OPERATIONS INITIATED:")
-                print(f"• Active Operations: {gov_ops['active_operations']}")
-                print(f"• Crisis Effects: {gov_ops['crisis_effects']['national_emergency']}")
-                print(f"• Military Alert Level: {gov_ops['crisis_effects']['military_alert_level']}")
-                
-        except ImportError:
-            print(f"⚠️ Warning: Government consequences system not available")
-            print(f"• Presidential assassination consequences not fully processed")
-        except Exception as e:
-            print(f"⚠️ Error processing presidential assassination consequences: {e}")
+            if on_mission_teams:
+                print(f"  • Active Missions:")
+                for team in on_mission_teams:
+                    for mission in team["active_missions"]:
+                        print(f"    - {team['designation']}: {mission['type']} in {mission['location']} (DC: {mission['dc']}, {mission.get('time_remaining', mission['duration'])} turns left)")
+    except Exception as e:
+        print(f"  • AI Teams: System initializing...")
     
-    def _extract_location_from_message(self, message_content: str) -> str:
-        """Extract location from presidential assassination message"""
-        # Default to Washington D.C. if no specific location found
-        if "washington" in message_content.lower() or "dc" in message_content.lower():
-            return "Washington D.C."
-        elif "white house" in message_content.lower():
-            return "White House, Washington D.C."
-        elif "camp david" in message_content.lower():
-            return "Camp David, Maryland"
-        else:
-            return "Washington D.C."  # Default location
-    
-    def _extract_method_from_message(self, message_content: str) -> str:
-        """Extract assassination method from message"""
-        if "sniper" in message_content.lower() or "shooting" in message_content.lower():
-            return "Sniper attack"
-        elif "bomb" in message_content.lower() or "explosive" in message_content.lower():
-            return "Explosive device"
-        elif "poison" in message_content.lower():
-            return "Poisoning"
-        elif "vehicle" in message_content.lower() or "car" in message_content.lower():
-            return "Vehicle attack"
-        else:
-            return "Coordinated attack"  # Default method
-
     print(f"\n" + "="*60)
     print(f"🌍 Live World Activity Feed Complete - All Data is REAL-TIME")
+    
+    def check_programmer_defection_risk(self, programmer_name, game_ref):
+        """Check if a programmer should defect based on current game conditions"""
+        if programmer_name not in self.directors_programmers:
+            return False
+            
+        programmer = self.directors_programmers[programmer_name]
+        if programmer["loyalty"] == "defected":
+            return False  # Already defected
+            
+        current_turn = getattr(game_ref, 'current_turn', 0)
+        
+        # Only check every 3 turns to avoid constant defection attempts
+        if current_turn - programmer.get("last_loyalty_check", 0) < 3:
+            return False
+            
+        programmer["last_loyalty_check"] = current_turn
+        
+        # Calculate defection probability based on multiple factors
+        base_risk = programmer["defection_risk"]
+        
+        # Factor 1: Timeline stability (lower stability = higher defection risk)
+        timeline_stability = getattr(game_ref, 'timeline_stability', 0.8)
+        stability_factor = (1.0 - timeline_stability) * 0.3  # 0-30% additional risk
+        
+        # Factor 2: Stress level from failed missions
+        stress_factor = programmer["stress_level"] * 0.2  # 0-20% additional risk
+        
+        # Factor 3: Faction exposure (if they've been contacted by the Faction)
+        exposure_factor = programmer["faction_exposure"] * 0.25  # 0-25% additional risk
+        
+        # Factor 4: Director control level
+        director_control = getattr(game_ref, 'director_control', 0.8)
+        control_factor = (1.0 - director_control) * 0.2  # 0-20% additional risk
+        
+        # Factor 5: Random chance (D20 roll)
+        random_factor = random.randint(1, 20) / 100.0  # 1-20% random risk
+        
+        total_defection_chance = base_risk + stability_factor + stress_factor + exposure_factor + control_factor + random_factor
+        
+        # Cap at 80% maximum chance
+        total_defection_chance = min(total_defection_chance, 0.8)
+        
+        # Roll for defection
+        defection_roll = random.random()
+        
+        if defection_roll <= total_defection_chance:
+            # DEFECTION TRIGGERED!
+            self._trigger_programmer_defection(programmer_name, game_ref, total_defection_chance)
+            return True
+            
+        return False
+    
+    def _trigger_programmer_defection(self, programmer_name, game_ref, defection_chance):
+        """Handle a programmer defection when triggered"""
+        programmer = self.directors_programmers[programmer_name]
+        current_turn = getattr(game_ref, 'current_turn', 0)
+        
+        # Determine defection method and reason
+        defection_methods = [
+            "recruitment", "blackmail", "ideological_change", "desperation", 
+            "faction_promise", "system_compromise", "host_life_influence"
+        ]
+        
+        defection_reasons = [
+            "Lost faith in Director's methods",
+            "Promised better future by the Faction",
+            "Blackmailed with compromising information",
+            "Influenced by host body's personal beliefs",
+            "Timeline instability causing doubt",
+            "Personal gain and power promises",
+            "Disillusioned with current system"
+        ]
+        
+        method = random.choice(defection_methods)
+        reason = random.choice(defection_reasons)
+        
+        # Update programmer status
+        programmer["loyalty"] = "defected"
+        programmer["threat_level"] = 0.8
+        programmer["protection_priority"] = "HIGH"
+        programmer["defection_triggers"].append({
+            "turn": current_turn,
+            "method": method,
+            "reason": reason,
+            "chance": defection_chance
+        })
+        
+        # Update defection status
+        self.defection_status[programmer_name].update({
+            "defected": True,
+            "defection_turn": current_turn,
+            "target_faction": "The Faction",
+            "defection_method": method,
+            "defection_reason": reason
+        })
+        
+        # Generate defection event
+        defection_event = {
+            "type": "programmer_defection",
+            "programmer": programmer_name,
+            "method": method,
+            "reason": reason,
+            "turn": current_turn,
+            "severity": "CRITICAL",
+            "description": f"🚨 CRITICAL: {programmer_name} has defected to the Faction!",
+            "details": f"Defection triggered by {method}. Reason: {reason}",
+            "consequences": {
+                "director_control": -0.15,
+                "faction_influence": 0.20,
+                "timeline_stability": -0.10,
+                "system_security": -0.25
+            }
+        }
+        
+        # Add to world events
+        self.world_events.append(defection_event)
+        
+        # Track in global world state
+        try:
+            global_world_tracker.track_world_event(
+                event_type="programmer_defection",
+                description=f"{programmer_name} defected to the Faction",
+                effects=[
+                    {"type": "attribute_change", "target": "director_control", "value": -0.15, "operation": "add"},
+                    {"type": "attribute_change", "target": "faction_influence", "value": 0.20, "operation": "add"},
+                    {"type": "attribute_change", "target": "timeline_stability", "value": -0.10, "operation": "add"},
+                    {"type": "world_event", "target": "defection_alert", "value": "ACTIVE"}
+                ]
+            )
+        except:
+            pass  # Global tracker might not be available
+        
+        # Start immediate protection mission for remaining loyal programmers
+        self._start_defection_protection_mission(programmer_name, game_ref)
+        
+        print(f"🚨🚨🚨 {programmer_name} HAS DEFECTED TO THE FACTION! 🚨🚨🚨")
+        print(f"   Method: {method}")
+        print(f"   Reason: {reason}")
+        print(f"   Defection chance was: {defection_chance:.1%}")
+        print(f"   Starting emergency protection protocols...")
+    
+    def _start_defection_protection_mission(self, defected_programmer, game_ref):
+        """Start protection mission for remaining loyal programmers after a defection"""
+        loyal_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data["loyalty"] == "loyal" and name != defected_programmer
+        ]
+        
+        if not loyal_programmers:
+            return
+            
+        # Assign protection mission to a random loyal programmer
+        protector = random.choice(loyal_programmers)
+        mission_id = f"protection_{defected_programmer}_{protector}_{random.randint(1000, 9999)}"
+        
+        protection_mission = {
+            "id": mission_id,
+            "type": "programmer_protection",
+            "programmer": protector,
+            "target": defected_programmer,
+            "priority": "EMERGENCY",
+            "description": f"Protect remaining loyal programmers from {defected_programmer}",
+            "duration": self.calculate_mission_duration("programmer_protection"),
+            "time_remaining": self.calculate_mission_duration("programmer_protection"),
+            "success_rate": 0.7,
+            "consequences": {
+                "success": {
+                    "system_security": 0.15,
+                    "director_control": 0.10,
+                    "loyal_programmer_safety": "SECURED"
+                },
+                "failure": {
+                    "system_security": -0.20,
+                    "director_control": -0.15,
+                    "loyal_programmer_safety": "COMPROMISED"
+                }
+            }
+        }
+        
+        # Start the mission
+        self.start_npc_mission(protector, protection_mission)
+        
+        # Update programmer's current mission
+        self.directors_programmers[protector]["current_mission"] = mission_id
+        
+        print(f"🛡️  {protector} assigned to protection mission against {defected_programmer}")
+    
+    def increase_programmer_stress(self, programmer_name, stress_amount=0.1):
+        """Increase a programmer's stress level (called when missions fail)"""
+        if programmer_name in self.directors_programmers:
+            current_stress = self.directors_programmers[programmer_name].get("stress_level", 0.0)
+            new_stress = min(1.0, current_stress + stress_amount)
+            self.directors_programmers[programmer_name]["stress_level"] = new_stress
+            
+            # High stress increases defection risk
+            if new_stress >= 0.8:
+                print(f"⚠️  {programmer_name} is under extreme stress - defection risk increased!")
+    
+    def increase_faction_exposure(self, programmer_name, exposure_amount=0.15):
+        """Increase a programmer's faction exposure (called when they encounter Faction agents)"""
+        if programmer_name in self.directors_programmers:
+            current_exposure = self.directors_programmers[programmer_name].get("faction_exposure", 0.0)
+            new_exposure = min(1.0, current_exposure + exposure_amount)
+            self.directors_programmers[programmer_name]["faction_exposure"] = new_exposure
+            
+            # High exposure increases defection risk
+            if new_exposure >= 0.7:
+                print(f"⚠️  {programmer_name} has high Faction exposure - defection risk increased!")
+    
+    def process_programmer_defection_checks(self, game_ref):
+        """Process defection risk checks for all active programmers"""
+        defection_events = []
+        
+        for programmer_name in list(self.directors_programmers.keys()):
+            if self.check_programmer_defection_risk(programmer_name, game_ref):
+                defection_events.append(programmer_name)
+        
+        return defection_events
+    
+    def trigger_defection_event(self, programmer_name, event_type, severity="MODERATE", game_ref=None):
+        """Trigger a defection event based on specific game circumstances"""
+        if programmer_name not in self.directors_programmers:
+            return False
+            
+        programmer = self.directors_programmers[programmer_name]
+        if programmer["loyalty"] == "defected":
+            return False  # Already defected
+        
+        # Different event types have different defection chances
+        event_defection_chances = {
+            "mission_critical_failure": 0.4,      # 40% chance after critical mission failure
+            "faction_direct_contact": 0.6,        # 60% chance after direct faction contact
+            "system_critical_breach": 0.5,        # 50% chance after critical system breach
+            "host_life_trauma": 0.3,              # 30% chance after host life trauma
+            "timeline_catastrophe": 0.7,          # 70% chance after timeline catastrophe
+            "government_exposure": 0.4,           # 40% chance after government exposure
+            "personal_betrayal": 0.8,             # 80% chance after personal betrayal
+            "director_system_failure": 0.6        # 60% chance after Director system failure
+        }
+        
+        base_chance = event_defection_chances.get(event_type, 0.3)
+        
+        # Apply severity modifier
+        severity_modifiers = {
+            "LIGHT": 0.5,      # Reduce chance by 50%
+            "MODERATE": 1.0,   # No change
+            "SEVERE": 1.5,     # Increase chance by 50%
+            "CRITICAL": 2.0    # Double the chance
+        }
+        
+        severity_modifier = severity_modifiers.get(severity, 1.0)
+        final_chance = base_chance * severity_modifier
+        
+        # Cap at 90% maximum
+        final_chance = min(final_chance, 0.9)
+        
+        # Roll for defection
+        defection_roll = random.random()
+        
+        if defection_roll <= final_chance:
+            # DEFECTION TRIGGERED BY SPECIFIC EVENT!
+            print(f"🚨🚨🚨 {programmer_name} DEFECTION TRIGGERED BY {event_type.upper()}! 🚨🚨🚨")
+            print(f"   Event: {event_type} (Severity: {severity})")
+            print(f"   Defection chance: {final_chance:.1%}")
+            print(f"   Roll: {defection_roll:.3f}")
+            
+            self._trigger_programmer_defection(programmer_name, game_ref, final_chance)
+            return True
+        else:
+            # No defection, but increase stress and exposure
+            stress_increase = 0.15 if severity in ["SEVERE", "CRITICAL"] else 0.05
+            exposure_increase = 0.20 if event_type in ["faction_direct_contact", "government_exposure"] else 0.05
+            
+            self.increase_programmer_stress(programmer_name, stress_increase)
+            self.increase_faction_exposure(programmer_name, exposure_increase)
+            
+            print(f"⚠️  {programmer_name} resisted defection from {event_type} event")
+            print(f"   Stress increased by {stress_increase:.1%}, Faction exposure by {exposure_increase:.1%}")
+            return False
+    
+    def handle_mission_failure_defection_risk(self, programmer_name, mission_type, failure_severity, game_ref=None):
+        """Handle defection risk when a programmer's mission fails"""
+        if programmer_name not in self.directors_programmers:
+            return False
+            
+        programmer = self.directors_programmers[programmer_name]
+        if programmer["loyalty"] == "defected":
+            return False
+        
+        # Mission failures increase stress and can trigger defection
+        stress_increase = 0.1  # Base stress increase
+        
+        # Different mission types have different failure consequences
+        mission_failure_effects = {
+            "timeline_stabilization": {"stress": 0.2, "defection_trigger": "mission_critical_failure"},
+            "system_security": {"stress": 0.15, "defection_trigger": "system_critical_breach"},
+            "faction_counter": {"stress": 0.25, "defection_trigger": "faction_direct_contact"},
+            "government_operation": {"stress": 0.2, "defection_trigger": "government_exposure"},
+            "host_protection": {"stress": 0.15, "defection_trigger": "host_life_trauma"},
+            "infrastructure_maintenance": {"stress": 0.1, "defection_trigger": None}
+        }
+        
+        mission_effects = mission_failure_effects.get(mission_type, {"stress": 0.1, "defection_trigger": None})
+        
+        # Apply mission-specific stress
+        total_stress = stress_increase + mission_effects["stress"]
+        self.increase_programmer_stress(programmer_name, total_stress)
+        
+        # Check if this failure should trigger defection
+        if mission_effects["defection_trigger"] and failure_severity in ["SEVERE", "CRITICAL"]:
+            return self.trigger_defection_event(
+                programmer_name, 
+                mission_effects["defection_trigger"], 
+                failure_severity, 
+                game_ref
+            )
+        
+        return False
+    
+    def handle_faction_exposure_defection_risk(self, programmer_name, exposure_type, exposure_intensity, game_ref=None):
+        """Handle defection risk when a programmer is exposed to faction activities"""
+        if programmer_name not in self.directors_programmers:
+            return False
+            
+        programmer = self.directors_programmers[programmer_name]
+        if programmer["loyalty"] == "defected":
+            return False
+        
+        # Increase faction exposure significantly
+        exposure_increase = 0.3 if exposure_intensity in ["HIGH", "CRITICAL"] else 0.15
+        self.increase_faction_exposure(programmer_name, exposure_increase)
+        
+        # Check for defection trigger
+        if exposure_intensity in ["HIGH", "CRITICAL"]:
+            return self.trigger_defection_event(
+                programmer_name,
+                "faction_direct_contact",
+                exposure_intensity,
+                game_ref
+            )
+        
+        return False
+    
+    def get_programmer_defection_status(self, programmer_name):
+        """Get detailed defection status for a specific programmer"""
+        if programmer_name not in self.directors_programmers:
+            return None
+            
+        programmer = self.directors_programmers[programmer_name]
+        defection_info = self.defection_status.get(programmer_name, {})
+        
+        return {
+            "name": programmer_name,
+            "loyalty": programmer["loyalty"],
+            "loyalty_score": programmer.get("loyalty_score", 100),
+            "defection_risk": programmer.get("defection_risk", 0.15),
+            "stress_level": programmer.get("stress_level", 0.0),
+            "faction_exposure": programmer.get("faction_exposure", 0.0),
+            "current_mission": programmer.get("current_mission"),
+            "defection_status": defection_info,
+            "risk_factors": {
+                "base_risk": programmer.get("defection_risk", 0.15),
+                "stress_contribution": programmer.get("stress_level", 0.0) * 0.2,
+                "exposure_contribution": programmer.get("faction_exposure", 0.0) * 0.25,
+                "total_estimated_risk": min(0.8, 
+                    programmer.get("defection_risk", 0.15) + 
+                    programmer.get("stress_level", 0.0) * 0.2 + 
+                    programmer.get("faction_exposure", 0.0) * 0.25
+                )
+            }
+        }
+    
+    def get_all_programmer_defection_risks(self):
+        """Get defection risk assessment for all active programmers"""
+        risk_assessment = {}
+        
+        for programmer_name in self.directors_programmers:
+            risk_assessment[programmer_name] = self.get_programmer_defection_status(programmer_name)
+        
+        return risk_assessment
 
-# ============================================================================
+
+# Create global instance
+dynamic_world_events = DynamicWorldEventsSystem()
+
+
