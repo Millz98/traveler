@@ -392,3 +392,149 @@ Contingency Plans
 The Director has at least one backup plan available in the event of an existential threat to the Grand Plan. The first, called Plan X, may or may not have been designed by the Director itself (it is not specified whether the order was given prior to the Director's corruption by the Faction): Ellis was ordered to build a quantum frame capable of storing the Director's consciousness. If the Director were threatened in the future, it would send itself back in time using the frame as a host. (S1E12: Grace)
 
 Another contingency plan has the Director secretly uploading a time travel program into the Ilsa supercomputer. Combined with a consciousness transfer machine, this allows Travelers in the 21st century to send one of their own further back in time. This plan is enacted following impending nuclear armageddon unleashed by Traveler 001. Grant MacLaren is sent to a younger version of himself in August 2001 to prevent Traveler 001 from ever being sent back in time. The mission is a success, ending Version One of the Traveler program and starting Version Two in its place. (S3E10: Protocol Omega)
+
+
+
+
+
+Travelers are people from the future inhabiting host bodies in the past. Utilizing consciousness transfer and time travel technologies, these people overwrite the hosts' original personalities, then use the bodies to undertake missions in the 21st century. These missions are done in service to the Grand Plan under guidance from an entity known as the Director in order to rectify the mistakes of the past and ultimately undo the post-apocalyptic future they originated from.
+
+Travelers are usually assigned in teams, usually in groups of five, each contributing their own specialties for the benefit of their assigned missions. While their goal is to ensure a better future, they must still adhere to a set of Protocols to minimize unintended consequences of meddling with the past.
+
+Host
+The Director selects hosts for Traveler missions depending on certain factors.
+
+Firstly, there must be a historical record of the host that survives into the future. The bare minimum is a T.E.L.L. of the host's historical death. Cellphones and other location-tracking technologies have only become ubiquitous by the early 21st century that T.E.L.L.s for a wide selection of candidates are available; earlier eras in time are difficult to transfer to, if not impossible. (S1E01: Travelers, S3E10: Protocol Omega)
+
+Secondly, the host body must be healthy. Missions can be physically demanding. However, the Director can make mistakes based on incomplete or misleading historical records: Marcy Warton was allegedly a librarian, but Traveler 3569 transferred into a host with severe mental disabilities as her social media profile was a complete fabrication. Philip Pearson was listed by his family as a first-time heroin user, not an ongoing addict. (S1E01: Travelers) Health stipulations can be disregarded on purpose if the mission is more paramount: Traveler 0117 transferred into Bloom, a terminally ill woman, and her only purpose is to oversee the installation of the x-ray laser that should prevent the asteroid Helios-685 from striking Earth. Likewise, The Church of Our Rapture are all composed of elderly men and women who have been tasked with providing security for Bloom's mission. (S1E06: Helios-685)
+
+Thirdly, the host body must be about to die of a preventable cause. The Director is prohibited from ending a life too soon. Marcy was beaten to death by some hooligans in the historical record, but Traveler 3569 transfers to her moments before that happens and beats her assailants instead. Carly Shannon was also beaten to death by her domestic partner Jeff Conniker, but Traveler 3465 changes her fate and beats Jeff instead. Gower was considered a host candidate, but he has an unavoidable heart attack before he can be used for any missions and thus rejected. (S1E01: Travelers)
+
+Hosts can be reused depending on the situation. Traveler 3569 transfers into Marcy twice, the second time to avoid the damaged parts of her brain, although at the cost of forgetting her 21st century memories as from her point of view she just arrived from the future the first time. (S1E11: Marcy) Aaron Donner became host to Travelers 4022 and 4024, with 4022 overwritten by the latter because of his betrayal of the Grand Plan. (S1E08: Donner)
+
+Training
+Before transferring to the 21st century, Travelers undergo extensive training, both in general skills and in their fields of expertise. Medics, for example, are experts in 21st century medicine. Historians memorize information perfectly. As operatives in the field they often have martial training, both in unarmed and armed combat. (S1E01: Travelers)
+
+Future society is radically different from 21st century norms. Travelers must also relearn the social aspects of living in the time period through formal training programs. The subtler points are sometimes overlooked because of the gulf of centuries; Trevor Holden has difficulty parsing text lingo while Marcy has no problems answering her door naked before David Mailer tells her it's inappropriate. (S1E01: Travelers, S2E07: 17 Minutes)
+
+Because they sometimes have to transfer to hosts with chaotic final moments, their training may also include how to surmount their hosts' demise. Aaron Donner practiced countless times to defuse a bomb his host brought, but he failed at the actual scenario: Donner was among the original casualties, but Traveler 4022 ran away and left his teammates to die instead. Ellis historically died by getting tangled up in farm machinery, but Traveler 0014 had the presence of mind to cut through the wiring. (S1E08: Donner, S1E11: Marcy)
+
+Transfers
+Main article: Consciousness transfer
+Travelers can only transfer into the body of a host who is destined to die soon. The justification is that the host is already dying but the transfer of consciousness will save the host's body, though kill their consciousness. It will also result in the loss of all memories from the host's previous consciousness, which is why research into the host's life before the Traveler is important: to find out who was in their life and what they did as much as possible. (S1E01: Travelers)
+
+Transfers are sequential and can only happen after the previous one. Messengers or Travelers cannot be sent further back than the most recent one due to ripples in the timeline.
+
+eams and Roles
+Traveler teams are typically made up of five members. If they lose members, someone may have to step up and take on multiple roles, unless the Director deems it necessary to send replacements. (S1E05: Room 101, S2E09: Update) Some Travelers have specialized missions and operate alone or with a more focused team composition.
+
+Team Leader
+Main article: Team Leader
+Team leaders are in charge of their teams and hence responsible for their actions. They lead missions and are normally the ones who receive messages from the Director about their next mission. Team leaders have to make the tough calls on behalf of their team.
+
+Tactician
+Main article: Tactician
+Tacticians are in charge of the security of their team and hence are highly trained with weapons and in combat. They often patrol buildings when their teams are investigating in order to protect them from attackers and set up defences around the perimeter of the building if something or someone needs protecting.
+
+Medic
+Main article: Medic
+Medics are trained in an assortment of 21st century medicine. They are responsible for healthcare needs of those on their team, including giving vaccinations prior to epidemics, performing surgery, and checking up on the general health of their team members.
+
+The only time a Medic isn't in charge of their team's healthcare is if the Director has decided that Doctors need to step in.
+
+Historian
+Main article: Historian
+Historians are the information specialists. With their perfect recall, they can supply financing to the team with memorized gambling outcomes, lotto numbers, stock investments, and the like. They keep track of potential host candidate T.E.L.L.s so the incoming Traveler can integrate more smoothly with their assigned team.
+
+As the future is always changing the information Historians memorized sometimes become out of date. They are then invited to Update sessions with fellow Historians for the self-explanatory updates to their knowledge stores. However, they are forbidden to speak of these updates to anyone else via Protocol 2H.
+
+Engineer
+Main article: Engineer
+Engineers create the team's futuristic gadgets using 21st century supplies, and also do quality control on components passed along from team to team. One of their first tasks would be building subdermal comms for the team so they can communicate with each other at all times.
+
+Specialist Roles
+Main article: Specialist
+These Traveler roles are outside the defined composition of the standard team, but they are vital (if more so) to the functioning of the Traveler program.
+
+Programmer
+The Programmers are responsible for creating and maintaining the Director as well as the attendant systems and rules governing the entire Traveler program. Due to their highly important role, they have very low Traveler numbers.
+
+Doctor
+Doctors undertake missions of a purely medical nature, and thus comprise their own D-Team. The Director sends them to people whose survival is deemed important to the Grand Plan.
+
+Archivist
+Main article: Archivist
+An Archivist's job is to ensure the Director has a comprehensive store of historical information. They are infused with nanites that they regularly store in heavily guarded Archive blood banks around the world. They help Historians understand the changes to the timeline by organizing their periodic Updates.
+
+Solo
+Some Travelers don't have a specific team role and are sent to the 21st century for a single mission or purpose, outside of the roles listed above.
+
+Nonstandard Teams
+Some Travelers are organized into units that do not fit the typical five-person standard. The Director could have specific tasks for them that require they operate as a team. One group is dedicated to refining uranium for the Director's future use. Archives have dedicated support teams providing security and transport to the vital historical information in them. The Church of Our Rapture is a group of old evangelicals used as extra security during the Helios-685 mission. (S2E06: U235, S1E06: Helios-685, S3E08: Archive)
+
+Some teams arise as an impromptu grouping. The Faction possessed an FBI task force headed by Wakefield in their bid to take over operations in the past after crippling the Director. When the Director turned back online, it overwrote all the Faction members it could find, the FBI members included. This FBI Team is now a group of Travelers ready to respond to manpower needs in addition to their regular FBI duties. Wakefield, in addition to heading this team, appears to be a member of another team, mentioning a separate teammate in the NSA. (S2E01: Ave Machina, S2E06: U235, S3E01: Ilsa)
+
+Self-Regulation
+Travelers are expected to follow local laws and customs like any other person unless superseded by orders or missions from the Director. Because there are always a lot of variables to consider in any given scenario, the Director allows for accomplishing missions that may deviate from specified instructions, and may let off erring teams with a warning. However, doing things that are seen as a threat to the Grand Plan is something that the Director and the Travelers take very seriously.
+
+To that end, a Traveler accused of jeopardizing the Grand Plan is tried in a tribunal composed of their peers and streamed via the deep web backchannel for remote viewers. The accused is given the chance to defend their actions, and witnesses may be called to corroborate or refute their words. Depending on the severity of the "crime", other Travelers cast their vote if the accused is guilty or not, or the Director makes the final decision. There is only one punishment if the accused is found guilty: death by immediate overwrite. Thanks to surveillance recording everything for future posterity, the accused has an exact T.E.L.L. that can be used to transfer another Traveler consciousness into the body. (S1E08: Donner, S2E08: Traveler 0027)
+
+The Faction
+Main article: The Faction
+All Travelers were once unified in the goal of saving humanity under the Director's guidance. However, enough changes to the timeline occurred that Shelter 41, which originally collapsed and killed its occupants, now thrived and became a hotbed of people who rejected the Grand Plan. These people coalesced into the Faction, and instigated a rebellion against the Director in the future and attempted to take over Traveler operations believing that decisions about humanity's future should be entrusted to its own hands and not a machine. (S1E11: Marcy)
+
+Travelers in the 21st century who came from a future without the Faction can become disillusioned enough to join their ranks. (S3E06: Philip)
+
+
+The Director is an entity in the future that oversees Travelers in the past, in charge of handing them missions, selecting host candidates, calculating their T.E.L.L.s for consciousness transfer, and a myriad of other operations.
+The Director can only communicate through Messengers and computer networks. It is eventually revealed that it is a highly advanced quantum AI program that created the Grand Plan . (S1E12: Grace) The Director defines itself as "a sentient multi-zettaflop quantum frame." (S3E01: Ilsa)
+
+
+The Director was always referred to by name - no one used the "it" pronoun until Grace Day reveals that she rebooted the Director. (S1E12: Grace) Travelers often speak of the Director as if it were a person making decisions ("I have faith in the Director's plan," or "The Director won't like that.")
+
+The Director is a superintelligent entity that controls not only the time travel program, but every aspect of living by the remnants of humanity in the future. Use of the program to allocate resources and protect the shelters has kept humanity alive. However, members of the anti-Director faction object to an AI making decisions they'd rather make themselves and intend to destroy it. (S1E11: Marcy)
+
+Known Programmers
+Simon (Travelers 004 and 5069)
+Pike (009)
+Ellis (014)
+Foster (0017)
+Grace Day (0027)
+Jones (0029); later revealed to have betrayed the Director and joined the Faction
+Grace, Simon (004), and Ellis are the only programmers who are specified as creators of the Director. Other programmers may have assisted in its creation, while some may have become programmers after the fact.
+
+History
+Origin
+A man named Robert Fraser discovered a new element in 2068. This element proved vital to the creation of room-temperature superconductors - equipment used to create the Director. Subsequent leaps in quantum computing eventually lead to the creation of artificial superintelligence. (S2E07: 17 Minutes)
+
+The Director was built in a mountain range along the United State-Canada border at an unspecified point in the future. (S2E06: U235)
+
+Traveler Program
+The Director is programmed to ensure the survival of humanity by any means necessary. This primarily involves sending humans backwards through time to correct the mistakes made by their ancestors "at peril of [their] own birth." This is known as the Traveler program. Travelers are responsible for enacting the Grand Plan, a list of changes to the past that are intended to mitigate humankind's near-extinction.
+
+The first mission ordered by the Director was proof of concept. Traveler 001 was sent into a host who worked in the World Trade Center on September 11, 2001, minutes before the attack. He was ordered to send a message indicating he had arrived safely, then die to prevent being traced. When the Traveler in question failed to send the message and escaped the building unscathed, the Director dedicated vast resources and personnel to tracking him - even killing two people via messenger just to order 001 to "self-terminate."
+
+The Traveler program may have been put on hold in the future after the defection of 001. Simon - himself Traveler 004 - claims to have spent years searching for Vincent Ingram's voice. Simon's own mission from the Director was to set up the deep web communication network used by the Travelers.
+
+According to the original historical record, Earth is struck by asteroid Helios-685 in 2018, an event that kills over 93 million people. One iteration of the Grand Plan centered around deflecting this asteroid. This proved insufficient; the future did not change substantially after the Travelers prevented the impact.
+
+The entirety of the Grand Plan is not know to any Traveler; teams are separated and assigned their own missions, and Protocol 6 forbids inter-team communication except in emergencies.
+
+The Coup
+Events that occurred during the year 2016 changed the future in unforeseen ways. A bunker which originally collapsed became the birthplace of the Faction in this alternate timeline. The Faction eventually gained enough power to pose a threat to the Director. In response, it ordered Ellis to travel to the 21st and build a quantum frame, a device capable of storing the Director. This way if the Director's existence were ever in danger, it could send itself back in time. However, it later ordered the destruction of the same device, since it could also be used by the Faction to store human consciousnesses.
+
+After Grace reset the Director to prevent it from being corrupted, the Faction was able to seize control and shut it down. The Traveler program continued to run, with the Faction impersonating the Director and ordering Travelers on missions they agreed with. Trevor Holden was able to place a device in the Director's future location which powered the Director for three seconds - enough time for it to regain control of the Traveler program. Afterwards, the Director ordered its disciples to hunt down and execute Faction members still alive in the past.
+
+Following a mass capture of Faction agents, the Director ordered the arrest and trial of Grace Day for interfering with the Grand Plan. The Director had determined that one of the three remaining programmers was a Faction turncoat, so it sent all three suspects back in time to review the historical record. Grace was never actually suspected of being the Faction traitor, and her "trial" was only ever a cover. It revealed the ploy to Grace during her sentencing, speaking to her in real time by use of elderly people on life support as messengers. The Director seemed to be genuinely fond of Grace (although it was left ambiguous as to whether the Director fond of her as a parent, child, or peer); it ended the conversation by saying "Thank you for saving me, Grace. I shall miss you."
+
+Discovery
+"Discovery was inevitable at this juncture of the Grand Plan. Cooperation with 21st century authorities is now the optimal path."
+— The Director[src]
+In 2018 a coordinated effort by world intelligence agencies located conclusive proof of the existence of the Traveler program. Rather than continue to cover its tracks, the Director chose to reveal its existence the world governments by speaking through Ilsa, an advanced artificial intelligence developed in the 21st.
+
+When a Traveler team was deemed non-viable, the Director created a powerful messenger program to complete a mission preventing a nuclear plant from melting down. The Messenger failed to shut off and remained in its host. The Director eventually spoke to the Messenger (who had possessed the body of Trevor Holden) and offered it a domain within itself. The Messenger was then reabsorbed into the Director.
+
+Later the Director summoned Trevor again, who was now suffering from temporal aphasia. The two spoke privately, wherein they agreed to use Trevor's body as a host for a new Traveler. The plan did not move forward, however.
+
+Failure
+The first iteration of the Traveler program failed when the Faction launched nuclear attacks on the Director's archives. While the attacks did not blind the Director as intended, they set in motion a chain of events that - coupled with further interference from Traveler 001 - led to nuclear warfare long before it was "fated" to happen. Using a program that the Director uploaded to Ilsa, Grant MacLaren traveled back in time to prevent the arrival of 001. This resulted in the termination of Version One and the inception of Version Two.

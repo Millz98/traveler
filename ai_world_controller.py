@@ -1316,12 +1316,15 @@ class AIWorldController:
         self.world_events = []
         self.faction_activities = []
         
-    def initialize_world(self):
+    def initialize_world(self, ai_teams=None, faction_ops=None, gov_agents=None):
         """Initialize the AI-controlled world with entities"""
-        print("🤖 Initializing AI World Controller...")
+        # Use provided values or defaults
+        ai_teams = ai_teams or 3
+        faction_ops = faction_ops or 5
+        gov_agents = gov_agents or 7
         
         # Create AI Traveler teams
-        for i in range(3):  # 3 AI teams
+        for i in range(ai_teams):
             team = AITravelerTeam(
                 team_id=f"AI-{i+1:02d}",
                 members=random.randint(3, 5),
@@ -1331,7 +1334,7 @@ class AIWorldController:
             self.ai_teams.append(team)
         
         # Create Faction operatives
-        for i in range(5):  # 5 Faction operatives
+        for i in range(faction_ops):
             operative = AIFactionOperative(
                 operative_id=f"F-{i+1:02d}",
                 specialization=random.choice(["saboteur", "recruiter", "assassin", "infiltrator"]),
@@ -1341,7 +1344,8 @@ class AIWorldController:
             self.faction_operatives.append(operative)
         
         # Create Government agents (FBI and CIA)
-        for i in range(4):  # 4 FBI agents
+        fbi_agents = max(1, gov_agents // 2)  # At least 1 FBI agent
+        for i in range(fbi_agents):
             agent = AIGovernmentAgent(
                 agent_id=f"FBI-{i+1:02d}",
                 agency="FBI",
@@ -1354,7 +1358,8 @@ class AIWorldController:
             )
             self.government_agents.append(agent)
         
-        for i in range(3):  # 3 CIA agents
+        cia_agents = max(1, gov_agents - fbi_agents)  # Remaining agents are CIA
+        for i in range(cia_agents):
             agent = AIGovernmentAgent(
                 agent_id=f"CIA-{i+1:02d}",
                 agency="CIA",
@@ -1367,9 +1372,7 @@ class AIWorldController:
             )
             self.government_agents.append(agent)
         
-        print(f"  ✅ Created {len(self.ai_teams)} AI Traveler teams")
-        print(f"  ✅ Created {len(self.faction_operatives)} Faction operatives")
-        print(f"  ✅ Created {len(self.government_agents)} Government agents (FBI/CIA)")
+        # Output is now handled by the calling game.py method
     
     def execute_ai_turn(self, world_state, time_system):
         """Execute AI turn when player ends their turn"""

@@ -92,6 +92,19 @@ class ContingencyPlan:
         self.activation_date = datetime.now()
         self.success_probability = self.calculate_success_probability(world_state)
         return f"🚨 {self.plan_type} ACTIVATED: {self.description}"
+    
+    def calculate_success_probability(self, world_state):
+        """Calculate the probability of success for this contingency plan"""
+        base_probability = 0.5
+        
+        # Adjust based on world state
+        if world_state.get("timeline_stability", 0.5) < 0.3:
+            base_probability += 0.2  # More likely to succeed when timeline is unstable
+        
+        if world_state.get("faction_influence", 0.3) > 0.7:
+            base_probability -= 0.1  # Less likely to succeed when faction is strong
+        
+        return max(0.1, min(0.9, base_probability))
 
 class GrandPlanSystem:
     """Main system managing the Grand Plan, missions, and contingency plans"""

@@ -1,113 +1,116 @@
 {
   "team_leader": {
-    "name": "Tiffany",
-    "designation": "5777",
+    "name": "Cameron",
+    "designation": "0277",
     "role": "Team Leader",
-    "occupation": "Scientist",
+    "occupation": "Hacker",
     "skills": [
-      "Safecracking",
-      "Artificial Intelligence",
-      "Vulnerability Assessment",
-      "Lockpicking",
-      "Marksmanship"
+      "Geology",
+      "Astrophysics",
+      "Chemistry"
     ],
     "abilities": [
-      "Exceptional Detective",
-      "Master Conductor",
-      "Skilled Leader"
+      "Gifted Investigator",
+      "Gifted Scientist",
+      "Exceptional Competitor"
     ],
-    "mission_count": 1,
+    "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
-    "timeline_impact": 0
+    "timeline_impact": 0.0
   },
   "team_members": [
     {
-      "name": "Avery",
-      "designation": "9018",
-      "role": "Historian",
-      "occupation": "Tactician",
-      "skills": [
-        "Nutrition",
-        "Gunnery",
-        "Natural Language Processing",
-        "Meteorology"
-      ],
-      "abilities": [
-        "Master Mediator",
-        "Exceptional Persuader"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "James",
-      "designation": "2561",
+      "name": "Rebecca",
+      "designation": "0701",
       "role": "Engineer",
-      "occupation": "Tactician",
+      "occupation": "Soldier",
       "skills": [
-        "Culinary Arts",
-        "Volcanology",
-        "Statistics",
-        "Computer Science"
-      ],
-      "abilities": [
-        "Exceptional Camper",
-        "Gifted Sportsman",
-        "Skilled Diplomat"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Thomas",
-      "designation": "7319",
-      "role": "Medic",
-      "occupation": "Leader",
-      "skills": [
-        "Hand-to-Hand",
-        "Astrophysics",
-        "Oceanography",
+        "Cartography",
+        "Natural Language Processing",
+        "Agriculture",
         "History",
-        "Pharmacology"
+        "Penetration Testing"
       ],
       "abilities": [
-        "Master Conductor",
-        "Expert Forger"
+        "Expert Manager",
+        "Exceptional Scientist",
+        "Exceptional Peacemaker",
+        "Skilled Teacher"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0
+      "timeline_impact": 0.0
     },
     {
-      "name": "Larry",
-      "designation": "8418",
-      "role": "Tactician",
-      "occupation": "Leader",
+      "name": "Julian",
+      "designation": "5505",
+      "role": "Fighter",
+      "occupation": "Hacker",
       "skills": [
-        "Gunnery",
-        "Culinary Arts",
-        "First Aid",
-        "Environmental Science"
+        "Data Mining",
+        "Deception",
+        "Sniping"
       ],
       "abilities": [
+        "Expert Designer",
         "Master Conductor",
-        "Exceptional Athlete"
+        "Exceptional Peacemaker"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Bryson",
+      "designation": "5181",
+      "role": "Scout",
+      "occupation": "Historian",
+      "skills": [
+        "Culinary Arts",
+        "Robotics",
+        "Astrophysics",
+        "Cartography"
+      ],
+      "abilities": [
+        "Exceptional Scientist",
+        "Gifted Sportsman"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Robert",
+      "designation": "7072",
+      "role": "Leader",
+      "occupation": "Leader",
+      "skills": [
+        "Intimidation",
+        "Veterinary Medicine",
+        "Leadership"
+      ],
+      "abilities": [
+        "Expert Cryptologist",
+        "Skilled Musician",
+        "Genius-Level Intellect",
+        "Master Conductor"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
     }
   ],
   "mission_status": "No active mission",
   "current_mission": null,
   "active_missions": [],
   "team_cohesion": 0.8,
-  "communication_level": 0.7
+  "communication_level": 0.7,
+  "timeline_stability": 0.8,
+  "timeline_fragility": 0.3,
+  "timeline_events": []
 }
