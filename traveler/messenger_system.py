@@ -605,7 +605,32 @@ class MessengerSystem:
                 game_ref.team.leader.consciousness_stability = max(0.0, game_ref.team.leader.consciousness_stability - 0.03)
         
         print(f"{'='*40}")
+        
+        # Now show timeline consequences for the messenger mission
+        if hasattr(game_ref, 'show_timeline_consequences'):
+            # Create a mission execution object for timeline analysis
+            mission_exec = {
+                'mission': mission_data,
+                'outcome': 'SUCCESS' if success else 'FAILURE',
+                'phase_results': [success] * 4,  # Simplified for messenger missions
+                'team_performance': [success] * 4,
+                'consequences': []
+            }
+            
+            # Show timeline consequences
+            game_ref.show_timeline_consequences(mission_exec)
+        
+        # Clear the messenger data to prevent reuse
+        self.clear_messenger_data(messenger)
+        
         input("Press Enter to continue...")
+
+    def clear_messenger_data(self, messenger):
+        """Clear messenger data to prevent reuse and ensure fresh missions"""
+        messenger.message_content = ""
+        messenger.message_type = ""
+        messenger.priority = "STANDARD"
+        messenger.urgency = "NORMAL"
 
     def check_for_messenger_events(self, game_state):
         """Check if a messenger should arrive based on game state"""

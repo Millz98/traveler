@@ -12,6 +12,7 @@ import messenger_system
 import living_world
 import time_system
 import tribunal_system
+import faction_system
 import ai_world_controller
 import dialogue_system
 import hacking_system
@@ -23,59 +24,43 @@ import json
 from typing import Dict
 import os
 import random
+from traveler_character import Traveler
+from team_management import TeamManagement
 
 class Game:
     def __init__(self):
         self.messenger = Messenger()
-        self.director_ai = director_ai.Director()
-        self.traveler_character = traveler_character
-        self.team = self.traveler_character.Team(self.traveler_character.Traveler())
-        self.mission_generation = mission_generation.MissionGenerator(self.director_ai.world)
-        self.event_generation = event_generation.EventGenerator()
-        self.game_world = game_world.GameWorld()
-        self.protocol_system = protocols.create_protocol_system()
-        self.dilemma_generator = moral_dilemmas.DilemmaGenerator()
-        self.update_system = traveler_updates.UpdateSystem()
-        self.messenger_system = messenger_system.MessengerSystem()
-        self.living_world = living_world.LivingWorld()
-        self.time_system = time_system.TimeSystem()
-        self.tribunal_system = tribunal_system.TribunalSystem()
-        self.ai_world_controller = ai_world_controller.AIWorldController()
-        self.dialogue_manager = dialogue_system.DialogueManager()
-        self.hacking_system = hacking_system.HackingSystem()
-        self.grand_plan_system = grand_plan_system.GrandPlanSystem()
-        self.mission_revision_system = mission_revision_system.MissionRevisionSystem()
-        self.consequence_tracker = consequence_tracker.ConsequenceTracker()
+        self.time_system = None
+        self.living_world = None
+        self.mission_generation = None
+        self.event_generation = None
+        self.moral_dilemmas = None
+        self.update_system = None
+        self.messenger_system = None
+        self.tribunal_system = None
+        self.faction_system = None
+        self.ai_world_controller = None
+        self.dialogue_system = None
+        self.hacking_system = None
+        self.grand_plan_system = None
+        self.mission_revision_system = None
+        self.consequence_tracker = None
         
-        # Set time system reference in mission generator
-        self.mission_generation.time_system = self.time_system
-        
-        # Set game reference in update system
-        self.update_system.game_ref = self
-        
-        # Initialize AI world controller
-        self.ai_world_controller.initialize_world()
-        
-        # Initialize hacking system
-        self.hacking_system.initialize_hacking_world()
-        
-        # Initialize Grand Plan system
-        self.grand_plan_system.initialize_grand_plan()
-        
-        # Initialize mission revision system
-        self.mission_revision_system.initialize_revision_system()
-        
-        # Initialize consequence tracking system
-        self.consequence_tracker.reset_consequences()
-        
-        self.timeline = self.game_world.integrate_with_gameplay()
-        self.randomized_events = self.game_world.randomize_events(self.timeline)
-        self.consequences = self.game_world.implement_consequences(self.timeline)
+        # Game state
+        self.player_character = None  # Individual player character
+        self.team = None
+        self.team_formed = False  # Track if team has been formed
         self.current_mission = None
-        self.mission_status = "No active mission"
-        self.game_running = True
-        self.save_file = "travelers_save.json"
         self.active_missions = []
+        self.mission_status = "No Mission"
+        self.npc_relationships = {}
+        
+        # Mission history tracking
+        self.mission_history = []
+        self.mission_count = 0
+        
+        # Save file
+        self.save_file = "travelers_save.json"
 
     def clear_screen(self):
         """Clear the console screen for better readability"""
@@ -218,45 +203,75 @@ class Game:
             try:
                 choice = self.show_main_menu()
                 
-                if choice == "1":
-                    self.view_team_roster()
-                elif choice == "2":
-                    self.view_protocols()
-                elif choice == "3":
-                    self.view_timeline_status()
-                elif choice == "4":
-                    self.view_mission_status()
-                elif choice == "5":
-                    self.execute_active_missions()
-                elif choice == "6":
-                    self.view_living_world_status()
-                elif choice == "7":
-                    self.end_turn()
-                elif choice == "8":
-                    self.view_tribunal_records()
-                elif choice == "9":
-                    self.interact_with_npcs()
-                elif choice == "10":
-                    self.handle_host_body_life_integration()
-                elif choice == "11":
-                    self.view_hacking_system_status()
-                elif choice == "12":
-                    self.view_grand_plan_status()
-                elif choice == "13":
-                    self.view_mission_revision_status()
-                elif choice == "14":
-                    self.view_consequence_tracking()
-                elif choice == "15":
-                    self.save_game()
-                    print("✅ Game saved successfully!")
-                elif choice == "16":
-                    print("🔄 Saving game before exit...")
-                    self.save_game()
-                    print("👋 Thanks for playing TRAVELERS!")
-                    break
+                if not self.team_formed:
+                    # Limited menu for when team is not formed
+                    if choice == "1":
+                        self.view_timeline_status()
+                    elif choice == "2":
+                        self.view_player_character()
+                    elif choice == "3":
+                        self.search_for_team_members()
+                    elif choice == "4":
+                        self.view_host_body_life()
+                    elif choice == "5":
+                        self.save_game()
+                    elif choice == "6":
+                        print("\n👋 Thanks for playing Travelers!")
+                        self.save_game()
+                        break
+                    else:
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 6.")
+                        input("Press Enter to continue...")
                 else:
-                    print("❌ Invalid choice. Please enter a number between 1-16.")
-                    input("Press Enter to continue...")
+                    # Full menu for when team is formed
+                    if choice == "1":
+                        self.view_timeline_status()
+                    elif choice == "2":
+                        self.view_team_status()
+                    elif choice == "3":
+                        self.view_mission_status()
+                    elif choice == "4":
+                        self.handle_mission()
+                    elif choice == "5":
+                        self.execute_active_missions()
+                    elif choice == "6":
+                        self.view_host_body_life()
+                    elif choice == "7":
+                        self.view_npc_interactions()
+                    elif choice == "8":
+                        self.view_hacking_system()
+                    elif choice == "9":
+                        self.check_director_updates()
+                        self.check_messenger_events()
+                    elif choice == "10":
+                        self.view_host_body_complications()
+                    elif choice == "11":
+                        self.establish_base_of_operations()
+                    elif choice == "12":
+                        self.manage_team_supplies()
+                    elif choice == "13":
+                        self.view_grand_plan_status()
+                    elif choice == "14":
+                        self.view_mission_revision_status()
+                    elif choice == "15":
+                        self.view_consequence_tracking()
+                    elif choice == "16":
+                        self.show_traveler_designations()
+                    elif choice == "17":
+                        self.show_mission_history()
+                    elif choice == "18":
+                        self.view_faction_status()
+                    elif choice == "19":
+                        self.view_tribunal_status()
+                    elif choice == "20":
+                        self.save_game()
+                    elif choice == "21":
+                        print("\n👋 Thanks for playing Travelers!")
+                        self.save_game()
+                        break
+                    else:
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 21.")
+                        input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
                 print("\n\n🔄 Saving game before exit...")
@@ -268,55 +283,66 @@ class Game:
                 input("Press Enter to continue...")
 
     def show_main_menu(self):
-        """Display the main game menu"""
-        self.clear_screen()
-        self.print_header("TRAVELERS - MAIN MENU")
-        
-        print(f"Current Date: {self.time_system.get_current_date_string()}")
-        print(f"Timeline Stability: {self.living_world.timeline_stability:.2f}")
-        print(f"Faction Influence: {self.living_world.faction_influence:.2f}")
-        print(f"Director Control: {self.living_world.director_control:.2f}")
-        print(f"Team Cohesion: {self.team.team_cohesion:.2f}")
-        
+        """Display the main menu"""
+        self.print_header()
+        print("\n🎮 MAIN MENU")
         self.print_separator()
         
-        print("1.  View Team Roster")
-        print("2.  View Protocols")
-        print("3.  View Timeline Status")
-        print("4.  View Mission Status")
-        print("5.  Execute Active Missions")
-        print("6.  View Living World Status")
-        print("7.  End Turn")
-        print("8.  View Tribunal Records")
-        print("9.  Interact with NPCs")
-        print("10. View Host Body Life Integration")
-        print("11. View Hacking System Status")
-        print("12. View Grand Plan Status")
-        print("13. View Mission Revision Status")
-        print("14. View Consequence Tracking")
-        print("15. Save Game")
-        print("16. Quit Game")
+        # Show different menu based on game state
+        if not self.team_formed:
+            print("⚠️  TEAM NOT FORMED - Limited options available")
+            print("1.  View Timeline Status")
+            print("2.  View Player Character")
+            print("3.  Search for Team Members")
+            print("4.  View Host Body Life")
+            print("5.  Save Game")
+            print("6.  Quit Game")
+            choice = input(f"\nEnter your choice (1-6): ")
+        else:
+            print("1.  View Timeline Status")
+            print("2.  View Team Status")
+            print("3.  View Mission Status")
+            print("4.  Accept Mission")
+            print("5.  Execute Active Missions")
+            print("6.  View Host Body Life")
+            print("7.  View NPC Interactions")
+            print("8.  View Hacking System")
+            print("9.  Check Director Updates & Messenger Events")
+            print("10. View Host Body Complications")
+            print("11. Establish Base of Operations")
+            print("12. Manage Team Supplies")
+            print("13. View Grand Plan Status")
+            print("14. View Mission Revision Status")
+            print("15. View Consequence Tracking")
+            print("16. View Traveler Designations")
+            print("17. View Mission History")
+            print("18. View Faction Status")
+            print("19. View Tribunal Status")
+            print("20. Save Game")
+            print("21. Quit Game")
+            
+            self.print_separator()
+            
+            # Show status indicators
+            if not hasattr(self.team, 'base_of_operations') or not self.team.base_of_operations:
+                print("🏠 NO BASE OF OPERATIONS - Consider option 11")
+            
+            # Check for Director communications (less frequent)
+            if hasattr(self, 'update_system') and self.update_system.has_pending_updates():
+                print("🚨 CRITICAL DIRECTOR COMMUNICATION - Check option 9")
+            
+            # Check for messenger events (rare)
+            if hasattr(self, 'messenger_system') and self.messenger_system.has_urgent_messages():
+                print("📨 URGENT MESSENGER - Check option 9")
+            
+            # Check for supplies
+            if hasattr(self.team, 'supplies'):
+                total_supplies = sum(self.team.supplies.values())
+                if total_supplies < 10:
+                    print("📦 LOW SUPPLIES - Check option 12")
+            
+            choice = input(f"\nEnter your choice (1-19): ")
         
-        self.print_separator()
-        
-        # Check for pending updates (only show if there are actual updates)
-        if hasattr(self, 'update_system') and self.update_system.has_pending_updates():
-            print("🚨 DIRECTOR UPDATE AVAILABLE - Check option 9")
-        
-        # Check for messenger events (only show if there are actual messages)
-        if hasattr(self, 'messenger_system') and self.messenger_system.has_urgent_messages():
-            print("📨 URGENT MESSENGER - Check option 9")
-        
-        # Check for host body complications (only show if there are actual complications)
-        if hasattr(self, 'check_host_body_complications') and self.check_host_body_complications():
-            print("⚠️  HOST BODY COMPLICATIONS - Check option 10")
-        
-        # Check for available missions (only show if there are actual missions)
-        if hasattr(self, 'current_mission') and hasattr(self, 'active_missions'):
-            if not self.current_mission and not self.active_missions:
-                print("🎯 NEW MISSION AVAILABLE - Check option 4")
-        
-        choice = input(f"\nEnter your choice (1-16): ")
         return choice
 
     def handle_mission(self):
@@ -330,9 +356,44 @@ class Game:
 
     def generate_new_mission(self):
         """Generate a new mission"""
-        self.mission_generation.generate_mission()
-        self.current_mission = self.mission_generation.mission
+        print("\n🎯 Generating new mission...")
+        print("Rolling for mission type, location, and objectives...")
+        
+        # Determine mission type based on world state
+        world_state = {
+            'timeline_stability': self.living_world.timeline_stability,
+            'director_control': self.living_world.director_control,
+            'faction_influence': self.living_world.faction_influence
+        }
+        
+        # Check if Grand Plan mission should be generated
+        if self.mission_generation.should_generate_grand_plan_mission(world_state):
+            self.mission_generation.generate_grand_plan_mission()
+            print("🎯 GRAND PLAN MISSION GENERATED")
+        else:
+            self.mission_generation.generate_mission()
+        
+        self.current_mission = self.mission_generation.mission.copy()  # Make a copy to prevent modification
         self.mission_status = "Mission Available"
+        
+        # Track mission history
+        mission_record = {
+            'mission_id': self.current_mission.get('mission_id', 'N/A'),
+            'type': self.current_mission['type'],
+            'location': self.current_mission['location'],
+            'generated_turn': self.current_mission.get('generated_turn', 0),
+            'timestamp': getattr(self.time_system, 'current_date', 'Unknown')
+        }
+        self.mission_history.append(mission_record)
+        self.mission_count += 1
+        
+        print(f"✅ New mission generated: {self.current_mission['type'].title()}")
+        print(f"📍 Location: {self.current_mission['location']}")
+        print(f"🎯 Mission ID: {self.current_mission.get('mission_id', 'N/A')}")
+        print(f"⏰ Generated on Turn: {self.current_mission.get('generated_turn', 'N/A')}")
+        print(f"📊 Total missions generated this game: {self.mission_count}")
+        
+        input("Press Enter to view mission briefing...")
 
     def present_mission(self):
         """Present the current mission to the player"""
@@ -493,6 +554,21 @@ class Game:
             
             # Show timeline consequences
             self.show_timeline_consequences(mission_exec)
+            
+            # Check for protocol violations and potential tribunal
+            if hasattr(self, 'tribunal_system') and self.team:
+                violations = self.tribunal_system.check_for_player_violations(self.team, mission_exec)
+                if violations:
+                    print(f"\n⚠️ PROTOCOL VIOLATIONS DETECTED:")
+                    for violation in violations:
+                        print(f"   • {violation.description} (Severity: {violation.severity.upper()})")
+                    
+                    # Check if any active tribunal cases need to be conducted
+                    for case in self.tribunal_system.active_cases:
+                        if case.defendant in self.team.members:
+                            print(f"\n⚖️ TRIBUNAL REQUIRED FOR {case.defendant.designation}")
+                            input("Press Enter to proceed to tribunal...")
+                            self.tribunal_system.conduct_tribunal(case)
             
             # Remove completed mission
             self.active_missions.remove(mission)
@@ -771,11 +847,16 @@ class Game:
         """Present the player character"""
         print("\nTRAVELER CHARACTER GENERATED")
         print("=" * 40)
-        print(f"Name: {self.team.leader.name}")
-        print(f"Designation: {self.team.leader.designation}")
-        print(f"Occupation: {self.team.leader.occupation}")
-        print(f"Skills: {', '.join(self.team.leader.skills)}")
-        print(f"Abilities: {', '.join(self.team.leader.abilities)}")
+        
+        if hasattr(self, 'player_character') and self.player_character:
+            print(f"Name: {self.player_character.name}")
+            print(f"Designation: {self.player_character.designation}")
+            print(f"Occupation: {self.player_character.occupation}")
+            print(f"Skills: {', '.join(self.player_character.skills)}")
+            print(f"Abilities: {', '.join(self.player_character.abilities)}")
+        else:
+            print("Character not yet created.")
+        
         print("=" * 40)
         input("\nPress Enter to continue...")
 
@@ -1017,6 +1098,10 @@ class Game:
         # Execute hacking system turn
         if hasattr(self, 'hacking_system'):
             self.hacking_system.execute_hacking_turn(self.get_game_state(), self.time_system)
+        
+        # Execute Faction operations
+        if hasattr(self, 'faction_system'):
+            self.faction_system.execute_faction_turn(self.get_game_state(), self.team)
         
         # Check for new missions
         if not self.current_mission and random.random() < 0.3:  # 30% chance of new mission
@@ -2457,31 +2542,218 @@ class Game:
         return consequences
 
     def initialize_new_game(self):
-        """Initialize a new game with starting setup"""
-        print("\n🚀 Initializing new game...")
-        
-        # Present timeline and world information
+        """Initialize a new authentic Travelers game experience"""
+        # Keep the startup process the same until after character formation
         self.present_timeline()
-        self.present_technologies()
+        self.present_technologies() 
         self.present_world()
-        self.present_player_character()
-        self.present_team()
         
-        # Show starting date
-        print(f"\n{'='*60}")
-        print(f"    🚀 MISSION INITIATION 🚀")
-        print(f"{'='*60}")
-        print(f"Your team has arrived in the past.")
-        print(f"Current Date: {self.time_system.get_current_date_string()}")
-        print(f"Day: {self.time_system.current_turn} - {self.time_system.get_day_of_week()}")
-        print(f"Season: {self.time_system.get_season()}")
-        print(f"Protocol 1: The mission comes first.")
-        print(f"{'='*60}")
+        # Initialize game systems first
+        self.setup_game_systems()
         
-        print("\n🎯 Mission system ready.")
-        print("Check Mission Status (option 4) when you're ready for your first assignment.")
+        # Generate the player's individual character (separate from team)
+        self.create_player_character()
         
-        input("Press Enter to continue to main menu...")
+        # Generate the game world with random number of teams
+        self.generate_game_world()
+        
+        # Player is now ready to begin their mission
+        # They need to find their team when they're ready
+        print("\n🎯 MISSION STATUS:")
+        print("You are now in the past, but you're alone.")
+        print("Your first objective is to locate your team members.")
+        print("Use the main menu to search for team members when ready.")
+        
+        input("\nPress Enter to continue to main menu...")
+    
+    def setup_game_systems(self):
+        """Initialize all game systems"""
+        print("\n🔧 Initializing game systems...")
+        
+        # Reset Traveler designations for new game
+        from traveler_character import Traveler
+        Traveler.reset_used_designations()
+        
+        # Initialize game systems
+        self.time_system = time_system.TimeSystem()
+        self.living_world = living_world.LivingWorld()
+        self.mission_generation = mission_generation.MissionGenerator(self.living_world)
+        self.event_generation = event_generation.EventGenerator()
+        self.moral_dilemmas = moral_dilemmas.DilemmaGenerator()
+        self.update_system = traveler_updates.UpdateSystem()
+        self.messenger_system = messenger_system.MessengerSystem()
+        self.tribunal_system = tribunal_system.TribunalSystem()
+        self.faction_system = faction_system.FactionSystem()
+        self.ai_world_controller = ai_world_controller.AIWorldController()
+        self.dialogue_system = dialogue_system.DialogueManager()
+        self.hacking_system = hacking_system.HackingSystem()
+        self.grand_plan_system = grand_plan_system.GrandPlanSystem()
+        self.mission_revision_system = mission_revision_system.MissionRevisionSystem()
+        self.consequence_tracker = consequence_tracker.ConsequenceTracker()
+        
+        # Set up system references
+        self.mission_generation.time_system = self.time_system
+        self.update_system.game_ref = self
+        self.messenger_system.game_ref = self
+        self.tribunal_system.game_ref = self
+        self.ai_world_controller.game_ref = self
+        self.dialogue_system.game_ref = self
+        self.hacking_system.game_ref = self
+        self.grand_plan_system.game_ref = self
+        self.mission_revision_system.game_ref = self
+        self.consequence_tracker.game_ref = self
+        
+        # Initialize systems (only after all references are set)
+        if hasattr(self.living_world, 'initialize_world'):
+            self.living_world.initialize_world()
+        
+        if hasattr(self.grand_plan_system, 'initialize_grand_plan'):
+            self.grand_plan_system.initialize_grand_plan()
+        
+        if hasattr(self.mission_revision_system, 'initialize_revision_system'):
+            self.mission_revision_system.initialize_revision_system()
+        
+        if hasattr(self.consequence_tracker, 'reset_consequences'):
+            self.consequence_tracker.reset_consequences()
+        
+        # Set initial game state
+        self.current_mission = None
+        self.active_missions = []
+        self.mission_status = "No Mission"
+        self.npc_relationships = {}
+        
+        print("✅ Systems initialized")
+    
+    def create_player_character(self):
+        """Create the player's individual character with host body"""
+        print("\n" + "=" * 60)
+        print("    🧠 CONSCIOUSNESS TRANSFER INITIATED 🧠")
+        print("=" * 60)
+        print("Your consciousness is being sent back through time...")
+        print("Preparing host body integration...")
+        print("=" * 60)
+        
+        # Create the player's individual Traveler
+        self.player_character = Traveler()
+        
+        print(f"\n✅ CONSCIOUSNESS TRANSFER COMPLETE")
+        print(f"🆔 Your Designation: {self.player_character.designation}")
+        print(f"👤 Host Identity: {self.player_character.name}")
+        print(f"📊 Host Age: {self.player_character.age}")
+        print(f"💼 Host Occupation: {self.player_character.host_body.occupation}")
+        print(f"🏠 Host Location: {self.player_character.host_body.location}")
+        
+        # Show host body details
+        print(f"\n👥 HOST BODY FAMILY:")
+        print(f"   • {self.player_character.host_body.family_status}")
+        
+        print(f"\n🧬 HOST BODY BACKGROUND:")
+        print(f"   • {self.player_character.host_body.backstory}")
+        
+        print(f"\n💰 HOST BODY FINANCES:")
+        print(f"   • Financial Status: {self.player_character.host_body.financial_status}")
+        
+        print(f"\n🛠️ YOUR TRAVELER SKILLS:")
+        print(f"   • {', '.join(self.player_character.skills)}")
+        
+        print(f"\n🎯 YOUR TRAVELER ABILITIES:")
+        print(f"   • {', '.join(self.player_character.abilities)}")
+        
+        input("\nPress Enter to continue...")
+        
+        # Set the team to None initially - player must find their team
+        self.team = None
+        self.team_formed = False
+    
+    def generate_game_world(self):
+        """Generate the game world with random number of Traveler teams"""
+        print("\n" + "=" * 60)
+        print("    🌍 GENERATING GAME WORLD 🌍")
+        print("=" * 60)
+        
+        # Randomly determine number of teams in the world (3-8 teams)
+        num_teams = random.randint(3, 8)
+        print(f"🎲 Rolling for world complexity...")
+        print(f"📊 Number of Traveler teams in this timeline: {num_teams}")
+        
+        # Initialize AI world with the determined number of teams
+        if hasattr(self.ai_world_controller, 'initialize_world_with_teams'):
+            self.ai_world_controller.initialize_world_with_teams(num_teams)
+        else:
+            self.ai_world_controller.initialize_world()
+        
+        # Initialize hacking system
+        if hasattr(self.hacking_system, 'initialize_hacking_world'):
+            self.hacking_system.initialize_hacking_world()
+        
+        print(f"\n✅ Game world generated with {num_teams} Traveler teams")
+        print(f"📅 Current Date: {self.time_system.get_current_date_string()}")
+        print(f"🌍 Timeline Stability: {self.living_world.timeline_stability:.1%}")
+        print(f"🎯 Faction Influence: {self.living_world.faction_influence:.1%}")
+        print(f"🤖 Director Control: {self.living_world.director_control:.1%}")
+        
+        input("\nPress Enter to continue...")
+    
+    def complete_team_formation(self):
+        """Complete the team formation process after finding members"""
+        print("\n" + "=" * 60)
+        print("    👥 TEAM FORMATION PROTOCOL 👥")
+        print("=" * 60)
+        print("Establishing secure contact with located Travelers...")
+        print("Verifying arrival dates and mission parameters...")
+        print("Confirming team composition...")
+        print("=" * 60)
+        
+        # Generate the player's team
+        team_management = TeamManagement()
+        
+        # Replace the first member (leader) with the player character
+        team_management.team.members[0] = self.player_character
+        team_management.team.leader = self.player_character
+        
+        # Generate the other 4 team members
+        for _ in range(4):
+            member = Traveler()
+            team_management.team.members.append(member)
+        
+        # Validate team size (must be exactly 5)
+        try:
+            team_management.team.validate_team_size()
+        except ValueError as e:
+            print(f"❌ Team formation error: {e}")
+            return
+        
+        # Assign roles (player gets Team Leader)
+        team_management.assign_team_roles()
+        team_management.assign_team_hacker()
+        
+        self.team = team_management.team
+        
+        print(f"\n✅ TEAM FORMATION COMPLETE:")
+        print(f"📊 Team Size: {len(self.team.members)}/5 members (exactly 5 required)")
+        
+        for i, member in enumerate(self.team.members):
+            if member == self.player_character:
+                print(f"   • {member.designation} - {member.name} ({member.role}) - YOU")
+            else:
+                print(f"   • {member.designation} - {member.name} ({member.role}) - Host: {member.host_body.occupation}")
+        
+        if hasattr(self.team, 'designated_hacker') and self.team.designated_hacker:
+            print(f"\n🔧 Team Hacker: {self.team.designated_hacker.designation} ({self.team.designated_hacker.role})")
+        
+        self.team_formed = True
+        
+        print(f"\n🎯 NEXT STEPS:")
+        print(f"1. Establish secure communication protocols ✅")
+        print(f"2. Find a base of operations")
+        print(f"3. Acquire necessary supplies and equipment") 
+        print(f"4. Await Director contact for critical missions")
+        
+        print(f"\n📋 TEAM STATUS:")
+        print(f"Your team is now operational. You can establish a base")
+        print(f"of operations and begin acquiring supplies for missions.")
+        
+        input("\nPress Enter to continue...")
 
     def present_timeline(self):
         """Present the timeline situation to the player"""
@@ -2496,8 +2768,23 @@ class Game:
         # Show the actual timeline history
         print(f"\n📜 TIMELINE OF EVENTS:")
         print(f"{'='*40}")
-        for event in self.game_world.get_timeline():
-            print(f"{event['year']}: {event['event']}")
+        
+        # Present a simplified timeline for the new system
+        timeline_events = [
+            "2024: Society begins showing signs of instability",
+            "2025: First major economic crisis hits",
+            "2026: Climate disasters accelerate",
+            "2027: Government systems begin to fail",
+            "2028: Civil unrest spreads globally",
+            "2029: Infrastructure collapse begins",
+            "2030: Mass migration and resource wars",
+            "2035: Last major cities fall",
+            "2040: Human civilization reaches critical point",
+            "2045: The Director is created as last hope"
+        ]
+        
+        for event in timeline_events:
+            print(f"• {event}")
         print(f"{'='*40}")
         
         input("\nPress Enter to continue...")
@@ -2516,8 +2803,19 @@ class Game:
         # Show the actual technologies from the game world
         print(f"\n🔬 KEY TECHNOLOGIES:")
         print(f"{'='*40}")
-        for tech in self.game_world.get_technologies():
-            print(f"{tech['year']}: {tech['name']}")
+        
+        # Present key Traveler technologies
+        technologies = [
+            "2024: Consciousness Transfer Protocol",
+            "2024: Host Body Integration Systems",
+            "2024: Temporal Communication Network",
+            "2024: Advanced Medical Nanotechnology",
+            "2024: Quantum Computing Infrastructure",
+            "2024: Surveillance and Intelligence Systems"
+        ]
+        
+        for tech in technologies:
+            print(f"• {tech}")
         print(f"{'='*40}")
         
         input("\nPress Enter to continue...")
@@ -2536,8 +2834,18 @@ class Game:
         # Show the actual world events
         print(f"\n🌍 GAME WORLD OVERVIEW:")
         print(f"{'='*40}")
-        for event in self.timeline:
-            print(f"Year: {event['year']}, Event: {event['event']}")
+        
+        # Present current world situation
+        world_events = [
+            "Seattle: Major tech hub with government presence",
+            "Faction Activity: Rogue Travelers operating in the area",
+            "Timeline Stability: Critical events approaching",
+            "Government Awareness: Low - Travelers remain hidden",
+            "Key Locations: Downtown, Industrial District, Suburbs"
+        ]
+        
+        for event in world_events:
+            print(f"• {event}")
         print(f"{'='*40}")
         
         input("\nPress Enter to continue...")
@@ -2547,11 +2855,14 @@ class Game:
         print(f"\n{'='*60}")
         print(f"    👤 YOUR CHARACTER 👤")
         print(f"{'='*60}")
-        print(f"Name: {self.team.leader.name}")
-        print(f"Designation: {self.team.leader.designation}")
-        print(f"Occupation: {self.team.leader.occupation}")
-        print(f"Skills: {', '.join(self.team.leader.skills)}")
-        print(f"Abilities: {', '.join(self.team.leader.abilities)}")
+        if hasattr(self, 'player_character') and self.player_character:
+            print(f"Name: {self.player_character.name}")
+            print(f"Designation: {self.player_character.designation}")
+            print(f"Occupation: {self.player_character.occupation}")
+            print(f"Skills: {', '.join(self.player_character.skills)}")
+            print(f"Abilities: {', '.join(self.player_character.abilities)}")
+        else:
+            print("Character not yet created.")
         print(f"{'='*60}")
         
         input("\nPress Enter to continue...")
@@ -2644,6 +2955,476 @@ class Game:
             game_state.update(hacking_state)
         
         return game_state
+
+    def show_traveler_designations(self):
+        """Show all used Traveler designations in the current game"""
+        print("\n" + "=" * 50)
+        print("           TRAVELER DESIGNATIONS")
+        print("=" * 50)
+        
+        from traveler_character import Traveler
+        used_designations = Traveler.get_used_designations()
+        total_count = Traveler.get_designation_count()
+        
+        print(f"Total Travelers in Game: {total_count}")
+        print(f"Used Designations: {', '.join(used_designations)}")
+        
+        # Show player team designations
+        if hasattr(self, 'team') and self.team:
+            print(f"\n👥 YOUR TEAM:")
+            for member in self.team.members:
+                print(f"   • {member.designation} - {member.name} ({member.role or 'Unassigned'})")
+        
+        # Show AI team designations
+        if hasattr(self, 'ai_world_controller') and self.ai_world_controller:
+            print(f"\n🤖 AI TEAMS:")
+            for team in self.ai_world_controller.ai_teams:
+                print(f"   • {team.team_id}: {team.members} members (exactly 5 required)")
+                # Note: AI teams store member count, not individual member objects
+                # Individual member details are managed internally for performance
+        
+        print("=" * 50)
+        input("Press Enter to continue...")
+
+    def show_mission_history(self):
+        """Show mission history to demonstrate randomization"""
+        print("\n" + "=" * 60)
+        print("                    MISSION HISTORY")
+        print("=" * 60)
+        
+        if not self.mission_history:
+            print("📋 No missions have been generated yet.")
+            print("Generate your first mission using option 4!")
+        else:
+            print(f"📊 Total Missions Generated: {self.mission_count}")
+            print(f"🎯 Current Mission: {self.current_mission['type'].title() if self.current_mission else 'None'}")
+            print("\n📋 MISSION HISTORY:")
+            print("-" * 60)
+            
+            for i, mission in enumerate(self.mission_history, 1):
+                print(f"{i:2d}. Mission ID: {mission['mission_id']}")
+                print(f"    Type: {mission['type'].title()}")
+                print(f"    Location: {mission['location']}")
+                print(f"    Generated: Turn {mission['generated_turn']}")
+                print(f"    Timestamp: {mission['timestamp']}")
+                print()
+            
+            # Show randomization statistics
+            mission_types = [m['type'] for m in self.mission_history]
+            unique_types = len(set(mission_types))
+            total_types = len(mission_types)
+            
+            print(f"📈 RANDOMIZATION STATS:")
+            print(f"   • Unique Mission Types: {unique_types}/{total_types}")
+            print(f"   • Mission Type Variety: {(unique_types/total_types)*100:.1f}%")
+            
+            if unique_types < total_types:
+                print(f"   • Repeated Types: {total_types - unique_types}")
+                print(f"   • Most Common: {max(set(mission_types), key=mission_types.count)}")
+        
+        print("=" * 60)
+        input("Press Enter to continue...")
+    
+    def view_faction_status(self):
+        """View current Faction status and threats"""
+        print("\n" + "=" * 60)
+        print("                 FACTION STATUS")
+        print("=" * 60)
+        
+        if hasattr(self, 'faction_system'):
+            status = self.faction_system.get_faction_status()
+            
+            print(f"👑 FACTION LEADER: {status['leader']}")
+            print(f"🦹 ACTIVE OPERATIVES: {status['operatives']}")
+            print(f"📊 FACTION INFLUENCE: {status['influence']:.1%}")
+            print(f"⚠️  THREAT LEVEL: {status['threat_level']}")
+            print(f"🏠 SAFE HOUSES: {status['safe_houses']}")
+            
+            print(f"\n📋 FACTION RESOURCES:")
+            for resource, count in status['resources'].items():
+                print(f"   • {resource.replace('_', ' ').title()}: {count}")
+            
+            print(f"\n🎭 RECRUITMENT STATUS:")
+            print(f"   • Pending Recruitments: {status['pending_recruitments']}")
+            
+            if status['pending_recruitments'] > 0:
+                print(f"\n⚠️  WARNING: Faction recruitment attempts detected!")
+                print(f"   Check your team members for potential defection risk.")
+                
+                # Show recruitment attempts
+                for attempt in self.faction_system.recruitment_attempts:
+                    if attempt['status'] == 'pending':
+                        print(f"   🎯 Target: {attempt['target'].designation}")
+                        print(f"      Message: \"{attempt['message']}\"")
+                        
+                        # Offer response option
+                        print(f"\n   Respond to recruitment attempt?")
+                        print(f"   1. Accept Faction recruitment")
+                        print(f"   2. Reject and remain loyal to Director")
+                        choice = input("   Your choice (1-2): ").strip()
+                        
+                        if choice == "1":
+                            result = self.faction_system.handle_player_recruitment_response(
+                                attempt['target'], True
+                            )
+                            print(f"   {result['message']}")
+                            # Apply consequences to world state
+                            for key, value in result['consequences'].items():
+                                if hasattr(self.living_world, key):
+                                    current_value = getattr(self.living_world, key)
+                                    setattr(self.living_world, key, max(0, min(1, current_value + value)))
+                        elif choice == "2":
+                            result = self.faction_system.handle_player_recruitment_response(
+                                attempt['target'], False
+                            )
+                            print(f"   {result['message']}")
+            
+            print(f"\n🎯 TRAVELER 001 STATUS:")
+            print(f"   • Current Alias: {self.faction_system.traveler_001.current_alias}")
+            print(f"   • Last Known Location: {self.faction_system.traveler_001.last_known_location}")
+            print(f"   • Threat Assessment: {self.faction_system.traveler_001.threat_level}")
+            
+        else:
+            print("❌ Faction system not initialized")
+        
+        print("=" * 60)
+        input("Press Enter to continue...")
+    
+    def view_tribunal_status(self):
+        """View current Tribunal system status"""
+        print("\n" + "=" * 60)
+        print("                TRIBUNAL STATUS")
+        print("=" * 60)
+        
+        if hasattr(self, 'tribunal_system'):
+            status = self.tribunal_system.get_tribunal_status()
+            
+            print(f"⚖️ ACTIVE CASES: {status['active_cases']}")
+            print(f"📋 COMPLETED CASES: {status['completed_cases']}")
+            print(f"⚠️  TOTAL VIOLATIONS: {status['total_violations']}")
+            print(f"💀 CONSCIOUSNESS OVERWRITES: {status['overwrite_count']}")
+            print(f"😰 TRAVELER FEAR FACTOR: {status['fear_factor']:.1%}")
+            
+            if status['active_cases'] > 0:
+                print(f"\n🚨 PENDING TRIBUNAL CASES:")
+                for case_id in status['pending_cases']:
+                    print(f"   • Case {case_id}")
+                print(f"\n⚠️  WARNING: Active tribunal cases require immediate attention!")
+            
+            # Show recent violations for player team
+            if self.team:
+                team_violations = [v for v in self.tribunal_system.violation_history 
+                                 if any(v.traveler_designation == member.designation 
+                                       for member in self.team.members)]
+                
+                if team_violations:
+                    print(f"\n📋 YOUR TEAM'S VIOLATION HISTORY:")
+                    for violation in team_violations[-5:]:  # Show last 5
+                        print(f"   • {violation.traveler_designation}: {violation.violation_type}")
+                        print(f"     Severity: {violation.severity.upper()}")
+                        print(f"     Date: {violation.date.strftime('%Y-%m-%d')}")
+                        print(f"     Risk: {violation.tribunal_risk:.1%}")
+                
+                # Show protocol enforcement status
+                print(f"\n📜 PROTOCOL ENFORCEMENT:")
+                print(f"   Protocol violations increase tribunal risk")
+                print(f"   Critical violations trigger immediate tribunals")
+                print(f"   Multiple violations compound risk exponentially")
+                
+                # Offer moral dilemma simulation
+                print(f"\n🤔 MORAL DILEMMA SIMULATION:")
+                print(f"   Experience protocol dilemmas in controlled environment")
+                print(f"   1. Child in danger scenario")
+                print(f"   2. Corruption exposure dilemma")
+                print(f"   3. Team member in peril")
+                print(f"   4. Skip simulation")
+                
+                choice = input("   Select simulation (1-4): ").strip()
+                if choice in ["1", "2", "3"]:
+                    dilemma_keys = ["save_child", "expose_corruption", "team_member_danger"]
+                    selected_dilemma = dilemma_keys[int(choice) - 1]
+                    
+                    dilemma = self.tribunal_system.present_moral_dilemma(selected_dilemma)
+                    print(f"\n📖 SCENARIO: {dilemma['description']}")
+                    print(f"\n   OPTIONS:")
+                    for opt_key, option in dilemma['options'].items():
+                        print(f"   {opt_key}. {option['action']}")
+                    
+                    moral_choice = input("   Your choice (1-3): ").strip()
+                    if moral_choice in ["1", "2", "3"]:
+                        result = self.tribunal_system.handle_moral_choice(
+                            self.team, selected_dilemma, moral_choice
+                        )
+                        print(f"\n   Result: {result['action']}")
+                        if result['violation']:
+                            print(f"   ⚠️  Protocol Violation Recorded: {result['violation'].description}")
+            
+        else:
+            print("❌ Tribunal system not initialized")
+        
+        print("=" * 60)
+        input("Press Enter to continue...")
+
+    def view_player_character(self):
+        """View the player's individual character details"""
+        if not self.player_character:
+            print("\n❌ No player character found.")
+            input("Press Enter to continue...")
+            return
+        
+        print("\n" + "=" * 60)
+        print("           PLAYER CHARACTER")
+        print("=" * 60)
+        
+        print(f"🆔 Designation: {self.player_character.designation}")
+        print(f"👤 Host Identity: {self.player_character.name}")
+        print(f"📊 Age: {self.player_character.age}")
+        print(f"💼 Host Occupation: {self.player_character.host_body.occupation}")
+        print(f"🏠 Location: {self.player_character.host_body.location}")
+        
+        print(f"\n👥 HOST BODY FAMILY:")
+        if self.player_character.host_body.family_members:
+            for member in self.player_character.host_body.family_members:
+                print(f"   • {member}")
+        else:
+            print("   • No immediate family")
+        
+        print(f"\n💰 FINANCES:")
+        print(f"   • Bank Account: ${self.player_character.host_body.bank_account:,}")
+        print(f"   • Monthly Income: ${self.player_character.host_body.monthly_income:,}")
+        print(f"   • Financial Status: {self.player_character.host_body.financial_status}")
+        
+        print(f"\n🛠️ TRAVELER SKILLS:")
+        print(f"   • {', '.join(self.player_character.skills)}")
+        
+        print(f"\n🎯 TRAVELER ABILITIES:")
+        print(f"   • {', '.join(self.player_character.abilities)}")
+        
+        print("=" * 60)
+        input("Press Enter to continue...")
+    
+    def search_for_team_members(self):
+        """Simulate searching for and finding team members"""
+        print("\n" + "=" * 60)
+        print("    🔍 SEARCHING FOR TEAM MEMBERS")
+        print("=" * 60)
+        
+        if self.team_formed:
+            print("✅ Your team is already formed!")
+            print("\n👥 CURRENT TEAM:")
+            for member in self.team.members:
+                if member == self.player_character:
+                    print(f"   • {member.designation} - {member.name} ({member.role}) - YOU")
+                else:
+                    print(f"   • {member.designation} - {member.name} ({member.role}) - Host: {member.host_body.occupation}")
+            input("Press Enter to continue...")
+            return
+        
+        print("🔍 Scanning for Traveler consciousness signatures...")
+        print("📡 Analyzing arrival patterns...")
+        print("🎯 Cross-referencing mission parameters...")
+        
+        # Simulate the search process
+        import time
+        time.sleep(2)
+        
+        print("\n✅ TEAM MEMBERS FOUND!")
+        print("Initiating secure contact protocols...")
+        time.sleep(1)
+        
+        # Now complete the team formation
+        self.complete_team_formation()
+    
+    def establish_base_of_operations(self):
+        """Establish a base of operations for the team"""
+        if not self.team_formed:
+            print("\n❌ You need to form your team first!")
+            input("Press Enter to continue...")
+            return
+        
+        print("\n" + "=" * 60)
+        print("    🏠 ESTABLISH BASE OF OPERATIONS")
+        print("=" * 60)
+        
+        if hasattr(self.team, 'base_of_operations') and self.team.base_of_operations:
+            print(f"✅ Current Base: {self.team.base_of_operations}")
+            print("\n1. View Current Base Details")
+            print("2. Relocate Base")
+            print("3. Upgrade Base")
+            print("4. Return to Main Menu")
+            
+            choice = input("\nEnter your choice (1-4): ")
+            if choice == "1":
+                self.view_base_details()
+            elif choice == "2":
+                self.relocate_base()
+            elif choice == "3":
+                self.upgrade_base()
+            return
+        
+        print("🏠 Your team needs a secure base of operations.")
+        print("This will serve as your command center, safe house, and equipment storage.")
+        print("\n📍 AVAILABLE LOCATIONS:")
+        
+        locations = [
+            "Abandoned warehouse in industrial district",
+            "Basement of a defunct electronics store", 
+            "Unused office space in downtown building",
+            "Suburban house with basement workshop",
+            "Storage facility with multiple units"
+        ]
+        
+        for i, location in enumerate(locations, 1):
+            print(f"{i}. {location}")
+        
+        choice = input(f"\nChoose your base location (1-{len(locations)}): ")
+        
+        try:
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len(locations):
+                self.team.base_of_operations = locations[choice_idx]
+                print(f"\n✅ Base established: {locations[choice_idx]}")
+                print("🔧 Setting up basic equipment...")
+                print("🔒 Installing security measures...")
+                print("📡 Establishing communication systems...")
+                
+                # Add some basic supplies
+                self.team.supplies["technology"] += 5
+                self.team.supplies["intelligence"] += 3
+                
+                print("\n🎯 Base of operations is now active!")
+            else:
+                print("\n❌ Invalid choice.")
+        except ValueError:
+            print("\n❌ Please enter a valid number.")
+        
+        input("Press Enter to continue...")
+    
+    def manage_team_supplies(self):
+        """Manage team supplies and equipment"""
+        if not self.team_formed:
+            print("\n❌ You need to form your team first!")
+            input("Press Enter to continue...")
+            return
+        
+        print("\n" + "=" * 60)
+        print("    📦 TEAM SUPPLIES MANAGEMENT")
+        print("=" * 60)
+        
+        print("📊 CURRENT SUPPLIES:")
+        for supply_type, amount in self.team.supplies.items():
+            print(f"   • {supply_type.title()}: {amount}")
+        
+        total_supplies = sum(self.team.supplies.values())
+        print(f"\n📈 Total Supply Level: {total_supplies}")
+        
+        if total_supplies < 10:
+            print("⚠️  Supply levels are critically low!")
+        elif total_supplies < 20:
+            print("⚠️  Supply levels are low.")
+        else:
+            print("✅ Supply levels are adequate.")
+        
+        print("\n🛒 SUPPLY ACTIONS:")
+        print("1. Acquire Weapons")
+        print("2. Acquire Technology")
+        print("3. Acquire Medical Supplies")
+        print("4. Acquire Intelligence")
+        print("5. Acquire Transportation")
+        print("6. View Supply Details")
+        print("7. Return to Main Menu")
+        
+        choice = input("\nEnter your choice (1-7): ")
+        
+        if choice in ["1", "2", "3", "4", "5"]:
+            self.acquire_supplies(choice)
+        elif choice == "6":
+            self.view_supply_details()
+        
+        input("Press Enter to continue...")
+    
+    def acquire_supplies(self, supply_choice):
+        """Acquire specific supplies"""
+        supply_map = {
+            "1": "weapons",
+            "2": "technology", 
+            "3": "medical",
+            "4": "intelligence",
+            "5": "transportation"
+        }
+        
+        supply_type = supply_map.get(supply_choice)
+        if not supply_type:
+            return
+        
+        print(f"\n🎯 Acquiring {supply_type} supplies...")
+        
+        # Simple acquisition - could be expanded with missions/costs
+        acquired = random.randint(2, 5)
+        self.team.supplies[supply_type] += acquired
+        
+        print(f"✅ Acquired {acquired} {supply_type} supplies!")
+        print(f"📊 New {supply_type} level: {self.team.supplies[supply_type]}")
+    
+    def view_supply_details(self):
+        """View detailed supply information"""
+        print("\n📋 DETAILED SUPPLY INFORMATION:")
+        
+        supply_descriptions = {
+            "weapons": "Combat equipment, protective gear, tactical tools",
+            "technology": "Communication devices, computers, surveillance equipment",
+            "medical": "First aid supplies, medications, medical equipment", 
+            "intelligence": "Information networks, contacts, data access",
+            "transportation": "Vehicles, fuel, travel documentation"
+        }
+        
+        for supply_type, amount in self.team.supplies.items():
+            desc = supply_descriptions.get(supply_type, "General supplies")
+            print(f"\n{supply_type.upper()}: {amount}")
+            print(f"   {desc}")
+
+    def view_team_status(self):
+        """View current team status and information"""
+        if not self.team_formed:
+            print("\n❌ You need to form your team first!")
+            input("Press Enter to continue...")
+            return
+        
+        print("\n" + "=" * 60)
+        print("           TEAM STATUS")
+        print("=" * 60)
+        
+        print(f"👥 TEAM OVERVIEW:")
+        print(f"   • Team Size: {len(self.team.members)} members")
+        print(f"   • Team Cohesion: {self.team.team_cohesion:.1%}")
+        print(f"   • Communication Level: {self.team.communication_level:.1%}")
+        
+        if hasattr(self.team, 'base_of_operations') and self.team.base_of_operations:
+            print(f"   • Base of Operations: {self.team.base_of_operations}")
+        else:
+            print(f"   • Base of Operations: None established")
+        
+        print(f"\n🔧 TEAM SPECIALIST:")
+        if hasattr(self.team, 'designated_hacker') and self.team.designated_hacker:
+            print(f"   • Hacker: {self.team.designated_hacker.designation} ({self.team.designated_hacker.role})")
+        else:
+            print(f"   • Hacker: None designated")
+        
+        print(f"\n📦 SUPPLY STATUS:")
+        total_supplies = sum(self.team.supplies.values())
+        for supply_type, amount in self.team.supplies.items():
+            print(f"   • {supply_type.title()}: {amount}")
+        print(f"   • Total: {total_supplies}")
+        
+        if total_supplies < 10:
+            print(f"   ⚠️  Supply levels are critically low!")
+        elif total_supplies < 20:
+            print(f"   ⚠️  Supply levels are low.")
+        else:
+            print(f"   ✅ Supply levels are adequate.")
+        
+        print("=" * 60)
+        input("Press Enter to continue...")
 
 if __name__ == "__main__":
     game = Game()

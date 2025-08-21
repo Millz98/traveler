@@ -2,21 +2,32 @@ import random
 import host_body
 
 class Traveler:
+    # Class variable to track used designations
+    used_designations = set()
+    
     def __init__(self):
         self.designation = self.generate_designation()
-        self.role = None
         self.name = self.generate_name()
-        self.age = random.randint(25, 55)
+        self.age = random.randint(25, 65)
+        self.role = None
         self.occupation = self.generate_occupation()
         self.skills = self.generate_skills()
         self.abilities = self.generate_abilities()
-        self.host_body = None
         self.mission_count = 0
         self.success_rate = 0.0
+        self.consciousness_stability = 1.0
+        self.timeline_contamination = 0.0
         self.protocol_violations = 0
-        self.timeline_impact = 0
-        self.consciousness_stability = 1.0  # Track consciousness integrity
-        self.timeline_contamination = 0.0   # Track how much they've altered history
+        self.timeline_impact = 0.0
+        self.director_loyalty = random.uniform(0.7, 1.0)  # Loyalty to Director vs Faction
+        self.nanite_level = random.uniform(0.3, 0.8)  # Future medical nanites
+        self.mission_autonomy = random.uniform(0.5, 0.9)  # Freedom to interpret missions
+        self.faction_susceptibility = random.uniform(0.1, 0.4)  # Vulnerability to Faction recruitment
+        self.significance_level = self.calculate_significance()  # Based on designation number
+        self.status = "active"  # active, overwritten, rogue
+        self.consciousness_active = True
+        self.host_body = None
+        self.assign_host_body()
 
     def generate_name(self):
         """Generate a random name for the traveler"""
@@ -33,16 +44,30 @@ class Traveler:
         return random.choice(names)
 
     def generate_designation(self):
-        """Generate a Traveler designation number based on lore"""
-        # Lower numbers = higher significance (001 is the first test subject)
-        # Most travelers are in the 1000-9999 range
-        # Special cases for significant travelers
-        if random.random() < 0.01:  # 1% chance for very low number (significant)
-            return f"{random.randint(1, 99):03d}"
-        elif random.random() < 0.05:  # 5% chance for low number (important)
-            return f"{random.randint(100, 999):03d}"
-        else:  # 94% chance for standard number
-            return f"{random.randint(1000, 9999):04d}"
+        """Generate a unique Traveler designation number with weighted significance (lower = more important)"""
+        max_attempts = 1000  # Prevent infinite loops
+        
+        for _ in range(max_attempts):
+            # Weight designation generation - lower numbers are more significant
+            # 5% chance for 002-099 (highly significant)
+            # 15% chance for 100-999 (significant) 
+            # 80% chance for 1000-9999 (standard)
+            
+            rand = random.random()
+            if rand < 0.05:  # 5% chance for highly significant (002-099)
+                designation = f"{random.randint(2, 99):04d}"
+            elif rand < 0.20:  # 15% chance for significant (100-999)
+                designation = f"{random.randint(100, 999):04d}"
+            else:  # 80% chance for standard (1000-9999)
+                designation = f"{random.randint(1000, 9999):04d}"
+            
+            # Check if this designation is unique
+            if designation not in Traveler.used_designations:
+                Traveler.used_designations.add(designation)
+                return designation
+        
+        # Fallback: if somehow we run out of designations (very unlikely)
+        raise Exception("Unable to generate unique Traveler designation - all numbers 002-9999 may be taken")
 
     def generate_occupation(self):
         """Generate a random occupation for the traveler"""
@@ -94,6 +119,56 @@ class Traveler:
     "Skilled Musician", "Expert Composer", "Master Conductor", "Gifted Singer", "Exceptional Dancer",
     "Skilled Athlete", "Expert Coach", "Master Trainer", "Gifted Sportsman", "Exceptional Competitor"]
         return random.sample(abilities, random.randint(2, 4))
+
+    def calculate_significance(self):
+        """Calculate significance level based on designation number (lower = more significant)"""
+        if not hasattr(self, 'designation'):
+            return 0.1  # Default low significance
+            
+        try:
+            designation_num = int(self.designation)
+            if designation_num <= 99:
+                return 0.9  # Highly significant (002-099)
+            elif designation_num <= 999:
+                return 0.6  # Significant (100-999)
+            else:
+                return 0.3  # Standard (1000-9999)
+        except (ValueError, AttributeError):
+            return 0.1  # Default for invalid designations
+    
+    def use_nanites(self, healing_type="standard"):
+        """Use future nanite technology for healing or enhancement"""
+        if self.nanite_level <= 0.1:
+            return {"success": False, "message": "Insufficient nanite levels"}
+        
+        healing_effectiveness = self.nanite_level * random.uniform(0.7, 1.0)
+        
+        healing_types = {
+            "standard": {"cost": 0.1, "healing": 0.3, "description": "Basic wound healing"},
+            "advanced": {"cost": 0.2, "healing": 0.6, "description": "Rapid tissue regeneration"},
+            "critical": {"cost": 0.4, "healing": 1.0, "description": "Life-saving emergency healing"}
+        }
+        
+        if healing_type not in healing_types:
+            healing_type = "standard"
+        
+        heal_data = healing_types[healing_type]
+        
+        if self.nanite_level >= heal_data["cost"]:
+            self.nanite_level -= heal_data["cost"]
+            healing_amount = heal_data["healing"] * healing_effectiveness
+            
+            # Improve consciousness stability
+            self.consciousness_stability = min(1.0, self.consciousness_stability + healing_amount)
+            
+            return {
+                "success": True,
+                "healing": healing_amount,
+                "description": heal_data["description"],
+                "remaining_nanites": self.nanite_level
+            }
+        else:
+            return {"success": False, "message": "Insufficient nanites for this healing type"}
 
     def assign_host_body(self):
         """Assign a host body to this traveler"""
@@ -149,6 +224,21 @@ Host Body: {'Assigned' if self.host_body else 'Not Assigned'}
     def __str__(self):
         return f"Traveler {self.designation} ({self.name}) - {self.role or 'Unassigned'}"
 
+    @classmethod
+    def reset_used_designations(cls):
+        """Reset the used designations set for new games"""
+        cls.used_designations.clear()
+    
+    @classmethod
+    def get_used_designations(cls):
+        """Get a list of all used designations"""
+        return sorted(list(cls.used_designations))
+    
+    @classmethod
+    def get_designation_count(cls):
+        """Get the total number of designations used"""
+        return len(cls.used_designations)
+
 
 class Team:
     def __init__(self, leader):
@@ -162,9 +252,19 @@ class Team:
             "Team Leader": None
         }
         self.assign_role(leader, "Team Leader")
-        self.generate_team()
+        # Note: Team generation is now handled by TeamManagement class
+        # to ensure exactly 5 members total
         self.team_cohesion = 0.8
         self.communication_level = 0.7
+        self.designated_hacker = None  # Will be assigned based on skills
+        self.base_of_operations = None  # Team needs to establish this
+        self.supplies = {
+            "weapons": 0,
+            "technology": 0,
+            "medical": 0,
+            "intelligence": 0,
+            "transportation": 0
+        }
 
     def assign_role(self, member, role):
         """Assign a role to a team member"""
@@ -173,6 +273,26 @@ class Team:
             member.role = role
             return True
         return False
+    
+    def validate_team_size(self):
+        """Validate that the team has exactly 5 members"""
+        if len(self.members) != 5:
+            raise ValueError(f"Team must have exactly 5 members, but has {len(self.members)}")
+        return True
+    
+    def add_member(self, member):
+        """Add a member to the team"""
+        if len(self.members) >= 5:
+            raise ValueError("Team cannot exceed 5 members")
+        self.members.append(member)
+        
+    def remove_member(self, member):
+        """Remove a member from the team"""
+        if member == self.leader:
+            raise ValueError("Cannot remove the team leader")
+        if len(self.members) <= 1:
+            raise ValueError("Team must have at least 1 member")
+        self.members.remove(member)
 
     def generate_team(self):
         """Generate a complete team with all roles filled"""

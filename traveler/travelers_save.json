@@ -1,116 +1,197 @@
 {
   "team_leader": {
-    "name": "Julian",
-    "designation": "3704",
-    "role": "Team Leader",
-    "occupation": "Historian",
+    "name": "Ronald",
+    "designation": "8781",
+    "role": null,
+    "occupation": "Engineer",
     "skills": [
-      "Statistics",
-      "Artificial Intelligence",
-      "Space Exploration",
-      "Navigation"
+      "Toxicology",
+      "Music",
+      "Archery",
+      "Penetration Testing"
     ],
     "abilities": [
-      "Master Mediator",
-      "Master Surgeon",
-      "Skilled Survivalist"
+      "Peak Physical Conditioning",
+      "Skilled Musician",
+      "Expert Coach"
     ],
-    "mission_count": 9,
+    "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
-    "timeline_impact": 0
+    "timeline_impact": 0.0
   },
   "team_members": [
     {
-      "name": "Justin",
-      "designation": "9676",
+      "name": "Ashley",
+      "designation": "2503",
       "role": "Historian",
-      "occupation": "Scientist",
+      "occupation": "Soldier",
       "skills": [
-        "Forensics",
-        "Sword Fighting",
-        "Geography",
-        "Anthropology"
+        "Cooking",
+        "Safecracking",
+        "Computer Science"
       ],
       "abilities": [
-        "Exceptional Pilot",
-        "Gifted Investigator",
-        "Gifted Sportsman",
-        "Exceptional Executive"
+        "Master Chef",
+        "Master Strategist",
+        "Expert Negotiator"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0
+      "timeline_impact": 0.0
     },
     {
-      "name": "Matthew",
-      "designation": "7686",
+      "name": "Elijah",
+      "designation": "7208",
       "role": "Engineer",
-      "occupation": "Soldier",
+      "occupation": "Historian",
       "skills": [
-        "Geography",
         "Cooking",
-        "Space Exploration",
-        "Sniping",
-        "Film"
+        "Literature",
+        "Finance"
       ],
       "abilities": [
-        "Master of Disguise",
-        "Exceptional Scientist",
-        "Expert Sommelier",
+        "Gifted Orator",
+        "Gifted Poet",
         "Talented Artist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0
+      "timeline_impact": 0.0
     },
     {
-      "name": "Bryson",
-      "designation": "3736",
+      "name": "William",
+      "designation": "9958",
       "role": "Medic",
       "occupation": "Historian",
       "skills": [
-        "Toxicology",
-        "Environmental Science",
-        "Marksmanship"
+        "Fashion Design",
+        "Hacking",
+        "Dietetics",
+        "Electrical Engineering",
+        "Finance"
       ],
       "abilities": [
-        "Exceptional Competitor",
-        "Skilled Thief",
-        "Skilled Musician",
-        "Expert Designer"
+        "Multilingualism",
+        "Skilled Writer",
+        "Expert Coach",
+        "Exceptional Storyteller"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0
+      "timeline_impact": 0.0
     },
     {
-      "name": "Nicole",
-      "designation": "3160",
+      "name": "Jennifer",
+      "designation": "1136",
       "role": "Tactician",
-      "occupation": "Leader",
+      "occupation": "Scientist",
       "skills": [
+        "Volcanology",
+        "Navigation",
+        "Marksmanship",
+        "Safecracking"
+      ],
+      "abilities": [
+        "Skilled Survivalist",
+        "Exceptional Cartographer",
+        "Master Sailor",
+        "Expert Sommelier"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Abigail",
+      "designation": "3120",
+      "role": null,
+      "occupation": "Engineer",
+      "skills": [
+        "Geography",
+        "Astronomy",
+        "Astrophysics",
+        "Planetary Science",
+        "Food Science"
+      ],
+      "abilities": [
+        "Exceptional Scientist",
+        "Exceptional Pilot",
+        "Multilingualism"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Avery",
+      "designation": "0081",
+      "role": null,
+      "occupation": "Scientist",
+      "skills": [
+        "Lockpicking",
+        "Fashion Design",
+        "Vulnerability Assessment",
+        "Algorithm Design"
+      ],
+      "abilities": [
+        "Skilled Musician",
+        "Skilled First Responder"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Kevin",
+      "designation": "2782",
+      "role": null,
+      "occupation": "Medic",
+      "skills": [
+        "Accounting",
+        "Dance",
+        "Physics",
+        "Business Intelligence"
+      ],
+      "abilities": [
+        "Expert Manager",
+        "Gifted Scientist",
+        "Skilled Diplomat"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Austin",
+      "designation": "5212",
+      "role": null,
+      "occupation": "Engineer",
+      "skills": [
+        "Landscape Architecture",
         "Management",
-        "Literature",
-        "Surgery",
-        "Computer Vision",
         "Combat"
       ],
       "abilities": [
-        "Skilled Linguist",
-        "Gifted Arbitrator",
-        "Exceptional Pilot"
+        "Talented Artist",
+        "Exceptional Lockpick",
+        "Skilled Engineer",
+        "Skilled Spy"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0
+      "timeline_impact": 0.0
     }
   ],
-  "mission_status": "Active Missions: 1",
+  "mission_status": "No Mission",
   "current_mission": null,
   "active_missions": [],
   "team_cohesion": 0.8,

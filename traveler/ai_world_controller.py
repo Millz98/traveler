@@ -1405,18 +1405,20 @@ class AIWorldController:
         """Initialize the AI-controlled world with entities"""
         print("🤖 Initializing AI World Controller...")
         
-        # Create AI Traveler teams
-        for i in range(3):  # 3 AI teams
+        # Create AI Traveler teams (random number 2-6)
+        num_ai_teams = random.randint(2, 6)
+        for i in range(num_ai_teams):
             team = AITravelerTeam(
                 team_id=f"AI-{i+1:02d}",
-                members=random.randint(3, 5),
+                members=5,  # Every Traveler team must have exactly 5 members
                 base_location=self.generate_base_location(),
                 mission_priorities=["timeline_stability", "protocol_compliance", "host_integration"]
             )
             self.ai_teams.append(team)
         
-        # Create Faction operatives
-        for i in range(5):  # 5 Faction operatives
+        # Create Faction operatives (random number 3-8)
+        num_faction_operatives = random.randint(3, 8)
+        for i in range(num_faction_operatives):
             operative = AIFactionOperative(
                 operative_id=f"F-{i+1:02d}",
                 specialization=random.choice(["saboteur", "recruiter", "assassin", "infiltrator"]),
@@ -1425,8 +1427,9 @@ class AIWorldController:
             )
             self.faction_operatives.append(operative)
         
-        # Create Government agents (FBI and CIA)
-        for i in range(4):  # 4 FBI agents
+        # Create Government agents (random numbers)
+        num_fbi_agents = random.randint(3, 7)  # 3-7 FBI agents
+        for i in range(num_fbi_agents):
             agent = AIGovernmentAgent(
                 agent_id=f"FBI-{i+1:02d}",
                 agency="FBI",
@@ -1439,7 +1442,8 @@ class AIWorldController:
             )
             self.government_agents.append(agent)
         
-        for i in range(3):  # 3 CIA agents
+        num_cia_agents = random.randint(2, 6)  # 2-6 CIA agents
+        for i in range(num_cia_agents):
             agent = AIGovernmentAgent(
                 agent_id=f"CIA-{i+1:02d}",
                 agency="CIA",

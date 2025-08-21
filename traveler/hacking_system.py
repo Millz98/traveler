@@ -674,48 +674,52 @@ class HackingSystem:
         # Create hacking tools
         tools = self.generate_hacking_tools()
         
-        # Create Traveler hackers
-        for i in range(3):  # 3 Traveler teams
+        # Create Traveler hackers (random number 2-6)
+        num_traveler_hackers = random.randint(2, 6)
+        for i in range(num_traveler_hackers):
             hacker = TravelerHacker(
                 name=f"Traveler-Hacker-{i+1:02d}",
                 team_id=f"T-{i+1:02d}",
-                skill_level=random.uniform(0.7, 0.9)
+                skill_level=random.uniform(0.6, 0.95)
             )
             # Add tools
-            for tool in random.sample(tools, random.randint(2, 4)):
+            for tool in random.sample(tools, random.randint(2, 5)):
                 hacker.add_tool(tool)
             self.hackers.append(hacker)
         
-        # Create Government hackers
-        for i in range(4):  # 4 FBI hackers
+        # Create Government hackers (random numbers)
+        num_fbi_hackers = random.randint(3, 7)  # 3-7 FBI hackers
+        for i in range(num_fbi_hackers):
             hacker = GovernmentHacker(
                 name=f"FBI-Hacker-{i+1:02d}",
                 agency="FBI",
-                clearance_level=random.randint(3, 5),
-                skill_level=random.uniform(0.6, 0.8)
+                clearance_level=random.randint(2, 5),
+                skill_level=random.uniform(0.5, 0.85)
             )
-            for tool in random.sample(tools, random.randint(3, 5)):
+            for tool in random.sample(tools, random.randint(2, 6)):
                 hacker.add_tool(tool)
             self.hackers.append(hacker)
             
-        for i in range(3):  # 3 CIA hackers
+        num_cia_hackers = random.randint(2, 5)  # 2-5 CIA hackers
+        for i in range(num_cia_hackers):
             hacker = GovernmentHacker(
                 name=f"CIA-Hacker-{i+1:02d}",
                 agency="CIA",
-                clearance_level=random.randint(4, 5),
-                skill_level=random.uniform(0.7, 0.9)
+                clearance_level=random.randint(3, 5),
+                skill_level=random.uniform(0.6, 0.9)
             )
-            for tool in random.sample(tools, random.randint(3, 5)):
+            for tool in random.sample(tools, random.randint(3, 6)):
                 hacker.add_tool(tool)
             self.hackers.append(hacker)
         
-        # Create Faction hackers
-        for i in range(2):  # 2 Faction hackers
+        # Create Faction hackers (random number 1-4)
+        num_faction_hackers = random.randint(1, 4)
+        for i in range(num_faction_hackers):
             hacker = FactionHacker(
                 name=f"Faction-Hacker-{i+1:02d}",
-                skill_level=random.uniform(0.8, 1.0)
+                skill_level=random.uniform(0.7, 1.0)
             )
-            for tool in random.sample(tools, random.randint(2, 4)):
+            for tool in random.sample(tools, random.randint(2, 5)):
                 hacker.add_tool(tool)
             self.hackers.append(hacker)
         

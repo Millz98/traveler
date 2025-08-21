@@ -16,6 +16,111 @@ class MissionGenerator:
             "time_limit": "",
             "consequences": []
         }
+        
+        # Grand Plan missions from the lore
+        self.grand_plan_missions = {
+            "helios_685_prevention": {
+                "name": "Helios-685 Asteroid Deflection",
+                "priority": "CRITICAL",
+                "description": "Prevent the Helios-685 asteroid from impacting Earth in 2018, which would trigger an ice age and kill 90+ million people",
+                "objectives": [
+                    "Coordinate with NASA and international space agencies",
+                    "Ensure asteroid deflection technology deployment",
+                    "Prevent Faction interference with the mission",
+                    "Minimize timeline contamination from the operation"
+                ],
+                "consequences": [
+                    "90+ million lives saved from immediate impact",
+                    "Ice age prevented, maintaining current climate",
+                    "Unintended consequence: Samantha Burns and Amanda Myers survive to create singularity engine",
+                    "Timeline stability significantly improved"
+                ],
+                "team_size_required": 5,
+                "technology_required": ["Advanced Mathematics", "Space Technology", "Quantum Computing"],
+                "timeline_impact": 0.4
+            },
+            "singularity_engine_prevention": {
+                "name": "Singularity Engine Disaster Prevention",
+                "priority": "CRITICAL",
+                "description": "Prevent the creation of the singularity engine that kills 1.4 billion people - a consequence of saving Helios-685 survivors",
+                "objectives": [
+                    "Eliminate or redirect key scientists (Samantha Burns, Amanda Myers)",
+                    "Sabotage singularity engine research without detection",
+                    "Prevent funding for the dangerous energy project",
+                    "Create alternative energy solutions to replace the project"
+                ],
+                "consequences": [
+                    "1.4 billion lives saved from singularity disaster",
+                    "Energy crisis may occur without alternative solutions",
+                    "Scientific community may lose trust in experimental physics",
+                    "Timeline correction for Helios-685 unintended consequences"
+                ],
+                "team_size_required": 3,
+                "technology_required": ["Physics", "Engineering", "Infiltration"],
+                "timeline_impact": 0.5
+            },
+            "nuclear_disaster_prevention": {
+                "name": "Nuclear Facility Disaster Prevention",
+                "priority": "HIGH",
+                "description": "Prevent nuclear reactor meltdowns and facility failures that poison the future environment",
+                "objectives": [
+                    "Identify facilities with future failure potential",
+                    "Implement safety upgrades without raising suspicion",
+                    "Remove or retrain incompetent personnel",
+                    "Ensure proper maintenance protocols are followed"
+                ],
+                "consequences": [
+                    "Nuclear contamination prevented in target regions",
+                    "Thousands of lives saved from radiation exposure",
+                    "Environmental preservation for future generations",
+                    "Energy infrastructure remains stable"
+                ],
+                "team_size_required": 2,
+                "technology_required": ["Nuclear Physics", "Engineering", "Safety Protocols"],
+                "timeline_impact": 0.2
+            },
+            "pandemic_prevention": {
+                "name": "Future Pandemic Prevention",
+                "priority": "HIGH",
+                "description": "Introduce cures and vaccines for plagues that decimate future populations",
+                "objectives": [
+                    "Identify future pandemic sources and vectors",
+                    "Develop and distribute preventive treatments",
+                    "Strengthen global health surveillance systems",
+                    "Prevent bioweapon development by hostile actors"
+                ],
+                "consequences": [
+                    "Millions of lives saved from future pandemics",
+                    "Global health infrastructure improved",
+                    "Medical technology advancement accelerated",
+                    "Reduced social collapse from disease outbreaks"
+                ],
+                "team_size_required": 4,
+                "technology_required": ["Medical Science", "Biotechnology", "Public Health"],
+                "timeline_impact": 0.3
+            },
+            "key_individual_protection": {
+                "name": "Key Individual Protection Mission",
+                "priority": "MEDIUM",
+                "description": "Ensure the survival of individuals crucial to the Grand Plan's success",
+                "objectives": [
+                    "Identify and locate the target individual",
+                    "Prevent their historical death without altering timeline",
+                    "Ensure they fulfill their future role in saving humanity",
+                    "Protect them from Faction interference"
+                ],
+                "consequences": [
+                    "Critical individual survives to contribute to future",
+                    "Timeline remains stable with minimal alteration",
+                    "Future scientific/political developments proceed as needed",
+                    "Grand Plan success probability increased"
+                ],
+                "team_size_required": 2,
+                "technology_required": ["Investigation", "Protection", "Medical"],
+                "timeline_impact": 0.15
+            }
+        }
+        
         self.mission_types = {
             "prevent_traveler_exposure": {
                 "descriptions": [
@@ -171,6 +276,9 @@ class MissionGenerator:
 
     def generate_mission(self):
         """Generate a complete mission with all details"""
+        # Clear any existing mission data first
+        self.clear_mission_data()
+        
         # Select mission type
         mission_type = random.choice(list(self.mission_types.keys()))
         mission_data = self.mission_types[mission_type]
@@ -188,6 +296,144 @@ class MissionGenerator:
         self.mission["time_limit"] = self.generate_time_limit()
         self.mission["consequences"] = random.sample(mission_data["consequences"], 
                                                    min(2, len(mission_data["consequences"])))
+        
+        # Add unique mission ID and timestamp
+        self.mission["mission_id"] = f"M{random.randint(10000, 99999)}"
+        self.mission["generated_turn"] = getattr(self.time_system, 'current_turn', 1) if self.time_system else 1
+
+    def generate_grand_plan_mission(self, mission_key=None):
+        """Generate a specific Grand Plan mission or select one randomly"""
+        if mission_key and mission_key in self.grand_plan_missions:
+            selected_mission = self.grand_plan_missions[mission_key]
+        else:
+            # Weight selection by priority
+            weighted_missions = []
+            for key, mission in self.grand_plan_missions.items():
+                if mission["priority"] == "CRITICAL":
+                    weight = 3
+                elif mission["priority"] == "HIGH":
+                    weight = 2
+                else:
+                    weight = 1
+                weighted_missions.extend([key] * weight)
+            
+            mission_key = random.choice(weighted_missions)
+            selected_mission = self.grand_plan_missions[mission_key]
+        
+        # Clear any existing mission data first
+        self.clear_mission_data()
+        
+        # Build the mission
+        self.mission["type"] = f"grand_plan_{mission_key}"
+        self.mission["name"] = selected_mission["name"]
+        self.mission["priority"] = selected_mission["priority"]
+        self.mission["description"] = selected_mission["description"]
+        self.mission["objectives"] = selected_mission["objectives"].copy()
+        self.mission["consequences"] = selected_mission["consequences"].copy()
+        self.mission["team_size_required"] = selected_mission["team_size_required"]
+        self.mission["technology_required"] = selected_mission["technology_required"].copy()
+        self.mission["timeline_impact"] = selected_mission["timeline_impact"]
+        
+        # Generate supporting details
+        self.mission["location"] = self.generate_grand_plan_location(mission_key)
+        self.mission["npc"] = self.generate_grand_plan_npc(mission_key)
+        self.mission["resource"] = self.generate_grand_plan_resource(mission_key)
+        self.mission["challenge"] = self.generate_grand_plan_challenge(mission_key)
+        self.mission["time_limit"] = self.generate_grand_plan_time_limit(mission_key)
+        
+        # Add unique mission ID and timestamp
+        self.mission["mission_id"] = f"GP-{random.randint(10000, 99999)}"
+        self.mission["generated_turn"] = getattr(self.time_system, 'current_turn', 1) if self.time_system else 1
+        
+        return self.mission
+    
+    def generate_grand_plan_location(self, mission_key):
+        """Generate location specific to Grand Plan mission"""
+        locations = {
+            "helios_685_prevention": ["NASA Johnson Space Center, Houston, TX", "European Space Agency, Paris, France", "International Space Station", "Arecibo Observatory, Puerto Rico"],
+            "singularity_engine_prevention": ["CERN, Geneva, Switzerland", "Fermilab, Chicago, IL", "Stanford Linear Accelerator, CA", "Brookhaven National Laboratory, NY"],
+            "nuclear_disaster_prevention": ["Chernobyl Nuclear Plant, Ukraine", "Fukushima Daiichi, Japan", "Three Mile Island, PA", "Hanford Site, WA"],
+            "pandemic_prevention": ["CDC Headquarters, Atlanta, GA", "WHO Headquarters, Geneva, Switzerland", "Wuhan Institute of Virology, China", "Fort Detrick, MD"],
+            "key_individual_protection": ["MIT, Cambridge, MA", "Silicon Valley, CA", "Pentagon, Arlington, VA", "Oxford University, UK"]
+        }
+        return random.choice(locations.get(mission_key, ["Classified Location"]))
+    
+    def generate_grand_plan_npc(self, mission_key):
+        """Generate NPC specific to Grand Plan mission"""
+        npcs = {
+            "helios_685_prevention": ["NASA Administrator", "ESA Director", "Asteroid Tracking Specialist", "Space Defense Coordinator"],
+            "singularity_engine_prevention": ["Dr. Samantha Burns", "Dr. Amanda Myers", "Particle Physics Researcher", "Energy Department Official"],
+            "nuclear_disaster_prevention": ["Nuclear Safety Inspector", "Plant Operations Manager", "Radiation Specialist", "Emergency Response Coordinator"],
+            "pandemic_prevention": ["CDC Epidemiologist", "WHO Director", "Bioweapons Expert", "Public Health Official"],
+            "key_individual_protection": ["Future Nobel Laureate", "Technology Pioneer", "Government Official", "Research Scientist"]
+        }
+        return random.choice(npcs.get(mission_key, ["Classified Contact"]))
+    
+    def generate_grand_plan_resource(self, mission_key):
+        """Generate resource specific to Grand Plan mission"""
+        resources = {
+            "helios_685_prevention": ["Asteroid Deflection Technology", "Space-Based Weapons Platform", "Nuclear Propulsion System", "Quantum Computing Array"],
+            "singularity_engine_prevention": ["Research Sabotage Equipment", "Alternative Energy Plans", "Scientific Redirect Protocols", "Funding Disruption Tools"],
+            "nuclear_disaster_prevention": ["Safety Upgrade Technology", "Radiation Detection Equipment", "Emergency Response Protocols", "Personnel Replacement Documentation"],
+            "pandemic_prevention": ["Advanced Vaccines", "Biocontainment Systems", "Surveillance Technology", "Medical Distribution Networks"],
+            "key_individual_protection": ["Personal Security Detail", "Medical Life Support", "Identity Protection Documents", "Safe House Network"]
+        }
+        return random.choice(resources.get(mission_key, ["Classified Resources"]))
+    
+    def generate_grand_plan_challenge(self, mission_key):
+        """Generate challenge specific to Grand Plan mission"""
+        challenges = {
+            "helios_685_prevention": ["International coordination required", "Faction interference expected", "Technical complexity extreme", "Timeline window critical"],
+            "singularity_engine_prevention": ["Scientists must appear to die naturally", "Research must be completely destroyed", "Alternative solutions needed", "Unintended consequences possible"],
+            "nuclear_disaster_prevention": ["Multiple facilities require simultaneous action", "Safety upgrades must appear routine", "Personnel changes must seem natural", "Radiation exposure risk"],
+            "pandemic_prevention": ["Global distribution network required", "Bioweapon creators must be neutralized", "Medical community cooperation needed", "Timeline contamination risk"],
+            "key_individual_protection": ["Individual unaware of their importance", "Multiple threat vectors possible", "Long-term protection required", "Identity must remain secret"]
+        }
+        return random.choice(challenges.get(mission_key, ["Extreme operational complexity"]))
+    
+    def generate_grand_plan_time_limit(self, mission_key):
+        """Generate time limit specific to Grand Plan mission"""
+        time_limits = {
+            "helios_685_prevention": "18 months until asteroid impact window",
+            "singularity_engine_prevention": "6 months before project funding approval",
+            "nuclear_disaster_prevention": "3 months before predicted failure cascade",
+            "pandemic_prevention": "12 months before outbreak reaches critical mass",
+            "key_individual_protection": "Variable - depends on threat timeline"
+        }
+        return time_limits.get(mission_key, "Mission-critical timing")
+    
+    def should_generate_grand_plan_mission(self, world_state):
+        """Determine if a Grand Plan mission should be generated"""
+        # Higher chance if timeline stability is low
+        timeline_stability = world_state.get('timeline_stability', 0.8)
+        base_chance = 0.15  # 15% base chance
+        
+        # Increase chance based on instability
+        instability_modifier = (1.0 - timeline_stability) * 0.3
+        
+        # Increase chance if Director control is high
+        director_control = world_state.get('director_control', 0.8)
+        director_modifier = director_control * 0.1
+        
+        total_chance = base_chance + instability_modifier + director_modifier
+        
+        return random.random() < total_chance
+
+    def clear_mission_data(self):
+        """Clear all mission data to ensure fresh generation"""
+        self.mission = {
+            "type": "",
+            "location": "",
+            "npc": "",
+            "resource": "",
+            "challenge": "",
+            "description": "",
+            "objectives": [],
+            "time_limit": "",
+            "consequences": [],
+            "mission_id": "",
+            "generated_turn": 0
+        }
 
     def generate_location(self):
         """Generate a realistic mission location"""
@@ -335,6 +581,8 @@ class MissionGenerator:
         
         briefing = f"""MISSION BRIEFING
 ================
+Mission ID: {self.mission.get('mission_id', 'N/A')}
+Generated: Turn {self.mission.get('generated_turn', 'N/A')}
 Type: {self.mission['type'].title()}
 Location: {self.mission['location']}
 NPC Contact: {self.mission['npc']}
