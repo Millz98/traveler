@@ -1,116 +1,136 @@
 {
   "team_leader": {
-    "name": "Cameron",
-    "designation": "0277",
+    "name": "Holly",
+    "designation": "1250",
     "role": "Team Leader",
-    "occupation": "Hacker",
+    "occupation": "Scientist",
     "skills": [
-      "Geology",
-      "Astrophysics",
-      "Chemistry"
+      "Tracking",
+      "Oceanography",
+      "Entrepreneurship",
+      "Data Mining",
+      "Athletics"
     ],
     "abilities": [
-      "Gifted Investigator",
-      "Gifted Scientist",
-      "Exceptional Competitor"
+      "Master Historian",
+      "Master Hunter"
     ],
     "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
-    "timeline_impact": 0.0
+    "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Rebecca",
-      "designation": "0701",
-      "role": "Engineer",
-      "occupation": "Soldier",
-      "skills": [
-        "Cartography",
-        "Natural Language Processing",
-        "Agriculture",
-        "History",
-        "Penetration Testing"
-      ],
-      "abilities": [
-        "Expert Manager",
-        "Exceptional Scientist",
-        "Exceptional Peacemaker",
-        "Skilled Teacher"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0.0
-    },
-    {
-      "name": "Julian",
-      "designation": "5505",
-      "role": "Fighter",
-      "occupation": "Hacker",
-      "skills": [
-        "Data Mining",
-        "Deception",
-        "Sniping"
-      ],
-      "abilities": [
-        "Expert Designer",
-        "Master Conductor",
-        "Exceptional Peacemaker"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0.0
-    },
-    {
-      "name": "Bryson",
-      "designation": "5181",
-      "role": "Scout",
+      "name": "Michelle",
+      "designation": "1269",
+      "role": "Historian",
       "occupation": "Historian",
       "skills": [
-        "Culinary Arts",
-        "Robotics",
-        "Astrophysics",
-        "Cartography"
-      ],
-      "abilities": [
-        "Exceptional Scientist",
-        "Gifted Sportsman"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0.0
-    },
-    {
-      "name": "Robert",
-      "designation": "7072",
-      "role": "Leader",
-      "occupation": "Leader",
-      "skills": [
-        "Intimidation",
-        "Veterinary Medicine",
+        "History",
+        "Natural Language Processing",
         "Leadership"
       ],
       "abilities": [
-        "Expert Cryptologist",
-        "Skilled Musician",
-        "Genius-Level Intellect",
-        "Master Conductor"
+        "Master Martial Artist",
+        "Master Author",
+        "Exceptional Pilot",
+        "Skilled Athlete"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0.0
+      "timeline_impact": 0
+    },
+    {
+      "name": "Tyler",
+      "designation": "4594",
+      "role": "Engineer",
+      "occupation": "Soldier",
+      "skills": [
+        "First Aid",
+        "Linguistics",
+        "Cryptography",
+        "Marketing",
+        "Cryptography"
+      ],
+      "abilities": [
+        "Master Sailor",
+        "Charismatic Leader",
+        "Gifted Sportsman",
+        "Multilingualism"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Mackenzie",
+      "designation": "3168",
+      "role": "Medic",
+      "occupation": "Engineer",
+      "skills": [
+        "Natural Language Processing",
+        "Navigation",
+        "Cartography"
+      ],
+      "abilities": [
+        "Skilled Athlete",
+        "Master Trainer"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Andrew",
+      "designation": "7782",
+      "role": "Tactician",
+      "occupation": "Engineer",
+      "skills": [
+        "Planetary Science",
+        "Cooking",
+        "Data Warehousing",
+        "Algorithm Design",
+        "Aerospace Engineering"
+      ],
+      "abilities": [
+        "Expert Designer",
+        "Genius-Level Intellect"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
     }
   ],
-  "mission_status": "No active mission",
+  "mission_status": "Active Missions: 1",
   "current_mission": null,
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.8,
+  "timeline_stability": 0.735,
   "timeline_fragility": 0.3,
-  "timeline_events": []
+  "timeline_events": [
+    {
+      "timestamp": "March 15, 2018",
+      "change": 0.05,
+      "actual_change": 0.065,
+      "old_stability": 0.8,
+      "new_stability": 0.865,
+      "source": "mission_host_body_crisis_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
+      "change": -0.1,
+      "actual_change": -0.13,
+      "old_stability": 0.865,
+      "new_stability": 0.735,
+      "source": "mission_protocol_violation_cleanup_failure",
+      "fragility_impact": 0.3
+    }
+  ]
 }

@@ -397,7 +397,7 @@ class AITravelerTeam(AIEntity):
         print(f"  📅 Managing personal life events...")
         
         # Check for special dates
-        current_date = time_system.get_current_date()
+        current_date = time_system.current_date
         
         for i, host_life in enumerate(self.host_lives):
             # Check for birthdays, anniversaries, etc.

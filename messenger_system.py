@@ -512,6 +512,12 @@ class MessengerSystem:
             base_chance += 0.15
         
         return random.random() < base_chance
+    
+    def has_urgent_messages(self):
+        """Check if there are any urgent messages that need attention"""
+        # For now, randomly determine if there are urgent messages
+        # In a more complex system, this would check actual message queues
+        return random.choice([True, False])
 
     def get_messenger_stats(self):
         """Get statistics about messenger usage"""

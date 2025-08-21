@@ -198,6 +198,12 @@ class UpdateSystem:
             base_chance += protocol_violations * 0.15
         
         return random.random() < base_chance
+    
+    def has_pending_updates(self):
+        """Check if there are any pending updates that need attention"""
+        # For now, randomly determine if there are updates
+        # In a more complex system, this would check actual pending updates
+        return random.choice([True, False])
 
     def apply_consequences(self, effect, consequences):
         """Apply update consequences to the game world"""

@@ -1,0 +1,199 @@
+{
+  "team_leader": {
+    "name": "Ronald",
+    "designation": "8781",
+    "role": null,
+    "occupation": "Engineer",
+    "skills": [
+      "Toxicology",
+      "Music",
+      "Archery",
+      "Penetration Testing"
+    ],
+    "abilities": [
+      "Peak Physical Conditioning",
+      "Skilled Musician",
+      "Expert Coach"
+    ],
+    "mission_count": 0,
+    "success_rate": 0.0,
+    "protocol_violations": 0,
+    "timeline_impact": 0.0
+  },
+  "team_members": [
+    {
+      "name": "Ashley",
+      "designation": "2503",
+      "role": "Historian",
+      "occupation": "Soldier",
+      "skills": [
+        "Cooking",
+        "Safecracking",
+        "Computer Science"
+      ],
+      "abilities": [
+        "Master Chef",
+        "Master Strategist",
+        "Expert Negotiator"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Elijah",
+      "designation": "7208",
+      "role": "Engineer",
+      "occupation": "Historian",
+      "skills": [
+        "Cooking",
+        "Literature",
+        "Finance"
+      ],
+      "abilities": [
+        "Gifted Orator",
+        "Gifted Poet",
+        "Talented Artist"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "William",
+      "designation": "9958",
+      "role": "Medic",
+      "occupation": "Historian",
+      "skills": [
+        "Fashion Design",
+        "Hacking",
+        "Dietetics",
+        "Electrical Engineering",
+        "Finance"
+      ],
+      "abilities": [
+        "Multilingualism",
+        "Skilled Writer",
+        "Expert Coach",
+        "Exceptional Storyteller"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Jennifer",
+      "designation": "1136",
+      "role": "Tactician",
+      "occupation": "Scientist",
+      "skills": [
+        "Volcanology",
+        "Navigation",
+        "Marksmanship",
+        "Safecracking"
+      ],
+      "abilities": [
+        "Skilled Survivalist",
+        "Exceptional Cartographer",
+        "Master Sailor",
+        "Expert Sommelier"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Abigail",
+      "designation": "3120",
+      "role": null,
+      "occupation": "Engineer",
+      "skills": [
+        "Geography",
+        "Astronomy",
+        "Astrophysics",
+        "Planetary Science",
+        "Food Science"
+      ],
+      "abilities": [
+        "Exceptional Scientist",
+        "Exceptional Pilot",
+        "Multilingualism"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Avery",
+      "designation": "0081",
+      "role": null,
+      "occupation": "Scientist",
+      "skills": [
+        "Lockpicking",
+        "Fashion Design",
+        "Vulnerability Assessment",
+        "Algorithm Design"
+      ],
+      "abilities": [
+        "Skilled Musician",
+        "Skilled First Responder"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Kevin",
+      "designation": "2782",
+      "role": null,
+      "occupation": "Medic",
+      "skills": [
+        "Accounting",
+        "Dance",
+        "Physics",
+        "Business Intelligence"
+      ],
+      "abilities": [
+        "Expert Manager",
+        "Gifted Scientist",
+        "Skilled Diplomat"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    },
+    {
+      "name": "Austin",
+      "designation": "5212",
+      "role": null,
+      "occupation": "Engineer",
+      "skills": [
+        "Landscape Architecture",
+        "Management",
+        "Combat"
+      ],
+      "abilities": [
+        "Talented Artist",
+        "Exceptional Lockpick",
+        "Skilled Engineer",
+        "Skilled Spy"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0.0
+    }
+  ],
+  "mission_status": "No Mission",
+  "current_mission": null,
+  "active_missions": [],
+  "team_cohesion": 0.8,
+  "communication_level": 0.7
+}
