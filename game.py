@@ -393,15 +393,17 @@ class Game:
                     elif choice == "23":
                         self.view_world_activity_feed()
                     elif choice == "24":
-                        self.end_turn()
+                        self.view_government_news_and_status()
                     elif choice == "25":
-                        self.save_game()
+                        self.end_turn()
                     elif choice == "26":
+                        self.save_game()
+                    elif choice == "27":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
                     else:
-                        print("\n❌ Invalid choice. Please enter a number between 1 and 26.")
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 27.")
                         input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
@@ -453,9 +455,10 @@ class Game:
             print("21. View Director's Programmers")
             print("22. View Dynamic World Status")
             print("23. View World Activity Feed")
-            print("24. End Turn")
-            print("25. Save Game")
-            print("26. Quit Game")
+            print("24. View Government News & Status")
+            print("25. End Turn")
+            print("26. Save Game")
+            print("27. Quit Game")
             
             self.print_separator()
             
@@ -469,7 +472,7 @@ class Game:
                 if total_supplies < 10:
                     print("📦 LOW SUPPLIES - Check option 12")
             
-            choice = input(f"\nEnter your choice (1-26): ")
+            choice = input(f"\nEnter your choice (1-27): ")
         
         return choice
 
@@ -3673,6 +3676,98 @@ class Game:
             
         else:
             print("❌ No host body information available.")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+    
+    def view_government_news_and_status(self):
+        """View government news and operational status"""
+        self.clear_screen()
+        self.print_header("GOVERNMENT NEWS & STATUS")
+        
+        try:
+            # Import government systems
+            from government_news_system import get_government_news, get_government_status
+            from government_consequences_system import get_government_consequences
+            
+            print("📰 GOVERNMENT NEWS & REAL-TIME STATUS")
+            print("=" * 60)
+            
+            # Get current government news
+            news_stories = get_government_news(limit=5)
+            if news_stories:
+                print(f"\n📰 RECENT GOVERNMENT NEWS:")
+                for i, story in enumerate(news_stories, 1):
+                    print(f"\n{i}. {story['headline']}")
+                    print(f"   Media: {story['media_outlet']}")
+                    print(f"   Priority: {story['priority']}")
+                    print(f"   Category: {story['category']}")
+                    print(f"   Content: {story['content'][:100]}...")
+                    
+                    if story.get('details'):
+                        print(f"   Key Details:")
+                        for detail in story['details'][:3]:  # Show first 3 details
+                            print(f"     • {detail}")
+                    
+                    if story.get('government_response'):
+                        print(f"   Government Response:")
+                        for response in story['government_response'][:3]:  # Show first 3 responses
+                            print(f"     • {response}")
+            else:
+                print(f"\n📰 GOVERNMENT NEWS: No recent stories")
+            
+            # Get government operational status
+            gov_status = get_government_status()
+            print(f"\n🏛️ GOVERNMENT OPERATIONAL STATUS:")
+            print(f"   • President Status: {gov_status['president_status']}")
+            print(f"   • National Emergency Level: {gov_status['national_emergency_level']}")
+            print(f"   • Current Crisis: {gov_status['current_crisis']['type'] if gov_status['current_crisis'] else 'None'}")
+            
+            # Show agency statuses
+            print(f"\n🏢 AGENCY STATUS:")
+            for agency_name, agency_data in gov_status['agency_statuses'].items():
+                status = agency_data['status']
+                alert = agency_data['alert_level']
+                print(f"   • {agency_name}: {status} (Alert: {alert})")
+            
+            # Show recent government actions
+            if gov_status['recent_actions']:
+                print(f"\n⚡ RECENT GOVERNMENT ACTIONS:")
+                for action in gov_status['recent_actions'][-5:]:  # Show last 5 actions
+                    timestamp = action['timestamp'].strftime('%H:%M')
+                    print(f"   • {timestamp}: {action['action']} ({action['agency']})")
+            
+            # Get government consequences status if available
+            gov_consequences = get_government_consequences()
+            if gov_consequences:
+                ops_status = gov_consequences.get_government_operations_status()
+                print(f"\n🚨 GOVERNMENT OPERATIONS:")
+                print(f"   • Active Operations: {ops_status['active_operations']}")
+                print(f"   • Completed Operations: {ops_status['completed_operations']}")
+                print(f"   • National Emergency: {ops_status['crisis_effects']['national_emergency']}")
+                print(f"   • Military Alert Level: {ops_status['crisis_effects']['military_alert_level']}")
+                
+                # Show active consequences
+                active_consequences = gov_consequences.get_active_consequences()
+                if active_consequences:
+                    print(f"\n🌍 ACTIVE WORLD CONSEQUENCES:")
+                    for consequence in active_consequences:
+                        print(f"   • {consequence['event_type'].replace('_', ' ').title()}")
+                        print(f"     Location: {consequence['location']}")
+                        print(f"     Method: {consequence['method']}")
+                        print(f"     Status: {consequence['status']}")
+            
+            print(f"\n⚠️  IMPORTANT NOTES:")
+            print("   • Government does not know about Travelers or the Faction")
+            print("   • All news stories reflect real game world events")
+            print("   • Government operations happen in real-time")
+            print("   • Major events trigger immediate government response")
+            
+        except ImportError:
+            print("❌ Government news system not available")
+            print("   • Government consequences and news not accessible")
+        except Exception as e:
+            print(f"❌ Error accessing government systems: {e}")
         
         self.print_separator()
         input("Press Enter to continue...")

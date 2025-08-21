@@ -800,6 +800,17 @@ class MessengerSystem:
                     game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.08)
                     game_ref.living_world.faction_influence = min(1.0, game_ref.living_world.faction_influence + 0.06)
                     
+            elif "president" in messenger.message_content.lower() and "assassination" in messenger.message_content.lower():
+                print(f"🚨 PRESIDENTIAL ASSASSINATION MISSION FAILED!")
+                print(f"• President has been assassinated")
+                print(f"• National emergency declared")
+                print(f"• Government in crisis mode")
+                print(f"• Timeline severely destabilized")
+                print(f"• Massive government response initiated")
+                
+                # Trigger presidential assassination consequences
+                self._handle_presidential_assassination_failure(messenger, game_ref)
+                
             elif "emergency" in messenger.message_content.lower() or "critical mission" in messenger.message_content.lower() or "protocol alpha" in messenger.message_content.lower():
                 print(f"• Emergency response protocols failed")
                 print(f"• Critical threat remains active")
@@ -2944,6 +2955,82 @@ def get_world_activity_feed():
     else:
         print(f"\n🚨 ACTIVE REAL WORLD EVENTS: None currently active")
     
+    def _handle_presidential_assassination_failure(self, messenger, game_ref):
+        """Handle the consequences of a failed presidential assassination prevention mission"""
+        try:
+            # Import the government consequences system
+            from government_consequences_system import initialize_government_consequences, report_presidential_assassination_consequence
+            
+            # Initialize the system if not already done
+            if not hasattr(game_ref, 'government_consequences'):
+                game_ref.government_consequences = initialize_government_consequences(game_ref)
+            
+            # Extract location and method from message content
+            location = self._extract_location_from_message(messenger.message_content)
+            method = self._extract_method_from_message(messenger.message_content)
+            
+            # Report the presidential assassination and trigger consequences
+            consequence_event = report_presidential_assassination_consequence(
+                location=location,
+                method=method,
+                mission_failed=True
+            )
+            
+            if consequence_event:
+                print(f"\n🚨 PRESIDENTIAL ASSASSINATION CONSEQUENCES TRIGGERED:")
+                print(f"• Location: {location}")
+                print(f"• Method: {method}")
+                print(f"• Government crisis response activated")
+                print(f"• Real-time consequences applied to game world")
+                print(f"• Government news system updated")
+                
+                # Show immediate world state changes
+                if hasattr(game_ref, 'living_world'):
+                    lw = game_ref.living_world
+                    print(f"\n🌍 IMMEDIATE WORLD STATE CHANGES:")
+                    print(f"• Timeline Stability: {lw.timeline_stability:.1%} (was {lw.timeline_stability + 0.25:.1%})")
+                    print(f"• Government Control: {lw.government_control:.1%} (was {lw.government_control + 0.15:.1%})")
+                    print(f"• Faction Influence: {lw.faction_influence:.1%} (was {lw.faction_influence - 0.20:.1%})")
+                    print(f"• National Security: {lw.national_security:.1%} (was {lw.national_security + 0.30:.1%})")
+                
+                # Show government operations initiated
+                gov_ops = game_ref.government_consequences.get_government_operations_status()
+                print(f"\n🏛️ GOVERNMENT OPERATIONS INITIATED:")
+                print(f"• Active Operations: {gov_ops['active_operations']}")
+                print(f"• Crisis Effects: {gov_ops['crisis_effects']['national_emergency']}")
+                print(f"• Military Alert Level: {gov_ops['crisis_effects']['military_alert_level']}")
+                
+        except ImportError:
+            print(f"⚠️ Warning: Government consequences system not available")
+            print(f"• Presidential assassination consequences not fully processed")
+        except Exception as e:
+            print(f"⚠️ Error processing presidential assassination consequences: {e}")
+    
+    def _extract_location_from_message(self, message_content: str) -> str:
+        """Extract location from presidential assassination message"""
+        # Default to Washington D.C. if no specific location found
+        if "washington" in message_content.lower() or "dc" in message_content.lower():
+            return "Washington D.C."
+        elif "white house" in message_content.lower():
+            return "White House, Washington D.C."
+        elif "camp david" in message_content.lower():
+            return "Camp David, Maryland"
+        else:
+            return "Washington D.C."  # Default location
+    
+    def _extract_method_from_message(self, message_content: str) -> str:
+        """Extract assassination method from message"""
+        if "sniper" in message_content.lower() or "shooting" in message_content.lower():
+            return "Sniper attack"
+        elif "bomb" in message_content.lower() or "explosive" in message_content.lower():
+            return "Explosive device"
+        elif "poison" in message_content.lower():
+            return "Poisoning"
+        elif "vehicle" in message_content.lower() or "car" in message_content.lower():
+            return "Vehicle attack"
+        else:
+            return "Coordinated attack"  # Default method
+
     print(f"\n" + "="*60)
     print(f"🌍 Live World Activity Feed Complete - All Data is REAL-TIME")
 

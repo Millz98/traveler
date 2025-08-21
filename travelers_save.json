@@ -1,38 +1,40 @@
 {
   "team_leader": {
-    "name": "Ashley",
-    "designation": "6094",
+    "name": "Eli",
+    "designation": "4755",
     "role": "Team Leader",
-    "occupation": "Historian",
+    "occupation": "Leader",
     "skills": [
-      "Anthropology",
-      "Theater",
-      "Algorithm Design"
+      "Cosmology",
+      "Data Mining",
+      "Horticulture"
     ],
     "abilities": [
-      "Skilled Survivalist",
-      "Exceptional Competitor"
+      "Skilled Engineer",
+      "Expert Negotiator"
     ],
-    "mission_count": 1,
+    "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Anthony",
-      "designation": "452",
+      "name": "Joseph",
+      "designation": "8966",
       "role": "Historian",
-      "occupation": "Leader",
+      "occupation": "Historian",
       "skills": [
-        "Archery",
-        "Animal Science",
-        "Space Exploration"
+        "Marksmanship",
+        "Piloting",
+        "Linguistics",
+        "Accounting"
       ],
       "abilities": [
-        "Master Chef",
-        "Exceptional Lockpick",
-        "Exceptional Storyteller"
+        "Master Sailor",
+        "Master Mediator",
+        "Expert Forger",
+        "Master of Disguise"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -40,18 +42,22 @@
       "timeline_impact": 0
     },
     {
-      "name": "Andrea",
-      "designation": "624",
+      "name": "Mark",
+      "designation": "6257",
       "role": "Engineer",
-      "occupation": "Soldier",
+      "occupation": "Scientist",
       "skills": [
-        "Culinary Arts",
-        "Literature",
-        "Landscape Architecture"
+        "Toxicology",
+        "Athletics",
+        "Space Exploration",
+        "Environmental Science",
+        "Astronomy"
       ],
       "abilities": [
-        "Master Mentor",
-        "Exceptional Detective"
+        "Master Entrepreneur",
+        "Master Trainer",
+        "Expert Coach",
+        "Expert Sommelier"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -59,20 +65,19 @@
       "timeline_impact": 0
     },
     {
-      "name": "Charlotte",
-      "designation": "6059",
+      "name": "Alyssa",
+      "designation": "4548",
       "role": "Medic",
-      "occupation": "Medic",
+      "occupation": "Scientist",
       "skills": [
-        "Art",
-        "Marketing",
-        "Entrepreneurship",
-        "Fashion Design",
-        "Cybersecurity"
+        "Vulnerability Assessment",
+        "Data Warehousing",
+        "Horticulture"
       ],
       "abilities": [
-        "Master Codebreaker",
-        "Skilled First Responder"
+        "Exceptional Researcher",
+        "Skilled Linguist",
+        "Expert Manager"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -80,18 +85,19 @@
       "timeline_impact": 0
     },
     {
-      "name": "Madison",
-      "designation": "1782",
+      "name": "Natalie",
+      "designation": "7221",
       "role": "Tactician",
-      "occupation": "Leader",
+      "occupation": "Scientist",
       "skills": [
-        "Finance",
-        "Lockpicking",
-        "Linguistics"
+        "Horticulture",
+        "Vulnerability Assessment",
+        "Literature"
       ],
       "abilities": [
-        "Master Historian",
-        "Expert Tactician"
+        "Master of Escape",
+        "Expert Tracker",
+        "Master Surgeon"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -104,7 +110,7 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.943,
+  "timeline_stability": 0.774,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
@@ -113,34 +119,7 @@
       "actual_change": -0.026000000000000002,
       "old_stability": 0.8,
       "new_stability": 0.774,
-      "source": "mission_prevent_traveler_exposure_partial_success",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 15, 2018",
-      "change": -0.02,
-      "actual_change": -0.026000000000000002,
-      "old_stability": 0.774,
-      "new_stability": 0.748,
-      "source": "mission_prevent_historical_disaster_partial_success",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 16, 2018",
-      "change": 0.05,
-      "actual_change": 0.065,
-      "old_stability": 0.748,
-      "new_stability": 0.813,
-      "source": "mission_prevent_traveler_exposure_success",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 16, 2018",
-      "change": 0.1,
-      "actual_change": 0.13,
-      "old_stability": 0.813,
-      "new_stability": 0.943,
-      "source": "mission_traveler_malfunction_complete_success",
+      "source": "mission_protocol_violation_cleanup_partial_success",
       "fragility_impact": 0.3
     }
   ]
