@@ -1,65 +1,42 @@
 {
   "team_leader": {
-    "name": "Ryan",
-    "designation": "3812",
+    "name": "Julian",
+    "designation": "3704",
     "role": "Team Leader",
-    "occupation": "Tactician",
+    "occupation": "Historian",
     "skills": [
-      "Astrophysics",
-      "Surgery",
-      "Pharmacology",
-      "Data Analysis",
-      "Landscape Architecture"
+      "Statistics",
+      "Artificial Intelligence",
+      "Space Exploration",
+      "Navigation"
     ],
     "abilities": [
-      "Exceptional Researcher",
-      "Expert Cryptologist",
-      "Exceptional Lockpick"
+      "Master Mediator",
+      "Master Surgeon",
+      "Skilled Survivalist"
     ],
-    "mission_count": 0,
+    "mission_count": 9,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Richard",
-      "designation": "7726",
+      "name": "Justin",
+      "designation": "9676",
       "role": "Historian",
-      "occupation": "Historian",
-      "skills": [
-        "Textile Science",
-        "Geology",
-        "Meteorology",
-        "History",
-        "Geography"
-      ],
-      "abilities": [
-        "Multilingualism",
-        "Exceptional Lockpick",
-        "Exceptional Executive",
-        "Gifted Singer"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Amanda",
-      "designation": "5965",
-      "role": "Engineer",
       "occupation": "Scientist",
       "skills": [
-        "Dance",
-        "Marketing",
-        "Forensics"
+        "Forensics",
+        "Sword Fighting",
+        "Geography",
+        "Anthropology"
       ],
       "abilities": [
-        "Gifted Fisherman",
-        "Exceptional Engineer",
-        "Master of Escape",
-        "Master Mentor"
+        "Exceptional Pilot",
+        "Gifted Investigator",
+        "Gifted Sportsman",
+        "Exceptional Executive"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -67,18 +44,22 @@
       "timeline_impact": 0
     },
     {
-      "name": "Cameron",
-      "designation": "5847",
-      "role": "Medic",
-      "occupation": "Leader",
+      "name": "Matthew",
+      "designation": "7686",
+      "role": "Engineer",
+      "occupation": "Soldier",
       "skills": [
-        "Linguistics",
-        "Cryptography",
-        "Sociology"
+        "Geography",
+        "Cooking",
+        "Space Exploration",
+        "Sniping",
+        "Film"
       ],
       "abilities": [
-        "Master Trainer",
-        "Skilled First Responder"
+        "Master of Disguise",
+        "Exceptional Scientist",
+        "Expert Sommelier",
+        "Talented Artist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -86,19 +67,42 @@
       "timeline_impact": 0
     },
     {
-      "name": "Gabriel",
-      "designation": "1329",
-      "role": "Tactician",
+      "name": "Bryson",
+      "designation": "3736",
+      "role": "Medic",
       "occupation": "Historian",
       "skills": [
-        "Cryptography",
-        "Philosophy",
-        "Cartography",
-        "Hand-to-Hand"
+        "Toxicology",
+        "Environmental Science",
+        "Marksmanship"
       ],
       "abilities": [
-        "Exceptional Researcher",
-        "Charismatic Leader"
+        "Exceptional Competitor",
+        "Skilled Thief",
+        "Skilled Musician",
+        "Expert Designer"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Nicole",
+      "designation": "3160",
+      "role": "Tactician",
+      "occupation": "Leader",
+      "skills": [
+        "Management",
+        "Literature",
+        "Surgery",
+        "Computer Vision",
+        "Combat"
+      ],
+      "abilities": [
+        "Skilled Linguist",
+        "Gifted Arbitrator",
+        "Exceptional Pilot"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -106,7 +110,7 @@
       "timeline_impact": 0
     }
   ],
-  "mission_status": "No active mission",
+  "mission_status": "Active Missions: 1",
   "current_mission": null,
   "active_missions": [],
   "team_cohesion": 0.8,

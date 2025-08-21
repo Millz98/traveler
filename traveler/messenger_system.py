@@ -80,10 +80,30 @@ class MessengerSystem:
         
         self.active_messengers = []
         self.messenger_history = []
+        self.pending_urgent_messages = []
 
     def has_urgent_messages(self):
         """Check if there are urgent messages available"""
-        return random.random() < 0.3  # 30% chance of urgent messages
+        # If we already have pending messages, return True
+        if self.pending_urgent_messages:
+            return True
+        
+        # Otherwise, check if we should generate new urgent messages
+        if random.random() < 0.3:  # 30% chance of generating new urgent messages
+            self.generate_pending_urgent_messages()
+            return len(self.pending_urgent_messages) > 0
+        
+        return False
+
+    def generate_pending_urgent_messages(self):
+        """Generate 1-3 urgent messages and store them for delivery"""
+        num_messages = random.randint(1, 3)
+        
+        for _ in range(num_messages):
+            message_type, content = self.generate_random_message()
+            # Only add messages that are actually urgent (HIGH or CRITICAL priority)
+            if self.message_types[message_type]["priority"] in ["HIGH", "CRITICAL"]:
+                self.pending_urgent_messages.append((message_type, content))
 
     def create_messenger(self, message_type, message_content, force_adult=False):
         """Create a new messenger with a specific message"""
@@ -444,6 +464,8 @@ class MessengerSystem:
         
         if success:
             print(f"✅ POSITIVE OUTCOMES:")
+            
+            # Specific outcomes for special messages
             if "Protocol Alpha" in messenger.message_content:
                 print(f"• Faction threat neutralized in Seattle")
                 print(f"• Director control restored in the region")
@@ -460,12 +482,51 @@ class MessengerSystem:
                 if hasattr(game_ref, 'living_world'):
                     game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.08)
                     
-            elif "001" in messenger.message_content:
+            elif "001" in messenger.message_content or "Vincent Ingram" in messenger.message_content:
                 print(f"• Traveler 001 movements tracked")
                 print(f"• Faction operations intelligence gathered")
                 print(f"• No direct confrontation avoided")
                 if hasattr(game_ref, 'living_world'):
                     game_ref.living_world.faction_influence = max(0.0, game_ref.living_world.faction_influence - 0.04)
+                    
+            else:
+                # General positive outcomes based on message type
+                if messenger.message_type == "DIRECTOR_ORDER":
+                    print(f"• Director's critical orders executed successfully")
+                    print(f"• Timeline disruption prevented")
+                    print(f"• Team readiness improved")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.06)
+                        game_ref.living_world.director_control = min(1.0, game_ref.living_world.director_control + 0.04)
+                        
+                elif messenger.message_type == "MISSION_UPDATE":
+                    print(f"• Mission parameters successfully updated")
+                    print(f"• Team coordination improved")
+                    print(f"• Operational efficiency increased")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.04)
+                        
+                elif messenger.message_type == "PROTOCOL_VIOLATION":
+                    print(f"• Protocol compliance restored")
+                    print(f"• Host body integration improved")
+                    print(f"• Cover identity secured")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.director_control = min(1.0, game_ref.living_world.director_control + 0.03)
+                        
+                elif messenger.message_type == "FACTION_ALERT":
+                    print(f"• Faction threat successfully countered")
+                    print(f"• Intelligence gathered on Faction activities")
+                    print(f"• Team security enhanced")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.faction_influence = max(0.0, game_ref.living_world.faction_influence - 0.05)
+                        game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.03)
+                        
+                elif messenger.message_type == "TIMELINE_UPDATE":
+                    print(f"• Timeline anomaly investigated successfully")
+                    print(f"• Historical integrity maintained")
+                    print(f"• Future events stabilized")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.timeline_stability = min(1.0, game_ref.living_world.timeline_stability + 0.05)
                     
             # Reward team leader
             if hasattr(game_ref, 'team'):
@@ -475,6 +536,8 @@ class MessengerSystem:
                     
         else:
             print(f"❌ NEGATIVE OUTCOMES:")
+            
+            # Specific negative outcomes for special messages
             if "Protocol Alpha" in messenger.message_content:
                 print(f"• Faction operations continue in Seattle")
                 print(f"• Director communications remain compromised")
@@ -489,6 +552,52 @@ class MessengerSystem:
                 print(f"• Future technology development compromised")
                 if hasattr(game_ref, 'living_world'):
                     game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.12)
+                    
+            elif "001" in messenger.message_content or "Vincent Ingram" in messenger.message_content:
+                print(f"• Traveler 001 escaped detection")
+                print(f"• Faction operations continue unimpeded")
+                print(f"• Intelligence gathering failed")
+                if hasattr(game_ref, 'living_world'):
+                    game_ref.living_world.faction_influence = min(1.0, game_ref.living_world.faction_influence + 0.06)
+                    
+            else:
+                # General negative outcomes based on message type
+                if messenger.message_type == "DIRECTOR_ORDER":
+                    print(f"• Director's critical orders failed")
+                    print(f"• Timeline disruption accelerated")
+                    print(f"• Team coordination compromised")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.06)
+                        game_ref.living_world.director_control = max(0.0, game_ref.living_world.director_control - 0.04)
+                        
+                elif messenger.message_type == "MISSION_UPDATE":
+                    print(f"• Mission parameters remain unchanged")
+                    print(f"• Team coordination degraded")
+                    print(f"• Operational efficiency decreased")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.04)
+                        
+                elif messenger.message_type == "PROTOCOL_VIOLATION":
+                    print(f"• Protocol violations continue")
+                    print(f"• Host body integration deteriorated")
+                    print(f"• Cover identity compromised")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.director_control = max(0.0, game_ref.living_world.director_control - 0.05)
+                        
+                elif messenger.message_type == "FACTION_ALERT":
+                    print(f"• Faction threat remains active")
+                    print(f"• Faction activities increased")
+                    print(f"• Team security compromised")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.faction_influence = min(1.0, game_ref.living_world.faction_influence + 0.07)
+                        game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.04)
+                        
+                elif messenger.message_type == "TIMELINE_UPDATE":
+                    print(f"• Timeline anomaly investigation failed")
+                    print(f"• Historical integrity compromised")
+                    print(f"• Future events destabilized")
+                    if hasattr(game_ref, 'living_world'):
+                        game_ref.living_world.timeline_stability = max(0.0, game_ref.living_world.timeline_stability - 0.08)
                     
             # Penalize team leader
             if hasattr(game_ref, 'team'):

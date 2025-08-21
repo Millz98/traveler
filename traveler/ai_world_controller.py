@@ -20,6 +20,18 @@ class AIEntity:
     def take_turn(self, world_state, time_system):
         """AI entity takes its turn and performs actions"""
         pass
+    
+    def record_action_consequence(self, action_type, action_details, immediate_effects, player_type):
+        """Record an action for consequence tracking"""
+        if hasattr(self, 'consequence_tracker'):
+            return self.consequence_tracker.record_action(
+                turn=world_state.get('current_turn', 1),
+                player_type=player_type,
+                action_type=action_type,
+                action_details=action_details,
+                immediate_effects=immediate_effects
+            )
+        return []
 
 class AITravelerTeam(AIEntity):
     """AI-controlled Traveler team that operates independently"""
@@ -397,7 +409,7 @@ class AITravelerTeam(AIEntity):
         print(f"  📅 Managing personal life events...")
         
         # Check for special dates
-        current_date = time_system.get_current_date()
+        current_date = time_system.current_date
         
         for i, host_life in enumerate(self.host_lives):
             # Check for birthdays, anniversaries, etc.
@@ -665,23 +677,61 @@ class AITravelerTeam(AIEntity):
             print(f"    ⚠️  Team too stressed for new missions")
             return
             
+        # AI teams work on the same Grand Plan objectives as the player
         mission_types = [
-            "timeline_correction", "faction_surveillance", "host_body_maintenance",
-            "protocol_enforcement", "resource_acquisition", "intelligence_gathering"
+            "timeline_stabilization", "faction_counterintelligence", "host_body_integration",
+            "protocol_compliance", "resource_securement", "intelligence_collection",
+            "future_event_prevention", "technology_safeguarding", "witness_protection",
+            "infrastructure_defense", "historical_record_preservation"
         ]
+        
+        # Missions should align with the main objective of saving the future
+        mission_objectives = {
+            "timeline_stabilization": "Prevent timeline collapse by stabilizing key historical events",
+            "faction_counterintelligence": "Gather intelligence on Faction operations to prevent timeline disruption",
+            "host_body_integration": "Maintain host body stability to prevent detection",
+            "protocol_compliance": "Ensure all Traveler teams follow protocols to maintain timeline integrity",
+            "resource_securement": "Secure resources needed for future survival",
+            "intelligence_collection": "Gather information on threats to the future timeline",
+            "future_event_prevention": "Prevent catastrophic events that lead to the future collapse",
+            "technology_safeguarding": "Protect critical technologies from Faction interference",
+            "witness_protection": "Protect individuals who could expose the Traveler program",
+            "infrastructure_defense": "Defend critical infrastructure from Faction sabotage",
+            "historical_record_preservation": "Ensure historical records remain intact for timeline stability"
+        }
         
         mission_type = random.choice(mission_types)
         mission = {
             "type": mission_type,
             "location": self.generate_mission_location(),
             "priority": random.choice(["LOW", "MEDIUM", "HIGH"]),
-            "description": f"AI Team {self.team_id} executing {mission_type}",
+            "description": mission_objectives.get(mission_type, f"AI Team {self.team_id} executing {mission_type}"),
+            "objective": mission_objectives.get(mission_type, "Complete mission objectives"),
             "progress": 0,
-            "status": "active"
+            "status": "active",
+            "timeline_impact": self.calculate_mission_timeline_impact(mission_type)
         }
         
         self.active_missions.append(mission)
         print(f"    📋 New mission: {mission_type} at {mission['location']}")
+        print(f"      🎯 Objective: {mission['objective']}")
+    
+    def calculate_mission_timeline_impact(self, mission_type):
+        """Calculate how much this mission affects timeline stability"""
+        impact_values = {
+            "timeline_stabilization": 0.08,
+            "faction_counterintelligence": 0.06,
+            "host_body_integration": 0.03,
+            "protocol_compliance": 0.04,
+            "resource_securement": 0.05,
+            "intelligence_collection": 0.04,
+            "future_event_prevention": 0.10,
+            "technology_safeguarding": 0.07,
+            "witness_protection": 0.06,
+            "infrastructure_defense": 0.08,
+            "historical_record_preservation": 0.05
+        }
+        return impact_values.get(mission_type, 0.05)
     
     def execute_ai_mission(self, mission, world_state):
         """Execute an AI team mission (only if life allows)"""
@@ -701,6 +751,26 @@ class AITravelerTeam(AIEntity):
             # Mission completed
             success = random.random() < 0.7  # 70% success rate for AI teams
             
+            # Record action for consequence tracking
+            action_details = {
+                'type': mission.get('type', 'Unknown'),
+                'location': mission.get('location', 'Unknown'),
+                'outcome': 'SUCCESS' if success else 'FAILURE',
+                'team_id': self.team_id,
+                'timeline_impact': mission.get('timeline_impact', 0.05),
+                'public_visibility': 'low'
+            }
+            
+            immediate_effects = {
+                'timeline_stability': mission.get('timeline_impact', 0.05) if success else -0.03,
+                'faction_influence': -0.02 if success else 0.02
+            }
+            
+            # Record the action
+            consequences = self.record_action_consequence(
+                'mission', action_details, immediate_effects, 'ai_traveler'
+            )
+            
             if success:
                 print(f"    ✅ Mission {mission['type']} completed successfully")
                 self.handle_mission_success(mission, world_state)
@@ -719,9 +789,13 @@ class AITravelerTeam(AIEntity):
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.1)
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
         
-        # Update world state
-        world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.05)
-        world_state['director_control'] = min(1.0, world_state.get('director_control', 0.5) + 0.03)
+        # Update world state based on mission impact
+        timeline_impact = mission.get('timeline_impact', 0.05)
+        world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + timeline_impact)
+        world_state['director_control'] = min(1.0, world_state.get('director_control', 0.5) + (timeline_impact * 0.6))
+        
+        print(f"      🌍 Mission success improved timeline stability by {timeline_impact:.1%}")
+        print(f"      🎯 Progress made toward saving the future timeline")
     
     def handle_mission_failure(self, mission, world_state):
         """Handle failed mission completion"""
@@ -1112,6 +1186,11 @@ class AIGovernmentAgent(AIEntity):
                 print(f"    ⚠️  High priority: {report['type']} at {report['location']}")
                 if not self.current_investigation:
                     self.current_investigation = report
+                    # Initialize investigation fields
+                    self.current_investigation["progress"] = 0
+                    self.current_investigation["evidence"] = []
+                    self.current_investigation["suspects"] = []
+                    self.current_investigation["methods"] = self.generate_investigation_methods()
                     self.suspicious_activity_reports.remove(report)
                     break
             elif priority < 0.3:  # Low priority, close case
@@ -1241,10 +1320,16 @@ class AIGovernmentAgent(AIEntity):
         world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.05)
         world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.03)
         
-        # May lead to Traveler detection
-        if random.random() < 0.3:  # 30% chance
-            print(f"        🚨 Traveler activity detected!")
-            world_state['traveler_exposure_risk'] = min(1.0, world_state.get('traveler_exposure_risk', 0.2) + 0.1)
+        # Government agents are initially unaware of Travelers
+        # They only detect "unusual activity" that could be anything
+        if random.random() < 0.2:  # 20% chance of detecting something unusual
+            print(f"        ⚠️  Unusual activity pattern detected - requires further investigation")
+            world_state['government_awareness'] = min(1.0, world_state.get('government_awareness', 0.1) + 0.05)
+        
+        # Only detect Travelers if they find future technology or clear evidence
+        if investigation.get('type') in ["Unusual energy readings", "Anomalous data patterns"] and random.random() < 0.1:
+            print(f"        🔬 Anomalous technology detected - may be advanced beyond current capabilities")
+            world_state['traveler_exposure_risk'] = min(1.0, world_state.get('traveler_exposure_risk', 0.1) + 0.15)
     
     def handle_investigation_partial(self, investigation, world_state):
         """Handle partially successful investigation"""

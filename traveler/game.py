@@ -17,8 +17,10 @@ import dialogue_system
 import hacking_system
 import grand_plan_system
 import mission_revision_system
+import consequence_tracker
 import time
 import json
+from typing import Dict
 import os
 import random
 
@@ -43,6 +45,7 @@ class Game:
         self.hacking_system = hacking_system.HackingSystem()
         self.grand_plan_system = grand_plan_system.GrandPlanSystem()
         self.mission_revision_system = mission_revision_system.MissionRevisionSystem()
+        self.consequence_tracker = consequence_tracker.ConsequenceTracker()
         
         # Set time system reference in mission generator
         self.mission_generation.time_system = self.time_system
@@ -61,6 +64,9 @@ class Game:
         
         # Initialize mission revision system
         self.mission_revision_system.initialize_revision_system()
+        
+        # Initialize consequence tracking system
+        self.consequence_tracker.reset_consequences()
         
         self.timeline = self.game_world.integrate_with_gameplay()
         self.randomized_events = self.game_world.randomize_events(self.timeline)
@@ -239,15 +245,17 @@ class Game:
                 elif choice == "13":
                     self.view_mission_revision_status()
                 elif choice == "14":
+                    self.view_consequence_tracking()
+                elif choice == "15":
                     self.save_game()
                     print("✅ Game saved successfully!")
-                elif choice == "15":
+                elif choice == "16":
                     print("🔄 Saving game before exit...")
                     self.save_game()
                     print("👋 Thanks for playing TRAVELERS!")
                     break
                 else:
-                    print("❌ Invalid choice. Please enter a number between 1-15.")
+                    print("❌ Invalid choice. Please enter a number between 1-16.")
                     input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
@@ -285,28 +293,30 @@ class Game:
         print("11. View Hacking System Status")
         print("12. View Grand Plan Status")
         print("13. View Mission Revision Status")
-        print("14. Save Game")
-        print("15. Quit Game")
+        print("14. View Consequence Tracking")
+        print("15. Save Game")
+        print("16. Quit Game")
         
         self.print_separator()
         
-        # Check for pending updates
-        if self.update_system.has_pending_updates():
+        # Check for pending updates (only show if there are actual updates)
+        if hasattr(self, 'update_system') and self.update_system.has_pending_updates():
             print("🚨 DIRECTOR UPDATE AVAILABLE - Check option 9")
         
-        # Check for messenger events
-        if self.messenger_system.has_urgent_messages():
+        # Check for messenger events (only show if there are actual messages)
+        if hasattr(self, 'messenger_system') and self.messenger_system.has_urgent_messages():
             print("📨 URGENT MESSENGER - Check option 9")
         
-        # Check for host body complications
-        if self.check_host_body_complications():
+        # Check for host body complications (only show if there are actual complications)
+        if hasattr(self, 'check_host_body_complications') and self.check_host_body_complications():
             print("⚠️  HOST BODY COMPLICATIONS - Check option 10")
         
-        # Check for available missions
-        if not self.current_mission and not self.active_missions:
-            print("🎯 NEW MISSION AVAILABLE - Check option 4")
+        # Check for available missions (only show if there are actual missions)
+        if hasattr(self, 'current_mission') and hasattr(self, 'active_missions'):
+            if not self.current_mission and not self.active_missions:
+                print("🎯 NEW MISSION AVAILABLE - Check option 4")
         
-        choice = input(f"\nEnter your choice (1-15): ")
+        choice = input(f"\nEnter your choice (1-16): ")
         return choice
 
     def handle_mission(self):
@@ -427,9 +437,16 @@ class Game:
         self.print_header("EXECUTING ACTIVE MISSIONS")
         
         for mission in self.active_missions[:]:
-            print(f"\n🎯 Executing Mission: {mission['type']}")
-            print(f"Location: {mission['location']}")
-            print(f"Priority: {mission['priority']}")
+            # Check if mission has the expected structure
+            if isinstance(mission, dict) and 'mission' in mission:
+                mission_data = mission['mission']
+                print(f"\n🎯 Executing Mission: {mission_data.get('type', 'Unknown')}")
+                print(f"Location: {mission_data.get('location', 'Unknown')}")
+                print(f"Priority: {mission_data.get('priority', 'Standard')}")
+            else:
+                print(f"\n🎯 Executing Mission: {mission.get('type', 'Unknown')}")
+                print(f"Location: {mission.get('location', 'Unknown')}")
+                print(f"Priority: {mission.get('priority', 'Standard')}")
             
             # Execute mission phases
             phase_results = self.execute_mission_phases(mission)
@@ -440,10 +457,52 @@ class Game:
             # Apply mission consequences
             self.apply_mission_consequences(mission, final_outcome)
             
+            # Record action in consequence tracker
+            mission_data_for_tracking = mission_data if isinstance(mission, dict) and 'mission' in mission else mission
+            action_details = {
+                'type': mission_data_for_tracking.get('type', 'Unknown'),
+                'location': mission_data_for_tracking.get('location', 'Unknown'),
+                'priority': mission_data_for_tracking.get('priority', 'Standard'),
+                'outcome': final_outcome,
+                'team_performance': phase_results,
+                'public_visibility': 'low' if mission_data_for_tracking.get('type') in ['host_body_crisis', 'intelligence_gathering'] else 'medium'
+            }
+            
+            immediate_effects = {
+                'timeline_stability': 0.05 if 'SUCCESS' in final_outcome else -0.08,
+                'team_cohesion': 0.1 if 'SUCCESS' in final_outcome else -0.1
+            }
+            
+            # Record the action for future consequence tracking
+            consequences = self.consequence_tracker.record_action(
+                turn=self.living_world.current_turn,
+                player_type='player',
+                action_type='mission',
+                action_details=action_details,
+                immediate_effects=immediate_effects
+            )
+            
+            # Create mission execution object for timeline analysis
+            mission_exec = {
+                'mission': mission_data if isinstance(mission, dict) and 'mission' in mission else mission,
+                'outcome': final_outcome,
+                'phase_results': phase_results,
+                'team_performance': phase_results,
+                'consequences': consequences
+            }
+            
+            # Show timeline consequences
+            self.show_timeline_consequences(mission_exec)
+            
             # Remove completed mission
             self.active_missions.remove(mission)
             
-            print(f"\n✅ Mission {mission['type']} completed with outcome: {final_outcome}")
+            # Get mission type safely
+            if isinstance(mission, dict) and 'mission' in mission:
+                mission_type = mission['mission'].get('type', 'Unknown')
+            else:
+                mission_type = mission.get('type', 'Unknown')
+            print(f"\n✅ Mission {mission_type} completed with outcome: {final_outcome}")
             input("Press Enter to continue...")
 
     def execute_mission_phases(self, mission):
@@ -494,31 +553,31 @@ class Game:
         """Apply consequences based on mission outcome"""
         if outcome == "COMPLETE_SUCCESS":
             # Major positive effects
-            self.timeline_stability = min(1.0, self.timeline_stability + 0.1)
-            self.director_control = min(1.0, self.director_control + 0.08)
+            self.living_world.timeline_stability = min(1.0, self.living_world.timeline_stability + 0.1)
+            self.living_world.director_control = min(1.0, self.living_world.director_control + 0.08)
             print("🎉 Timeline stability significantly improved!")
             
         elif outcome == "SUCCESS":
             # Positive effects
-            self.timeline_stability = min(1.0, self.timeline_stability + 0.05)
-            self.director_control = min(1.0, self.director_control + 0.03)
+            self.living_world.timeline_stability = min(1.0, self.living_world.timeline_stability + 0.05)
+            self.living_world.director_control = min(1.0, self.living_world.director_control + 0.03)
             print("✅ Timeline stability improved!")
             
         elif outcome == "PARTIAL_SUCCESS":
             # Mixed effects
-            self.timeline_stability = max(0.0, self.timeline_stability - 0.02)
+            self.living_world.timeline_stability = max(0.0, self.living_world.timeline_stability - 0.02)
             print("⚠️  Mission partially successful - minor timeline impact")
             
         elif outcome == "FAILURE":
             # Negative effects
-            self.timeline_stability = max(0.0, self.timeline_stability - 0.1)
-            self.faction_influence = min(1.0, self.faction_influence + 0.05)
+            self.living_world.timeline_stability = max(0.0, self.living_world.timeline_stability - 0.1)
+            self.living_world.faction_influence = min(1.0, self.living_world.faction_influence + 0.05)
             print("❌ Mission failed - timeline stability decreased!")
             
         elif outcome == "CRITICAL_FAILURE":
             # Severe negative effects
-            self.timeline_stability = max(0.0, self.timeline_stability - 0.2)
-            self.faction_influence = min(1.0, self.faction_influence + 0.1)
+            self.living_world.timeline_stability = max(0.0, self.living_world.timeline_stability - 0.2)
+            self.living_world.faction_influence = min(1.0, self.living_world.faction_influence + 0.1)
             print("💀 Mission failed catastrophically - major timeline damage!")
 
     def check_team_performance(self, mission, phase):
@@ -609,29 +668,42 @@ class Game:
         print(f"\n📊 TIMELINE IMPACT ANALYSIS")
         print("=" * 40)
         
-        if mission_exec['outcome'] == "Success":
+        # Check if outcome indicates success (any outcome with "SUCCESS" in it)
+        if "SUCCESS" in mission_exec['outcome']:
             print("✅ Mission Success Consequences:")
-            print(f"• {mission_exec['mission']['type'].title()} objective achieved")
+            # Get mission type safely
+            if isinstance(mission_exec['mission'], dict) and 'type' in mission_exec['mission']:
+                mission_type = mission_exec['mission']['type'].title()
+            else:
+                mission_type = "Mission"
+            print(f"• {mission_type} objective achieved")
             print("• Timeline stability improved")
             print("• Future catastrophic events prevented")
             print("• Team reputation enhanced")
             
             # Generate positive timeline event
-            positive_event = self.event_generation.generate_event()
-            print(f"\n🔄 New Timeline Event: {positive_event.description}")
-            print(f"Impact: {positive_event.impact_on_future}")
+            if hasattr(self, 'event_generation'):
+                positive_event = self.event_generation.generate_event()
+                print(f"\n🔄 New Timeline Event: {positive_event.description}")
+                print(f"Impact: {positive_event.impact_on_future}")
             
         else:
             print("❌ Mission Failure Consequences:")
-            print(f"• {mission_exec['mission']['type'].title()} objective not achieved")
+            # Get mission type safely
+            if isinstance(mission_exec['mission'], dict) and 'type' in mission_exec['mission']:
+                mission_type = mission_exec['mission']['type'].title()
+            else:
+                mission_type = "Mission"
+            print(f"• {mission_type} objective not achieved")
             print("• Timeline stability compromised")
             print("• Future catastrophic events may accelerate")
             print("• Team must regroup and reassess")
             
             # Generate negative timeline event
-            negative_event = self.event_generation.generate_event()
-            print(f"\n🔄 New Timeline Event: {negative_event.description}")
-            print(f"Impact: {negative_event.impact_on_past}")
+            if hasattr(self, 'event_generation'):
+                negative_event = self.event_generation.generate_event()
+                print(f"\n🔄 New Timeline Event: {negative_event.description}")
+                print(f"Impact: {negative_event.impact_on_past}")
         
         # Show specific timeline changes
         timeline_changes = self.calculate_timeline_changes(mission_exec)
@@ -641,14 +713,26 @@ class Game:
 
     def calculate_timeline_changes(self, mission_exec):
         """Calculate specific timeline changes based on mission outcome"""
-        if mission_exec['outcome'] == "Success":
-            stability = min(1.0, 0.8 + random.random() * 0.2)
-            global_impact = "Positive - Future events delayed"
-            time_acceleration = random.randint(-5, -1)  # Slows down negative events
+        if "SUCCESS" in mission_exec['outcome']:
+            # Success outcomes - positive timeline impact
+            if "COMPLETE_SUCCESS" in mission_exec['outcome']:
+                stability = min(1.0, 0.85 + random.random() * 0.15)  # Higher stability for complete success
+                global_impact = "Highly Positive - Future events significantly delayed"
+                time_acceleration = random.randint(-8, -3)  # Slows down negative events more
+            else:
+                stability = min(1.0, 0.8 + random.random() * 0.2)
+                global_impact = "Positive - Future events delayed"
+                time_acceleration = random.randint(-5, -1)  # Slows down negative events
         else:
-            stability = max(0.0, 0.6 - random.random() * 0.2)
-            global_impact = "Negative - Future events accelerated"
-            time_acceleration = random.randint(1, 5)  # Speeds up negative events
+            # Failure outcomes - negative timeline impact
+            if "CRITICAL_FAILURE" in mission_exec['outcome']:
+                stability = max(0.0, 0.5 - random.random() * 0.3)  # Lower stability for critical failure
+                global_impact = "Highly Negative - Future events critically accelerated"
+                time_acceleration = random.randint(3, 8)  # Speeds up negative events more
+            else:
+                stability = max(0.0, 0.6 - random.random() * 0.2)
+                global_impact = "Negative - Future events accelerated"
+                time_acceleration = random.randint(1, 5)  # Speeds up negative events
         
         return {
             "stability": stability,
@@ -697,13 +781,17 @@ class Game:
 
     def present_team(self):
         """Present the team information"""
-        print("\nTEAM ROSTER")
-        print("=" * 40)
+        print(f"\n{'='*60}")
+        print(f"    👥 TEAM ROSTER 👥")
+        print(f"{'='*60}")
         for member in self.team.members:
             print(f"{member.designation} - {member.role} - {member.name} - {member.occupation}")
             print(f"Skills: {', '.join(member.skills)}")
             print(f"Abilities: {', '.join(member.abilities)}")
             print("-" * 40)
+        print(f"{'='*60}")
+        
+        input("\nPress Enter to continue...")
 
     def view_team_roster(self):
         """View the current team roster"""
@@ -896,6 +984,31 @@ class Game:
         # Advance the world turn
         turn_summary = self.advance_world_turn()
         
+        # Process consequences from previous turns
+        world_state = {
+            'timeline_stability': self.living_world.timeline_stability,
+            'faction_influence': self.living_world.faction_influence,
+            'director_control': self.living_world.director_control,
+            'government_control': getattr(self.living_world, 'government_control', 0.5),
+            'traveler_exposure_risk': getattr(self.living_world, 'traveler_exposure_risk', 0.2),
+            'government_awareness': getattr(self.living_world, 'government_awareness', 0.1)
+        }
+        
+        turn_consequences = self.consequence_tracker.process_turn_consequences(
+            self.living_world.current_turn, world_state
+        )
+        
+        # Update living world with consequence changes
+        self.living_world.timeline_stability = world_state['timeline_stability']
+        self.living_world.faction_influence = world_state['faction_influence']
+        self.living_world.director_control = world_state['director_control']
+        
+        # Show consequence summary if there are any
+        if (turn_consequences['delayed_effects_triggered'] or 
+            turn_consequences['butterfly_effects_triggered'] or 
+            turn_consequences['escalation_responses']):
+            self.show_consequence_summary(turn_consequences)
+        
         # Execute AI world turn
         if hasattr(self, 'ai_world_controller'):
             self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system)
@@ -938,7 +1051,94 @@ class Game:
         
         self.print_separator()
         input("Press Enter to continue...")
-
+    
+    def show_consequence_summary(self, turn_consequences: Dict):
+        """Display a summary of consequences that triggered this turn"""
+        print(f"\n🔄 CONSEQUENCE TRACKING - Turn {self.living_world.current_turn}")
+        print("=" * 60)
+        
+        # Show delayed effects that triggered
+        if turn_consequences['delayed_effects_triggered']:
+            print(f"\n⏰ DELAYED EFFECTS TRIGGERED:")
+            for effect in turn_consequences['delayed_effects_triggered']:
+                print(f"  • {effect['description']}")
+                if 'effects' in effect:
+                    for effect_type, effect_value in effect['effects'].items():
+                        if isinstance(effect_value, (int, float)):
+                            print(f"    - {effect_type}: {effect_value:+.2f}")
+        
+        # Show butterfly effects that triggered
+        if turn_consequences['butterfly_effects_triggered']:
+            print(f"\n🦋 BUTTERFLY EFFECTS TRIGGERED:")
+            for effect in turn_consequences['butterfly_effects_triggered']:
+                print(f"  • {effect['unintended_consequence']}")
+                print(f"    Severity: {effect['severity']}")
+                print(f"    Original Action: {effect['original_action']}")
+        
+        # Show escalation responses
+        if turn_consequences['escalation_responses']:
+            print(f"\n🚨 ESCALATION RESPONSES:")
+            for response in turn_consequences['escalation_responses']:
+                print(f"  • {response['response']}")
+                print(f"    Trigger: {response['trigger']}")
+                if 'effects' in response:
+                    for effect_type, effect_value in response['effects'].items():
+                        if isinstance(effect_value, (int, float)):
+                            print(f"    - {effect_type}: {effect_value:+.2f}")
+        
+                print("=" * 60)
+        input("Press Enter to continue...")
+    
+    def view_consequence_tracking(self):
+        """Display the current status of the consequence tracking system"""
+        self.clear_screen()
+        self.print_header("CONSEQUENCE TRACKING SYSTEM")
+        
+        if hasattr(self, 'consequence_tracker'):
+            # Get current consequence summary
+            summary = self.consequence_tracker.get_consequence_summary(self.living_world.current_turn)
+            
+            print(f"📊 CONSEQUENCE TRACKING OVERVIEW - Turn {summary['turn']}")
+            print("=" * 60)
+            
+            print(f"🔄 Total Actions Recorded: {summary['total_actions_recorded']}")
+            print(f"⏰ Pending Delayed Effects: {summary['pending_delayed_effects']}")
+            print(f"🦋 Pending Butterfly Effects: {summary['pending_butterfly_effects']}")
+            print(f"🚨 Active Escalation Events: {summary['active_escalation_events']}")
+            print(f"📈 Overall Escalation Level: {summary['escalation_level']:.2f}")
+            
+            if summary['recent_actions']:
+                print(f"\n📋 RECENT ACTIONS (Last 5):")
+                for action in summary['recent_actions']:
+                    print(f"  • Turn {action['turn']}: {action['player_type']} - {action['action_type']}")
+                    print(f"    Location: {action['action_details'].get('location', 'Unknown')}")
+                    print(f"    Escalation Potential: {action['escalation_potential']:.2f}")
+                    if action['consequences_generated']:
+                        print(f"    Consequences: {len(action['consequences_generated'])} generated")
+            
+            # Show pending consequences
+            if summary['pending_delayed_effects'] > 0:
+                print(f"\n⏰ UPCOMING DELAYED EFFECTS:")
+                for effect in self.consequence_tracker.delayed_effects[:5]:  # Show next 5
+                    print(f"  • Turn {effect['trigger_turn']}: {effect['description']}")
+            
+            if summary['pending_butterfly_effects'] > 0:
+                print(f"\n🦋 UPCOMING BUTTERFLY EFFECTS:")
+                for effect in self.consequence_tracker.butterfly_effects[:5]:  # Show next 5
+                    print(f"  • Turn {effect['trigger_turn']}: {effect['unintended_consequence']}")
+            
+            if summary['active_escalation_events'] > 0:
+                print(f"\n🚨 ACTIVE ESCALATION EVENTS:")
+                for event in self.consequence_tracker.escalation_events[:5]:  # Show next 5
+                    print(f"  • {event['trigger_action']} - Response in {event['response_time']} turns")
+                    print(f"    Affected: {', '.join(event['affected_factions'])}")
+            
+        else:
+            print("❌ Consequence tracking system not initialized.")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+    
     def view_hacking_system_status(self):
         """View the current status of the hacking system"""
         self.clear_screen()
@@ -1199,13 +1399,17 @@ class Game:
         
         if hasattr(self, 'messenger_system'):
             if self.messenger_system.has_urgent_messages():
-                message_type, content = self.messenger_system.generate_random_message()
-                messenger = self.messenger_system.create_messenger(message_type, content)
-                result = self.messenger_system.deliver_message(messenger, self)
-                
-                # Provide feedback about the messenger event
-                if result:
-                    self.provide_messenger_feedback(result, message_type, content)
+                # Get the first pending urgent message
+                if self.messenger_system.pending_urgent_messages:
+                    message_type, content = self.messenger_system.pending_urgent_messages.pop(0)
+                    messenger = self.messenger_system.create_messenger(message_type, content)
+                    result = self.messenger_system.deliver_message(messenger, self)
+                    
+                    # Provide feedback about the messenger event
+                    if result:
+                        self.provide_messenger_feedback(result, message_type, content)
+                else:
+                    print("📨 No urgent messenger events.")
             else:
                 print("📨 No urgent messenger events.")
         else:
@@ -2172,26 +2376,29 @@ class Game:
         if phase == "infiltration":
             # Infiltration benefits from stealth and technical skills
             for member in self.team.members:
-                if hasattr(member, 'skills'):
-                    if 'stealth' in member.skills.lower():
+                if hasattr(member, 'skills') and isinstance(member.skills, list):
+                    skills_str = ' '.join(member.skills).lower()
+                    if 'stealth' in skills_str:
                         base_modifier += 1
-                    if 'technical' in member.skills.lower():
+                    if 'technical' in skills_str:
                         base_modifier += 1
         elif phase == "execution":
             # Execution benefits from combat and leadership skills
             for member in self.team.members:
-                if hasattr(member, 'skills'):
-                    if 'combat' in member.skills.lower():
+                if hasattr(member, 'skills') and isinstance(member.skills, list):
+                    skills_str = ' '.join(member.skills).lower()
+                    if 'combat' in skills_str:
                         base_modifier += 1
-                    if 'leadership' in member.skills.lower():
+                    if 'leadership' in skills_str:
                         base_modifier += 1
         elif phase == "extraction":
             # Extraction benefits from medical and technical skills
             for member in self.team.members:
-                if hasattr(member, 'skills'):
-                    if 'medical' in member.skills.lower():
+                if hasattr(member, 'skills') and isinstance(member.skills, list):
+                    skills_str = ' '.join(member.skills).lower()
+                    if 'medical' in skills_str:
                         base_modifier += 1
-                    if 'technical' in member.skills.lower():
+                    if 'technical' in skills_str:
                         base_modifier += 1
         
         return base_modifier
@@ -2305,6 +2512,15 @@ class Game:
         print(f"• Advanced Medical: Healing and enhancement capabilities")
         print(f"• Surveillance Systems: Monitoring and intelligence gathering")
         print(f"{'='*60}")
+        
+        # Show the actual technologies from the game world
+        print(f"\n🔬 KEY TECHNOLOGIES:")
+        print(f"{'='*40}")
+        for tech in self.game_world.get_technologies():
+            print(f"{tech['year']}: {tech['name']}")
+        print(f"{'='*40}")
+        
+        input("\nPress Enter to continue...")
 
     def present_world(self):
         """Present the world situation to the player"""
@@ -2316,17 +2532,29 @@ class Game:
         print(f"Key Institutions: Government, Military, Research, Business")
         print(f"Current Threats: Faction operatives, timeline instability")
         print(f"{'='*60}")
+        
+        # Show the actual world events
+        print(f"\n🌍 GAME WORLD OVERVIEW:")
+        print(f"{'='*40}")
+        for event in self.timeline:
+            print(f"Year: {event['year']}, Event: {event['event']}")
+        print(f"{'='*40}")
+        
+        input("\nPress Enter to continue...")
 
     def present_player_character(self):
         """Present the player's character information"""
         print(f"\n{'='*60}")
-        print(f"    👤 YOUR TEAM 👤")
+        print(f"    👤 YOUR CHARACTER 👤")
         print(f"{'='*60}")
-        print(f"Team Leader: {self.team.leader.name} ({self.team.leader.designation})")
-        print(f"Team Size: {len(self.team.members)} members")
-        print(f"Base Location: Seattle, Washington")
-        print(f"Mission Priority: Timeline stability and protocol compliance")
+        print(f"Name: {self.team.leader.name}")
+        print(f"Designation: {self.team.leader.designation}")
+        print(f"Occupation: {self.team.leader.occupation}")
+        print(f"Skills: {', '.join(self.team.leader.skills)}")
+        print(f"Abilities: {', '.join(self.team.leader.abilities)}")
         print(f"{'='*60}")
+        
+        input("\nPress Enter to continue...")
 
     def advance_world_turn(self):
         """Advance the living world by one turn (one day)"""

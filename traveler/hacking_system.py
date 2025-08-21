@@ -434,8 +434,13 @@ class Hacker:
                 # Update reputation
                 if not result["detected"]:
                     self.reputation += 0.1
+                    print(f"      ✅ Operation completed successfully - Reputation +0.1")
                 else:
                     self.reputation -= 0.05
+                    print(f"      ⚠️  Operation completed but detected - Reputation -0.05")
+                
+                # Show operation consequences
+                self.show_operation_consequences(op, result)
                     
                 # Clear operation
                 self.current_operation = None
@@ -479,16 +484,45 @@ class Hacker:
             ])
             
         return targets
+    
+    def show_operation_consequences(self, operation, result):
+        """Show the consequences of a completed operation"""
+        print(f"      📊 Operation Results:")
+        print(f"         • Target: {operation['target'].name}")
+        print(f"         • Type: {operation['type']}")
+        print(f"         • Severity: {result.get('severity', 'Unknown')}")
+        print(f"         • Detected: {'Yes' if result.get('detected', False) else 'No'}")
+        
+        if result.get('detected'):
+            print(f"         • Alert Level: {operation['target'].alert_level:.1%}")
+            print(f"         • Government Response: {'Triggered' if random.random() < 0.4 else 'None'}")
+        
+        # Show faction-specific consequences
+        if self.faction == "traveler":
+            print(f"         • Timeline Impact: {'Positive' if operation['type'] in ['intelligence_gathering', 'future_threat_analysis'] else 'Neutral'}")
+        elif self.faction == "government":
+            print(f"         • Investigation Value: {'High' if operation['type'] == 'counterintelligence' else 'Standard'}")
+        elif self.faction == "faction":
+            print(f"         • Timeline Damage: {'Severe' if operation['type'] == 'timeline_manipulation' else 'Moderate'}")
 
 class TravelerHacker(Hacker):
-    """Hacker specialized for Traveler team operations"""
+    """Hacker specialized for Traveler team operations - focused on saving the future timeline"""
     def __init__(self, name, team_id, skill_level):
         super().__init__(name, "traveler", skill_level, {"funds": 50000, "equipment": "advanced"})
         self.team_id = team_id
-        self.specializations = ["intelligence_gathering", "system_manipulation", "cover_maintenance"]
+        self.specializations = ["intelligence_gathering", "system_manipulation", "cover_maintenance", "future_threat_analysis"]
+        self.mission_objectives = [
+            "Find information on potential Faction targets",
+            "Gather intelligence on timeline threats",
+            "Secure resources for future survival",
+            "Protect critical technologies",
+            "Maintain operational security",
+            "Investigate suspicious activities",
+            "Access historical records for timeline analysis"
+        ]
         
     def gather_intelligence(self, target):
-        """Gather intelligence from a target system"""
+        """Gather intelligence from a target system for mission objectives"""
         operation_type = "intelligence_gathering"
         success, message = self.start_operation(target, operation_type)
         
@@ -508,7 +542,7 @@ class TravelerHacker(Hacker):
             return f"Failed to start operation: {message}"
     
     def maintain_cover(self, target):
-        """Use hacking to maintain cover identity"""
+        """Use hacking to maintain cover identity and prevent detection"""
         operation_type = "cover_maintenance"
         success, message = self.start_operation(target, operation_type)
         
@@ -516,17 +550,40 @@ class TravelerHacker(Hacker):
             return f"Cover maintenance operation started: {message}"
         else:
             return f"Failed to start operation: {message}"
+    
+    def analyze_future_threats(self, target):
+        """Analyze systems for threats to the future timeline"""
+        operation_type = "future_threat_analysis"
+        success, message = self.start_operation(target, operation_type)
+        
+        if success:
+            return f"Future threat analysis started: {message}"
+        else:
+            return f"Failed to start operation: {message}"
+    
+    def get_mission_objective(self):
+        """Get a random mission objective for this hacker"""
+        return random.choice(self.mission_objectives)
 
 class GovernmentHacker(Hacker):
-    """Hacker working for government agencies (FBI/CIA)"""
+    """Hacker working for government agencies (FBI/CIA) - unaware of Travelers, investigating unusual activity"""
     def __init__(self, name, agency, clearance_level, skill_level):
         super().__init__(name, "government", skill_level, {"funds": 100000, "equipment": "military_grade"})
         self.agency = agency  # "FBI" or "CIA"
         self.clearance_level = clearance_level
         self.specializations = ["surveillance", "counterintelligence", "cyber_defense"]
+        self.investigation_objectives = [
+            "Investigate unusual cyber activity",
+            "Monitor for potential threats to national security",
+            "Track suspicious financial transactions",
+            "Analyze cyber attack patterns",
+            "Protect critical infrastructure",
+            "Investigate data breaches",
+            "Monitor for foreign cyber operations"
+        ]
         
     def conduct_surveillance(self, target):
-        """Conduct cyber surveillance on a target"""
+        """Conduct cyber surveillance on suspicious targets"""
         operation_type = "surveillance"
         success, message = self.start_operation(target, operation_type)
         
@@ -536,7 +593,7 @@ class GovernmentHacker(Hacker):
             return f"Failed to start operation: {message}"
     
     def counterintelligence_operation(self, target):
-        """Conduct counterintelligence operations"""
+        """Conduct counterintelligence operations against potential threats"""
         operation_type = "counterintelligence"
         success, message = self.start_operation(target, operation_type)
         
@@ -546,7 +603,7 @@ class GovernmentHacker(Hacker):
             return f"Failed to start operation: {message}"
     
     def cyber_defense(self, target):
-        """Implement cyber defense measures"""
+        """Implement cyber defense measures for critical systems"""
         operation_type = "cyber_defense"
         success, message = self.start_operation(target, operation_type)
         
@@ -554,6 +611,10 @@ class GovernmentHacker(Hacker):
             return f"Cyber defense operation started: {message}"
         else:
             return f"Failed to start operation: {message}"
+    
+    def get_investigation_objective(self):
+        """Get a random investigation objective for this hacker"""
+        return random.choice(self.investigation_objectives)
 
 class FactionHacker(Hacker):
     """Hacker working for the Faction"""
@@ -730,31 +791,109 @@ class HackingSystem:
         # Show summary
         self.show_hacking_summary()
         
+        # Show timeline impact summary
+        self.show_timeline_impact_summary(world_state)
+        
         print("=" * 60)
         print("🖥️  Hacking Turn Complete")
     
     def start_random_operation(self, hacker, world_state):
-        """Start a random hacking operation for a hacker"""
+        """Start a random hacking operation for a hacker with proper motivations"""
         available_targets = [t for t in self.targets if not t.current_breach]
         if not available_targets:
             return
             
         target = random.choice(available_targets)
         
+        # Different motivations based on hacker faction
         if hacker.faction == "traveler":
-            operation_types = ["intelligence_gathering", "system_manipulation", "cover_maintenance"]
+            operation_types = ["intelligence_gathering", "system_manipulation", "cover_maintenance", "future_threat_analysis"]
+            motivation = hacker.get_mission_objective()
+            print(f"🖥️  {hacker.name} started operation with objective: {motivation}")
         elif hacker.faction == "government":
             operation_types = ["surveillance", "counterintelligence", "cyber_defense"]
+            motivation = hacker.get_investigation_objective()
+            print(f"🖥️  {hacker.name} started operation with objective: {motivation}")
         elif hacker.faction == "faction":
             operation_types = ["sabotage", "recruitment", "timeline_manipulation"]
+            motivation = "Disrupt timeline and recruit allies"
+            print(f"🖥️  {hacker.name} started operation with objective: {motivation}")
         else:
             operation_types = ["intelligence_gathering"]
+            motivation = "Gather information"
         
         operation_type = random.choice(operation_types)
         success, message = hacker.start_operation(target, operation_type)
         
         if success:
             print(f"🖥️  {hacker.name} started {operation_type} operation against {target.name}")
+            print(f"      🎯 Motivation: {motivation}")
+            
+            # Record action for consequence tracking
+            action_details = {
+                'type': operation_type,
+                'target': target.name,
+                'hacker_faction': hacker.faction,
+                'target_importance': 'medium' if target.name in ['Federal Database', 'Power Grid', 'Corporate Network'] else 'low',
+                'public_visibility': 'low'
+            }
+            
+            immediate_effects = {
+                'cyber_threat_level': 0.05,
+                'digital_surveillance': 0.03
+            }
+            
+            # Record the action if consequence tracker is available
+            if hasattr(self, 'consequence_tracker'):
+                consequences = self.consequence_tracker.record_action(
+                    turn=world_state.get('current_turn', 1),
+                    player_type=f'ai_{hacker.faction}',
+                    action_type='hacking',
+                    action_details=action_details,
+                    immediate_effects=immediate_effects
+                )
+            
+            # Apply immediate consequences based on operation type
+            self.apply_operation_consequences(operation_type, hacker.faction, target, world_state)
+    
+    def apply_operation_consequences(self, operation_type, faction, target, world_state):
+        """Apply immediate consequences of hacking operations"""
+        if faction == "traveler":
+            if operation_type == "intelligence_gathering":
+                # Travelers gather intel for missions
+                world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.02)
+                print(f"      ✅ Intelligence gathered - timeline stability improved")
+            elif operation_type == "future_threat_analysis":
+                # Analyzing future threats helps prevent them
+                world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.03)
+                print(f"      ✅ Future threat analyzed - timeline stability improved")
+            elif operation_type == "cover_maintenance":
+                # Maintaining cover prevents detection
+                world_state['traveler_exposure_risk'] = max(0.0, world_state.get('traveler_exposure_risk', 0.2) - 0.05)
+                print(f"      ✅ Cover maintained - exposure risk reduced")
+                
+        elif faction == "government":
+            if operation_type == "surveillance":
+                # Government surveillance increases control
+                world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.02)
+                print(f"      📡 Surveillance active - government control increased")
+            elif operation_type == "counterintelligence":
+                # Counterintelligence may detect unusual activity
+                if random.random() < 0.1:  # 10% chance of detecting something
+                    world_state['government_awareness'] = min(1.0, world_state.get('government_awareness', 0.1) + 0.03)
+                    print(f"      ⚠️  Unusual activity detected - government awareness increased")
+                    
+        elif faction == "faction":
+            if operation_type == "sabotage":
+                # Faction sabotage damages timeline
+                world_state['timeline_stability'] = max(0.0, world_state.get('timeline_stability', 0.5) - 0.04)
+                world_state['faction_influence'] = min(1.0, world_state.get('faction_influence', 0.3) + 0.03)
+                print(f"      💥 Sabotage successful - timeline stability decreased")
+            elif operation_type == "timeline_manipulation":
+                # Timeline manipulation is very dangerous
+                world_state['timeline_stability'] = max(0.0, world_state.get('timeline_stability', 0.5) - 0.06)
+                world_state['faction_influence'] = min(1.0, world_state.get('faction_influence', 0.3) + 0.05)
+                print(f"      ⚡ Timeline manipulation - severe stability impact")
     
     def handle_operation_result(self, result, world_state):
         """Handle the result of a hacking operation"""
@@ -839,6 +978,16 @@ class HackingSystem:
             if target.current_breach:
                 breach = target.current_breach
                 print(f"    • Breached by {breach['hacker']} using {breach['tool']}")
+    
+    def show_timeline_impact_summary(self, world_state):
+        """Show the timeline impact of this hacking turn"""
+        print(f"\n🌍 TIMELINE IMPACT SUMMARY:")
+        print(f"   Timeline Stability: {world_state.get('timeline_stability', 0.5):.1%}")
+        print(f"   Director Control: {world_state.get('director_control', 0.5):.1%}")
+        print(f"   Faction Influence: {world_state.get('faction_influence', 0.3):.1%}")
+        print(f"   Government Control: {world_state.get('government_control', 0.5):.1%}")
+        print(f"   Traveler Exposure Risk: {world_state.get('traveler_exposure_risk', 0.2):.1%}")
+        print(f"   Government Awareness: {world_state.get('government_awareness', 0.1):.1%}")
     
     def create_dark_web_networks(self):
         """Create various dark web networks for exploration"""

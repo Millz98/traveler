@@ -85,6 +85,16 @@ Your consciousness has been sent back to 2024 to inhabit host bodies and prevent
 - **Unintended Consequences**: Butterfly effects from successful missions
 - **Emergency Protocols**: Alpha, Epsilon, and Omega protocols for critical situations
 
+### **🔄 Consequence Tracking System**
+- **Civilization 6-Style Ripple Effects**: Every action in one turn affects future turns
+- **Delayed Consequences**: Effects that trigger 2-8 turns after the original action
+- **Butterfly Effects**: Unintended consequences from successful missions
+- **Escalation Events**: High-risk actions trigger response protocols from other factions
+- **Action History**: Track all actions by all players (human and AI) across turns
+- **Resource Depletion**: Operations consume resources that affect future efficiency
+- **Counter-Intelligence**: Government responses to detected activities
+- **Timeline Impact**: Cascading effects that shape the world's future
+
 ### **🖥️ Comprehensive Hacking System**
 - **Multi-Faction Hackers**: Traveler teams, government agencies (FBI/CIA), and Faction operatives
 - **Hacking Tools**: SQL injection kits, zero-day exploits, backdoor trojans, quantum decryptors
@@ -129,10 +139,11 @@ Your consciousness has been sent back to 2024 to inhabit host bodies and prevent
 
 1. **Run the Game**: `python game.py`
 2. **Load/Save**: Choose to load existing game or start new
-3. **Main Menu**: Navigate through 12 menu options
+3. **Main Menu**: Navigate through 16 menu options
 4. **Mission Management**: Accept missions and execute them
 5. **Host Body Life**: Manage your team's daily lives
 6. **End Turn**: Advance time and see world progression
+7. **Consequence Tracking**: Monitor how your actions affect future turns
 
 ## 📋 **Menu Options**
 
@@ -149,8 +160,9 @@ Your consciousness has been sent back to 2024 to inhabit host bodies and prevent
 11. **View Hacking System Status** - Monitor cyber warfare and system breaches
 12. **View Grand Plan Status** - Check ultimate objectives and mission progress
 13. **View Mission Revision Status** - Monitor failures, revisions, and consequences
-14. **Save Game** - Save current game state
-15. **Quit Game** - Save and exit
+14. **View Consequence Tracking** - Monitor ripple effects and future consequences
+15. **Save Game** - Save current game state
+16. **Quit Game** - Save and exit
 
 ## 🎯 **Mission Types**
 
