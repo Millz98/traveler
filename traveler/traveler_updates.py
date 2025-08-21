@@ -80,6 +80,10 @@ class UpdateSystem:
             }
         ]
 
+    def has_pending_updates(self):
+        """Check if there are pending updates"""
+        return len(self.updates) > 0
+
     def generate_update(self):
         """Generate a random Traveler update"""
         update_data = random.choice(self.updates)

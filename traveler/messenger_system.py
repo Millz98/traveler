@@ -81,6 +81,10 @@ class MessengerSystem:
         self.active_messengers = []
         self.messenger_history = []
 
+    def has_urgent_messages(self):
+        """Check if there are urgent messages available"""
+        return random.random() < 0.3  # 30% chance of urgent messages
+
     def create_messenger(self, message_type, message_content, force_adult=False):
         """Create a new messenger with a specific message"""
         if force_adult or random.random() < 0.1:  # 10% chance of adult messenger

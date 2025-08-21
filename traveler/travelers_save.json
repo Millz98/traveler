@@ -1,41 +1,44 @@
 {
   "team_leader": {
-    "name": "Tiffany",
-    "designation": "5777",
+    "name": "Ryan",
+    "designation": "3812",
     "role": "Team Leader",
-    "occupation": "Scientist",
+    "occupation": "Tactician",
     "skills": [
-      "Safecracking",
-      "Artificial Intelligence",
-      "Vulnerability Assessment",
-      "Lockpicking",
-      "Marksmanship"
+      "Astrophysics",
+      "Surgery",
+      "Pharmacology",
+      "Data Analysis",
+      "Landscape Architecture"
     ],
     "abilities": [
-      "Exceptional Detective",
-      "Master Conductor",
-      "Skilled Leader"
+      "Exceptional Researcher",
+      "Expert Cryptologist",
+      "Exceptional Lockpick"
     ],
-    "mission_count": 1,
+    "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Avery",
-      "designation": "9018",
+      "name": "Richard",
+      "designation": "7726",
       "role": "Historian",
-      "occupation": "Tactician",
+      "occupation": "Historian",
       "skills": [
-        "Nutrition",
-        "Gunnery",
-        "Natural Language Processing",
-        "Meteorology"
+        "Textile Science",
+        "Geology",
+        "Meteorology",
+        "History",
+        "Geography"
       ],
       "abilities": [
-        "Master Mediator",
-        "Exceptional Persuader"
+        "Multilingualism",
+        "Exceptional Lockpick",
+        "Exceptional Executive",
+        "Gifted Singer"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -43,20 +46,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "James",
-      "designation": "2561",
+      "name": "Amanda",
+      "designation": "5965",
       "role": "Engineer",
-      "occupation": "Tactician",
+      "occupation": "Scientist",
       "skills": [
-        "Culinary Arts",
-        "Volcanology",
-        "Statistics",
-        "Computer Science"
+        "Dance",
+        "Marketing",
+        "Forensics"
       ],
       "abilities": [
-        "Exceptional Camper",
-        "Gifted Sportsman",
-        "Skilled Diplomat"
+        "Gifted Fisherman",
+        "Exceptional Engineer",
+        "Master of Escape",
+        "Master Mentor"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -64,20 +67,18 @@
       "timeline_impact": 0
     },
     {
-      "name": "Thomas",
-      "designation": "7319",
+      "name": "Cameron",
+      "designation": "5847",
       "role": "Medic",
       "occupation": "Leader",
       "skills": [
-        "Hand-to-Hand",
-        "Astrophysics",
-        "Oceanography",
-        "History",
-        "Pharmacology"
+        "Linguistics",
+        "Cryptography",
+        "Sociology"
       ],
       "abilities": [
-        "Master Conductor",
-        "Expert Forger"
+        "Master Trainer",
+        "Skilled First Responder"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -85,19 +86,19 @@
       "timeline_impact": 0
     },
     {
-      "name": "Larry",
-      "designation": "8418",
+      "name": "Gabriel",
+      "designation": "1329",
       "role": "Tactician",
-      "occupation": "Leader",
+      "occupation": "Historian",
       "skills": [
-        "Gunnery",
-        "Culinary Arts",
-        "First Aid",
-        "Environmental Science"
+        "Cryptography",
+        "Philosophy",
+        "Cartography",
+        "Hand-to-Hand"
       ],
       "abilities": [
-        "Master Conductor",
-        "Exceptional Athlete"
+        "Exceptional Researcher",
+        "Charismatic Leader"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
