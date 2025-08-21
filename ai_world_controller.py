@@ -1123,8 +1123,22 @@ class AIGovernmentAgent(AIEntity):
             if priority > 0.6:  # High priority
                 print(f"    ⚠️  High priority: {report['type']} at {report['location']}")
                 if not self.current_investigation:
-                    self.current_investigation = report
+                    # Create a proper copy to avoid modification issues
+                    self.current_investigation = report.copy() if hasattr(report, 'copy') else dict(report)
                     self.suspicious_activity_reports.remove(report)
+                    
+                    # Initialize investigation with all required attributes
+                    self.current_investigation["progress"] = 0
+                    self.current_investigation["evidence"] = []
+                    self.current_investigation["suspects"] = []
+                    self.current_investigation["methods"] = self.generate_investigation_methods()
+                    
+                    # Ensure all required attributes exist
+                    if "threat_level" not in self.current_investigation:
+                        self.current_investigation["threat_level"] = "MEDIUM"
+                    if "location" not in self.current_investigation:
+                        self.current_investigation["location"] = "Unknown Location"
+                    
                     break
             elif priority < 0.3:  # Low priority, close case
                 print(f"    ✅ Closing low-priority case: {report['type']}")
@@ -1139,7 +1153,8 @@ class AIGovernmentAgent(AIEntity):
         best_report = max(self.suspicious_activity_reports, key=lambda r: 
             (r["threat_level"] == "HIGH") * 0.4 + r["credibility"] * 0.4 + r["urgency"] * 0.2)
         
-        self.current_investigation = best_report
+        # Create a proper copy of the report to avoid modification issues
+        self.current_investigation = best_report.copy() if hasattr(best_report, 'copy') else dict(best_report)
         self.suspicious_activity_reports.remove(best_report)
         
         print(f"    🕵️  Starting investigation: {best_report['type']} at {best_report['location']}")
@@ -1177,6 +1192,18 @@ class AIGovernmentAgent(AIEntity):
             return
             
         investigation = self.current_investigation
+        
+        # Ensure investigation has all required attributes
+        if not isinstance(investigation, dict):
+            print(f"    ❌ Error: Invalid investigation object type: {type(investigation)}")
+            self.current_investigation = None
+            return
+            
+        if "type" not in investigation:
+            print(f"    ❌ Error: Investigation missing 'type' attribute")
+            self.current_investigation = None
+            return
+            
         print(f"    🔍 Investigating: {investigation['type']} - Progress: {investigation.get('progress', 0)}%")
         
         # Conduct investigation activities
@@ -1200,6 +1227,11 @@ class AIGovernmentAgent(AIEntity):
             ]
             
             evidence_type = random.choice(evidence_types)
+            
+            # Ensure evidence list exists
+            if "evidence" not in investigation:
+                investigation["evidence"] = []
+            
             investigation["evidence"].append(evidence_type)
             print(f"      📸 Evidence found: {evidence_type}")
     
@@ -1212,6 +1244,11 @@ class AIGovernmentAgent(AIEntity):
             ]
             
             witness_type = random.choice(witness_types)
+            
+            # Ensure suspects list exists
+            if "suspects" not in investigation:
+                investigation["suspects"] = []
+            
             investigation["suspects"].append(f"{witness_type} testimony")
             print(f"      👥 Interviewed: {witness_type}")
     
@@ -1228,12 +1265,28 @@ class AIGovernmentAgent(AIEntity):
     
     def complete_investigation(self, investigation, world_state):
         """Complete the investigation and determine outcome"""
+        # Safety checks
+        if not isinstance(investigation, dict):
+            print(f"    ❌ Error: Invalid investigation object in complete_investigation")
+            self.current_investigation = None
+            return
+            
+        if "type" not in investigation:
+            print(f"    ❌ Error: Investigation missing 'type' in complete_investigation")
+            self.current_investigation = None
+            return
+            
         print(f"    ✅ Investigation completed: {investigation['type']}")
         
+        # Ensure all required attributes exist with safe defaults
+        evidence_count = len(investigation.get("evidence", []))
+        suspects_count = len(investigation.get("suspects", []))
+        methods_count = len(investigation.get("methods", []))
+        
         # Determine investigation outcome
-        evidence_quality = len(investigation["evidence"]) * 0.2
-        witness_quality = len(investigation["suspects"]) * 0.15
-        method_effectiveness = len(investigation["methods"]) * 0.1
+        evidence_quality = evidence_count * 0.2
+        witness_quality = suspects_count * 0.15
+        method_effectiveness = methods_count * 0.1
         
         total_score = evidence_quality + witness_quality + method_effectiveness + random.uniform(0.1, 0.3)
         

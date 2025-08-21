@@ -1773,3 +1773,701 @@ if __name__ == "__main__":
     
     stats = system.get_messenger_stats()
     print(f"\nMessenger Statistics: {stats}")
+
+class DynamicWorldEventsSystem:
+    """System that makes NPCs, factions, and timeline events actually happen in real-time"""
+    
+    def __init__(self):
+        self.active_npc_missions = {}        # NPCs currently on missions
+        self.active_faction_operations = {}  # Faction operations happening now
+        self.timeline_events = []            # Active timeline events
+        self.npc_schedules = {}              # NPC daily schedules and missions
+        self.faction_agendas = {}            # Faction long-term plans
+        self.world_events = []               # Random world events
+        self.mission_timers = {}             # Mission progress timers
+        self.consequence_trackers = {}       # Track consequences of ongoing events
+        self.event_triggers = {}             # What triggers new events
+        
+    def initialize_npc_mission_system(self):
+        """Initialize NPCs with their mission schedules"""
+        self.npc_schedules = {
+            "Dr. Holden": {
+                "role": "Medical Director",
+                "missions": ["medical_research", "host_body_monitoring", "emergency_response"],
+                "current_mission": None,
+                "mission_cooldown": 0,
+                "success_rate": 0.8,
+                "consequences": {
+                    "medical_research": {"timeline_stability": 0.02, "medical_protocols": "IMPROVED"},
+                    "host_body_monitoring": {"consciousness_stability": 0.05, "host_survival": "ENHANCED"},
+                    "emergency_response": {"emergency_response_time": -0.1, "medical_alert": "ACTIVE"}
+                }
+            },
+            "Director's Programmer": {
+                "role": "Systems Analyst",
+                "missions": ["code_analysis", "security_audit", "data_recovery"],
+                "current_mission": None,
+                "mission_cooldown": 0,
+                "success_rate": 0.7,
+                "consequences": {
+                    "code_analysis": {"system_efficiency": 0.03, "code_quality": "IMPROVED"},
+                    "security_audit": {"security_level": 0.04, "threat_detection": "ENHANCED"},
+                    "data_recovery": {"data_integrity": 0.05, "system_backup": "ACTIVE"}
+                }
+            },
+            "Emergency Traveler 0027": {
+                "role": "Emergency Response",
+                "missions": ["crisis_intervention", "host_extraction", "timeline_stabilization"],
+                "current_mission": None,
+                "mission_cooldown": 0,
+                "success_rate": 0.9,
+                "consequences": {
+                    "crisis_intervention": {"crisis_level": -0.2, "emergency_response": "ACTIVE"},
+                    "host_extraction": {"host_safety": 0.15, "extraction_protocol": "SUCCESSFUL"},
+                    "timeline_stabilization": {"timeline_stability": 0.1, "quantum_fluctuation": "REDUCED"}
+                }
+            },
+            "Faction Operative": {
+                "role": "Saboteur",
+                "missions": ["infrastructure_sabotage", "intelligence_gathering", "recruitment"],
+                "current_mission": None,
+                "mission_cooldown": 0,
+                "success_rate": 0.6,
+                "consequences": {
+                    "infrastructure_sabotage": {"power_grid_status": "COMPROMISED", "civilian_safety": -0.1},
+                    "intelligence_gathering": {"faction_intel": 0.2, "government_secrets": "EXPOSED"},
+                    "recruitment": {"faction_influence": 0.15, "civilian_support": "INCREASED"}
+                }
+            }
+        }
+        
+        # Initialize faction agendas
+        self.faction_agendas = {
+            "The Faction": {
+                "current_operations": [],
+                "long_term_goals": ["destabilize_timeline", "recruit_defectors", "sabotage_infrastructure"],
+                "resources": 100,
+                "influence": 0.3,
+                "operatives": 15
+            },
+            "Government Agencies": {
+                "current_operations": [],
+                "long_term_goals": ["maintain_order", "protect_timeline", "eliminate_threats"],
+                "resources": 200,
+                "influence": 0.6,
+                "operatives": 25
+            },
+            "Director's Office": {
+                "current_operations": [],
+                "long_term_goals": ["stabilize_timeline", "manage_hosts", "coordinate_response"],
+                "resources": 150,
+                "influence": 0.5,
+                "operatives": 20
+            }
+        }
+    
+    def start_npc_mission(self, npc_name, mission_type):
+        """Start an NPC on a mission with real consequences"""
+        if npc_name not in self.npc_schedules:
+            return False
+            
+        npc = self.npc_schedules[npc_name]
+        if npc["current_mission"] is not None:
+            return False  # NPC already on mission
+            
+        # Start the mission
+        npc["current_mission"] = mission_type
+        mission_id = f"{npc_name}_{mission_type}_{int(time.time())}"
+        
+        # Create mission timer and consequences
+        self.mission_timers[mission_id] = {
+            "npc": npc_name,
+            "mission_type": mission_type,
+            "duration": self.calculate_mission_duration(mission_type),
+            "time_remaining": self.calculate_mission_duration(mission_type),
+            "success_chance": npc["success_rate"],
+            "consequences": npc["consequences"][mission_type],
+            "active": True
+        }
+        
+        # Track this mission
+        track_npc_interaction(
+            npc_name=npc_name,
+            interaction_type=f"mission_start_{mission_type}",
+            relationship_change=0.1,
+            effects=[{"type": "world_event", "target": f"npc_mission_{mission_type}", "value": "ACTIVE"}]
+        )
+        
+        print(f"🚀 {npc_name} has started mission: {mission_type}")
+        print(f"   Duration: {self.mission_timers[mission_id]['duration']} turns")
+        print(f"   Success chance: {npc['success_rate']:.1%}")
+        
+        return mission_id
+    
+    def start_faction_operation(self, faction_name, operation_type):
+        """Start a faction operation with real consequences"""
+        if faction_name not in self.faction_agendas:
+            return False
+            
+        faction = self.faction_agendas[faction_name]
+        operation_id = f"{faction_name}_{operation_type}_{int(time.time())}"
+        
+        # Define operation consequences
+        operation_consequences = self.get_faction_operation_consequences(faction_name, operation_type)
+        
+        # Start the operation
+        self.active_faction_operations[operation_id] = {
+            "faction": faction_name,
+            "operation_type": operation_type,
+            "duration": self.calculate_faction_operation_duration(operation_type),
+            "time_remaining": self.calculate_faction_operation_duration(operation_type),
+            "success_chance": 0.7,  # Base success rate
+            "consequences": operation_consequences,
+            "active": True
+        }
+        
+        # Track this operation
+        track_faction_activity(
+            activity_type=operation_type,
+            location="Various locations",
+            effects=[{"type": "world_event", "target": f"faction_operation_{operation_type}", "value": "ACTIVE"}],
+            ongoing_effects=[{"type": "attribute_change", "target": "faction_influence", "value": 0.02, "operation": "add"}]
+        )
+        
+        print(f"🌍 {faction_name} has started operation: {operation_type}")
+        print(f"   Duration: {self.active_faction_operations[operation_id]['duration']} turns")
+        
+        return operation_id
+    
+    def start_timeline_event(self, event_type, magnitude):
+        """Start a timeline event that affects the world"""
+        event_id = f"timeline_{event_type}_{int(time.time())}"
+        
+        # Define timeline event consequences
+        event_consequences = self.get_timeline_event_consequences(event_type, magnitude)
+        
+        # Start the event
+        self.timeline_events.append({
+            "event_id": event_id,
+            "event_type": event_type,
+            "magnitude": magnitude,
+            "duration": self.calculate_timeline_event_duration(magnitude),
+            "time_remaining": self.calculate_timeline_event_duration(magnitude),
+            "consequences": event_consequences,
+            "active": True
+        })
+        
+        # Track this timeline event
+        track_timeline_event(
+            event_type=event_type,
+            magnitude=magnitude,
+            effects=[{"type": "world_event", "target": f"timeline_event_{event_type}", "value": "ACTIVE"}],
+            ongoing_effects=[{"type": "attribute_change", "target": "timeline_stability", "value": -0.01 * magnitude, "operation": "add"}]
+        )
+        
+        print(f"⏰ Timeline event started: {event_type} (magnitude: {magnitude})")
+        print(f"   Duration: {self.calculate_timeline_event_duration(magnitude)} turns")
+        
+        return event_id
+    
+    def process_world_turn(self):
+        """Process all active missions, operations, and events"""
+        print(f"\n🌍 PROCESSING WORLD TURN - Active Events:")
+        print(f"{'='*60}")
+        
+        # Process NPC missions
+        self.process_npc_missions()
+        
+        # Process faction operations
+        self.process_faction_operations()
+        
+        # Process timeline events
+        self.process_timeline_events()
+        
+        # Generate new events
+        self.generate_random_world_events()
+        
+        # Update world status
+        self.update_world_status()
+    
+    def process_npc_missions(self):
+        """Process all active NPC missions"""
+        expired_missions = []
+        
+        for mission_id, mission in self.mission_timers.items():
+            if mission["active"]:
+                mission["time_remaining"] -= 1
+                
+                if mission["time_remaining"] <= 0:
+                    # Mission completed - determine success/failure
+                    success = random.random() < mission["success_chance"]
+                    self.complete_npc_mission(mission_id, success)
+                    expired_missions.append(mission_id)
+                else:
+                    # Mission in progress - apply ongoing effects
+                    self.apply_mission_ongoing_effects(mission_id)
+        
+        # Remove expired missions
+        for mission_id in expired_missions:
+            del self.mission_timers[mission_id]
+    
+    def process_faction_operations(self):
+        """Process all active faction operations"""
+        expired_operations = []
+        
+        for operation_id, operation in self.active_faction_operations.items():
+            if operation["active"]:
+                operation["time_remaining"] -= 1
+                
+                if operation["time_remaining"] <= 0:
+                    # Operation completed - determine success/failure
+                    success = random.random() < operation["success_chance"]
+                    self.complete_faction_operation(operation_id, success)
+                    expired_operations.append(operation_id)
+                else:
+                    # Operation in progress - apply ongoing effects
+                    self.apply_operation_ongoing_effects(operation_id)
+        
+        # Remove expired operations
+        for operation_id in expired_operations:
+            del self.active_faction_operations[operation_id]
+    
+    def process_timeline_events(self):
+        """Process all active timeline events"""
+        expired_events = []
+        
+        for event in self.timeline_events:
+            if event["active"]:
+                event["time_remaining"] -= 1
+                
+                if event["time_remaining"] <= 0:
+                    # Event completed
+                    self.complete_timeline_event(event["event_id"])
+                    expired_events.append(event)
+                else:
+                    # Event ongoing - apply ongoing effects
+                    self.apply_timeline_event_ongoing_effects(event["event_id"])
+        
+        # Remove expired events
+        for event in expired_events:
+            self.timeline_events.remove(event)
+    
+    def complete_npc_mission(self, mission_id, success):
+        """Complete an NPC mission and apply consequences"""
+        mission = self.mission_timers[mission_id]
+        npc_name = mission["npc"]
+        mission_type = mission["mission_type"]
+        
+        # Get NPC data
+        npc = self.npc_schedules[npc_name]
+        
+        # Apply consequences based on success/failure
+        if success:
+            consequences = mission["consequences"]
+            print(f"✅ {npc_name} completed {mission_type} successfully!")
+            
+            # Apply positive consequences
+            for key, value in consequences.items():
+                if isinstance(value, (int, float)):
+                    # Numeric value - apply as attribute change
+                    track_npc_interaction(
+                        npc_name=npc_name,
+                        interaction_type=f"mission_success_{mission_type}",
+                        relationship_change=0.2,
+                        effects=[{"type": "attribute_change", "target": key, "value": value, "operation": "add"}]
+                    )
+                else:
+                    # String value - apply as world event
+                    track_npc_interaction(
+                        npc_name=npc_name,
+                        interaction_type=f"mission_success_{mission_type}",
+                        relationship_change=0.2,
+                        effects=[{"type": "world_event", "target": key, "value": value}]
+                    )
+        else:
+            print(f"❌ {npc_name} failed {mission_type}!")
+            
+            # Apply negative consequences (reverse of positive)
+            for key, value in mission["consequences"].items():
+                if isinstance(value, (int, float)):
+                    # Numeric value - apply negative effect
+                    track_npc_interaction(
+                        npc_name=npc_name,
+                        interaction_type=f"mission_failure_{mission_type}",
+                        relationship_change=-0.1,
+                        effects=[{"type": "attribute_change", "target": key, "value": -value, "operation": "add"}]
+                    )
+                else:
+                    # String value - apply negative world event
+                    track_npc_interaction(
+                        npc_name=npc_name,
+                        interaction_type=f"mission_failure_{mission_type}",
+                        relationship_change=-0.1,
+                        effects=[{"type": "world_event", "target": key, "value": "FAILED"}]
+                    )
+        
+        # Reset NPC mission status
+        npc["current_mission"] = None
+        npc["mission_cooldown"] = 3  # 3 turn cooldown before next mission
+    
+    def complete_faction_operation(self, operation_id, success):
+        """Complete a faction operation and apply consequences"""
+        operation = self.active_faction_operations[operation_id]
+        faction_name = operation["faction"]
+        operation_type = operation["operation_type"]
+        
+        if success:
+            print(f"✅ {faction_name} completed {operation_type} successfully!")
+            # Apply positive consequences
+            for key, value in operation["consequences"].items():
+                if isinstance(value, (int, float)):
+                    track_faction_activity(
+                        activity_type=f"successful_{operation_type}",
+                        location="Various locations",
+                        effects=[{"type": "attribute_change", "target": key, "value": value, "operation": "add"}]
+                    )
+                else:
+                    track_faction_activity(
+                        activity_type=f"successful_{operation_type}",
+                        location="Various locations",
+                        effects=[{"type": "world_event", "target": key, "value": value}]
+                    )
+        else:
+            print(f"❌ {faction_name} failed {operation_type}!")
+            # Apply negative consequences
+            for key, value in operation["consequences"].items():
+                if isinstance(value, (int, float)):
+                    track_faction_activity(
+                        activity_type=f"failed_{operation_type}",
+                        location="Various locations",
+                        effects=[{"type": "attribute_change", "target": key, "value": -value, "operation": "add"}]
+                    )
+                else:
+                    track_faction_activity(
+                        activity_type=f"failed_{operation_type}",
+                        location="Various locations",
+                        effects=[{"type": "world_event", "target": key, "value": "FAILED"}]
+                    )
+    
+    def complete_timeline_event(self, event_id):
+        """Complete a timeline event and apply consequences"""
+        event = next((e for e in self.timeline_events if e["event_id"] == event_id), None)
+        if event:
+            print(f"⏰ Timeline event completed: {event['event_type']}")
+            
+            # Apply final consequences
+            for key, value in event["consequences"].items():
+                if isinstance(value, (int, float)):
+                    track_timeline_event(
+                        event_type=f"completed_{event['event_type']}",
+                        magnitude=event["magnitude"],
+                        effects=[{"type": "attribute_change", "target": key, "value": value, "operation": "add"}]
+                    )
+                else:
+                    track_timeline_event(
+                        event_type=f"completed_{event['event_type']}",
+                        magnitude=event["magnitude"],
+                        effects=[{"type": "world_event", "target": key, "value": value}]
+                    )
+    
+    def generate_random_world_events(self):
+        """Generate random world events based on current state"""
+        # 20% chance of new NPC mission
+        if random.random() < 0.2:
+            available_npcs = [name for name, npc in self.npc_schedules.items() 
+                             if npc["current_mission"] is None and npc["mission_cooldown"] <= 0]
+            if available_npcs:
+                npc_name = random.choice(available_npcs)
+                npc = self.npc_schedules[npc_name]
+                mission_type = random.choice(npc["missions"])
+                self.start_npc_mission(npc_name, mission_type)
+        
+        # 15% chance of new faction operation
+        if random.random() < 0.15:
+            faction_name = random.choice(list(self.faction_agendas.keys()))
+            operation_types = ["infrastructure_sabotage", "intelligence_gathering", "recruitment", "counter_operation"]
+            operation_type = random.choice(operation_types)
+            self.start_faction_operation(faction_name, operation_type)
+        
+        # 10% chance of new timeline event
+        if random.random() < 0.1:
+            event_types = ["quantum_fluctuation", "temporal_anomaly", "host_body_crisis", "faction_escalation"]
+            event_type = random.choice(event_types)
+            magnitude = random.uniform(0.1, 0.5)
+            self.start_timeline_event(event_type, magnitude)
+    
+    def get_faction_operation_consequences(self, faction_name, operation_type):
+        """Get consequences for faction operations"""
+        consequences = {
+            "infrastructure_sabotage": {"power_grid_status": "COMPROMISED", "civilian_safety": -0.1},
+            "intelligence_gathering": {"faction_intel": 0.2, "government_secrets": "EXPOSED"},
+            "recruitment": {"faction_influence": 0.15, "civilian_support": "INCREASED"},
+            "counter_operation": {"government_control": -0.1, "faction_threat": "REDUCED"}
+        }
+        return consequences.get(operation_type, {})
+    
+    def get_timeline_event_consequences(self, event_type, magnitude):
+        """Get consequences for timeline events"""
+        consequences = {
+            "quantum_fluctuation": {"timeline_stability": -0.05 * magnitude, "quantum_anomaly": "ACTIVE"},
+            "temporal_anomaly": {"timeline_stability": -0.08 * magnitude, "temporal_distortion": "DETECTED"},
+            "host_body_crisis": {"consciousness_stability": -0.1 * magnitude, "medical_alert": "CRITICAL"},
+            "faction_escalation": {"faction_influence": 0.1 * magnitude, "threat_level": "ELEVATED"}
+        }
+        return consequences.get(event_type, {})
+    
+    def calculate_mission_duration(self, mission_type):
+        """Calculate how long a mission takes"""
+        durations = {
+            "medical_research": 3,
+            "host_body_monitoring": 2,
+            "emergency_response": 1,
+            "code_analysis": 4,
+            "security_audit": 3,
+            "data_recovery": 2,
+            "crisis_intervention": 1,
+            "host_extraction": 2,
+            "timeline_stabilization": 3,
+            "infrastructure_sabotage": 4,
+            "intelligence_gathering": 3,
+            "recruitment": 2
+        }
+        return durations.get(mission_type, 2)
+    
+    def calculate_faction_operation_duration(self, operation_type):
+        """Calculate how long a faction operation takes"""
+        durations = {
+            "infrastructure_sabotage": 5,
+            "intelligence_gathering": 4,
+            "recruitment": 3,
+            "counter_operation": 4
+        }
+        return durations.get(operation_type, 3)
+    
+    def calculate_timeline_event_duration(self, magnitude):
+        """Calculate how long a timeline event lasts"""
+        return max(2, int(5 * magnitude))  # 2-7 turns based on magnitude
+    
+    def apply_mission_ongoing_effects(self, mission_id):
+        """Apply ongoing effects of an active mission"""
+        mission = self.mission_timers[mission_id]
+        # Apply small ongoing effects while mission is active
+        pass  # Implement as needed
+    
+    def apply_operation_ongoing_effects(self, operation_id):
+        """Apply ongoing effects of an active faction operation"""
+        operation = self.active_faction_operations[operation_id]
+        # Apply small ongoing effects while operation is active
+        pass  # Implement as needed
+    
+    def apply_timeline_event_ongoing_effects(self, event_id):
+        """Apply ongoing effects of an active timeline event"""
+        event = next((e for e in self.timeline_events if e["event_id"] == event_id), None)
+        if event:
+            # Apply ongoing effects
+            pass  # Implement as needed
+    
+    def update_world_status(self):
+        """Update overall world status based on active events"""
+        active_missions = len([m for m in self.mission_timers.values() if m["active"]])
+        active_operations = len([o for o in self.active_faction_operations.values() if o["active"]])
+        active_timeline_events = len([e for e in self.timeline_events if e["active"]])
+        
+        print(f"📊 World Status Update:")
+        print(f"   Active NPC Missions: {active_missions}")
+        print(f"   Active Faction Operations: {active_operations}")
+        print(f"   Active Timeline Events: {active_timeline_events}")
+        
+        # Update global world tracker
+        if active_missions + active_operations + active_timeline_events > 0:
+            track_world_event(
+                event_type="world_status_update",
+                description=f"Active: {active_missions} missions, {active_operations} operations, {active_timeline_events} timeline events",
+                effects=[{"type": "attribute_change", "target": "world_activity_level", "value": active_missions + active_operations + active_timeline_events, "operation": "set"}]
+            )
+    
+    def get_active_world_summary(self):
+        """Get summary of all active world events"""
+        return {
+            "npc_missions": {mid: mission for mid, mission in self.mission_timers.items() if mission["active"]},
+            "faction_operations": {oid: operation for oid, operation in self.active_faction_operations.items() if operation["active"]},
+            "timeline_events": [event for event in self.timeline_events if event["active"]],
+            "npc_schedules": self.npc_schedules,
+            "faction_agendas": self.faction_agendas
+        }
+
+# Create global instance
+dynamic_world_events = DynamicWorldEventsSystem()
+
+# ============================================================================
+# DYNAMIC WORLD EVENTS INTEGRATION FUNCTIONS
+# ============================================================================
+# Use these functions to make NPCs, factions, and timeline events actually happen!
+
+def initialize_dynamic_world():
+    """Initialize the dynamic world events system"""
+    dynamic_world_events.initialize_npc_mission_system()
+    print("🌍 Dynamic World Events System initialized!")
+    print("   NPCs: Dr. Holden, Director's Programmer, Emergency Traveler 0027, Faction Operative")
+    print("   Factions: The Faction, Government Agencies, Director's Office")
+    print("   Timeline events will now happen automatically!")
+
+def start_npc_mission(npc_name, mission_type):
+    """Start an NPC on a mission with real consequences"""
+    return dynamic_world_events.start_npc_mission(npc_name, mission_type)
+
+def start_faction_operation(faction_name, operation_type):
+    """Start a faction operation with real consequences"""
+    return dynamic_world_events.start_faction_operation(faction_name, operation_type)
+
+def start_timeline_event(event_type, magnitude):
+    """Start a timeline event that affects the world"""
+    return dynamic_world_events.start_timeline_event(event_type, magnitude)
+
+def process_world_turn():
+    """Process all active missions, operations, and events"""
+    dynamic_world_events.process_world_turn()
+
+def get_active_world_summary():
+    """Get summary of all active world events"""
+    return dynamic_world_events.get_active_world_summary()
+
+def get_npc_status(npc_name):
+    """Get current status of an NPC"""
+    if npc_name in dynamic_world_events.npc_schedules:
+        npc = dynamic_world_events.npc_schedules[npc_name]
+        return {
+            "name": npc_name,
+            "role": npc["role"],
+            "current_mission": npc["current_mission"],
+            "mission_cooldown": npc["mission_cooldown"],
+            "success_rate": npc["success_rate"]
+        }
+    return None
+
+def get_faction_status(faction_name):
+    """Get current status of a faction"""
+    if faction_name in dynamic_world_events.faction_agendas:
+        faction = dynamic_world_events.faction_agendas[faction_name]
+        return {
+            "name": faction_name,
+            "resources": faction["resources"],
+            "influence": faction["influence"],
+            "operatives": faction["operatives"],
+            "long_term_goals": faction["long_term_goals"]
+        }
+    return None
+
+def force_npc_defection(npc_name, new_faction):
+    """Force an NPC to defect to a faction (like the Director's programmer)"""
+    if npc_name in dynamic_world_events.npc_schedules:
+        # Remove from current schedules
+        defected_npc = dynamic_world_events.npc_schedules.pop(npc_name)
+        
+        # Add to faction as operative
+        if new_faction in dynamic_world_events.faction_agendas:
+            dynamic_world_events.faction_agendas[new_faction]["operatives"] += 1
+            dynamic_world_events.faction_agendas[new_faction]["influence"] += 0.1
+            
+            # Start immediate faction operation
+            operation_id = dynamic_world_events.start_faction_operation(
+                new_faction, 
+                "intelligence_gathering"
+            )
+            
+            print(f"🚨 {npc_name} has defected to {new_faction}!")
+            print(f"   Starting intelligence gathering operation...")
+            print(f"   {new_faction} influence increased by 10%")
+            
+            # Track this major world event
+            track_world_event(
+                event_type="npc_defection",
+                description=f"{npc_name} defected to {new_faction}",
+                effects=[
+                    {"type": "attribute_change", "target": f"{new_faction.lower()}_influence", "value": 0.1, "operation": "add"},
+                    {"type": "world_event", "target": "defection_alert", "value": "ACTIVE"}
+                ],
+                ongoing_effects=[
+                    {"type": "attribute_change", "target": "government_control", "value": -0.02, "operation": "add"}
+                ]
+            )
+            
+            return operation_id
+    return None
+
+def simulate_emergency_traveler_arrival(traveler_id, crisis_type):
+    """Simulate Emergency Traveler arrival for critical missions"""
+    print(f"🚨 EMERGENCY TRAVELER {traveler_id} ARRIVAL!")
+    print(f"   Crisis Type: {crisis_type}")
+    print(f"   Deploying immediate response...")
+    
+    # Start emergency mission
+    mission_id = dynamic_world_events.start_npc_mission(
+        f"Emergency Traveler {traveler_id}", 
+        "crisis_intervention"
+    )
+    
+    # Create immediate world impact
+    track_world_event(
+        event_type="emergency_traveler_arrival",
+        description=f"Emergency Traveler {traveler_id} arrived for {crisis_type}",
+        effects=[
+            {"type": "world_event", "target": "emergency_response", "value": "ACTIVE"},
+            {"type": "attribute_change", "target": "crisis_level", "value": -0.3, "operation": "add"},
+            {"type": "world_event", "target": "traveler_deployment", "value": "ACTIVE"}
+        ],
+        ongoing_effects=[
+            {"type": "attribute_change", "target": "crisis_level", "value": -0.05, "operation": "add"}
+        ]
+    )
+    
+    print(f"   Emergency mission started: {mission_id}")
+    print(f"   Crisis level reduced by 30%")
+    print(f"   Ongoing stabilization in progress...")
+    
+    return mission_id
+
+def get_world_activity_feed():
+    """Get a live feed of all current world activity"""
+    summary = dynamic_world_events.get_active_world_summary()
+    
+    print(f"\n🌍 LIVE WORLD ACTIVITY FEED")
+    print(f"{'='*60}")
+    
+    # NPC Missions
+    if summary["npc_missions"]:
+        print(f"🚀 ACTIVE NPC MISSIONS:")
+        for mission_id, mission in summary["npc_missions"].items():
+            print(f"   • {mission['npc']}: {mission['mission_type']} ({mission['time_remaining']} turns remaining)")
+    else:
+        print(f"🚀 ACTIVE NPC MISSIONS: None")
+    
+    # Faction Operations
+    if summary["faction_operations"]:
+        print(f"🌍 ACTIVE FACTION OPERATIONS:")
+        for operation_id, operation in summary["faction_operations"].items():
+            print(f"   • {operation['faction']}: {operation['operation_type']} ({operation['time_remaining']} turns remaining)")
+    else:
+        print(f"🌍 ACTIVE FACTION OPERATIONS: None")
+    
+    # Timeline Events
+    if summary["timeline_events"]:
+        print(f"⏰ ACTIVE TIMELINE EVENTS:")
+        for event in summary["timeline_events"]:
+            print(f"   • {event['event_type']} (magnitude: {event['magnitude']:.2f}, {event['time_remaining']} turns remaining)")
+    else:
+        print(f"⏰ ACTIVE TIMELINE EVENTS: None")
+    
+    # NPC Status
+    print(f"\n👥 NPC STATUS:")
+    for npc_name, npc in summary["npc_schedules"].items():
+        status = "🟢 Available" if npc["current_mission"] is None else "🔴 On Mission"
+        cooldown = f" (Cooldown: {npc['mission_cooldown']} turns)" if npc["mission_cooldown"] > 0 else ""
+        print(f"   • {npc_name} ({npc['role']}): {status}{cooldown}")
+    
+    # Faction Status
+    print(f"\n🏛️ FACTION STATUS:")
+    for faction_name, faction in summary["faction_agendas"].items():
+        print(f"   • {faction_name}: Resources {faction['resources']}, Influence {faction['influence']:.1%}, Operatives {faction['operatives']}")
+
+# ============================================================================

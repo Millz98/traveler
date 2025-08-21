@@ -1,18 +1,17 @@
 {
   "team_leader": {
-    "name": "Isabella",
-    "designation": "3120",
+    "name": "Elijah",
+    "designation": "9015",
     "role": "Team Leader",
-    "occupation": "Engineer",
+    "occupation": "Medic",
     "skills": [
-      "Planetary Science",
+      "Aerospace Engineering",
       "Sociology",
-      "Agriculture",
-      "Linguistics"
+      "Statistics"
     ],
     "abilities": [
-      "Expert Medic",
-      "Skilled Engineer"
+      "Exceptional Pilot",
+      "Skilled Linguist"
     ],
     "mission_count": 0,
     "success_rate": 0.0,
@@ -21,20 +20,19 @@
   },
   "team_members": [
     {
-      "name": "Zoe",
-      "designation": "6205",
+      "name": "Julie",
+      "designation": "3592",
       "role": "Historian",
-      "occupation": "Engineer",
+      "occupation": "Soldier",
       "skills": [
-        "Horticulture",
-        "Civil Engineering",
-        "Network Security",
-        "Dietetics"
+        "Deception",
+        "Film",
+        "Astronomy"
       ],
       "abilities": [
-        "Skilled Leader",
-        "Expert Negotiator",
-        "Master Surgeon"
+        "Exceptional Pilot",
+        "Master Author",
+        "Expert Cryptologist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -42,41 +40,21 @@
       "timeline_impact": 0
     },
     {
-      "name": "Robert",
-      "designation": "8889",
+      "name": "Hannah",
+      "designation": "6445",
       "role": "Engineer",
-      "occupation": "Tactician",
+      "occupation": "Scientist",
       "skills": [
-        "Combat",
-        "Chemistry",
-        "Marketing"
-      ],
-      "abilities": [
-        "Skilled Negotiator",
-        "Gifted Sportsman",
-        "Exceptional Hearing"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Ryan",
-      "designation": "128",
-      "role": "Medic",
-      "occupation": "Historian",
-      "skills": [
-        "First Aid",
+        "Navigation",
         "Planetary Science",
-        "Business Intelligence",
-        "Theater",
-        "Persuasion"
+        "Tracking",
+        "Philosophy",
+        "Fashion Design"
       ],
       "abilities": [
-        "Exceptional Dancer",
-        "Skilled Musician",
-        "Master Hunter"
+        "Gifted Inventor",
+        "Master Historian",
+        "Skilled Linguist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -84,20 +62,42 @@
       "timeline_impact": 0
     },
     {
-      "name": "Madison",
-      "designation": "3537",
-      "role": "Tactician",
-      "occupation": "Historian",
+      "name": "Nicholas",
+      "designation": "8293",
+      "role": "Medic",
+      "occupation": "Scientist",
       "skills": [
-        "Demolitions",
-        "Accounting",
-        "Nutrition",
-        "Human Resources",
-        "Cooking"
+        "Film",
+        "Cryptography",
+        "Marketing",
+        "Electrical Engineering"
       ],
       "abilities": [
-        "Expert Sommelier",
-        "Gifted Mathematician"
+        "Master Codebreaker",
+        "Multilingualism",
+        "Exceptional Scientist",
+        "Exceptional Cartographer"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Matthew",
+      "designation": "2249",
+      "role": "Tactician",
+      "occupation": "Scientist",
+      "skills": [
+        "Statistics",
+        "Toxicology",
+        "Mechanical Engineering",
+        "Planetary Science"
+      ],
+      "abilities": [
+        "Gifted Arbitrator",
+        "Master Craftsman",
+        "Master Codebreaker"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -110,34 +110,34 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.865,
+  "timeline_stability": 0.54,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
-      "change": -0.1,
-      "actual_change": -0.13,
-      "old_stability": 0.8,
-      "new_stability": 0.67,
-      "source": "mission_prevent_historical_disaster_failure",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 15, 2018",
       "change": 0.1,
       "actual_change": 0.13,
-      "old_stability": 0.67,
-      "new_stability": 0.8,
+      "old_stability": 0.8,
+      "new_stability": 0.93,
       "source": "mission_prevent_historical_disaster_complete_success",
       "fragility_impact": 0.3
     },
     {
       "timestamp": "March 15, 2018",
-      "change": 0.05,
-      "actual_change": 0.065,
+      "change": -0.1,
+      "actual_change": -0.13,
+      "old_stability": 0.93,
+      "new_stability": 0.8,
+      "source": "mission_host_body_crisis_failure",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 15, 2018",
+      "change": -0.2,
+      "actual_change": -0.26,
       "old_stability": 0.8,
-      "new_stability": 0.865,
-      "source": "mission_faction_interference_success",
+      "new_stability": 0.54,
+      "source": "mission_traveler_malfunction_critical_failure",
       "fragility_impact": 0.3
     }
   ]
