@@ -45,11 +45,11 @@ class Traveler001:
     
     def attempt_recruitment(self, traveler):
         """Attempt to recruit a Traveler to the Faction"""
-        recruitment_success = random.random() < 0.15  # 15% base chance
+        recruitment_success = random.randint(1, 20) <= 3  # D20 roll: 1-3 (15% base chance)
         
         # Higher chance if traveler has protocol violations
         if hasattr(traveler, 'protocol_violations') and traveler.protocol_violations > 2:
-            recruitment_success = random.random() < 0.35
+            recruitment_success = random.randint(1, 20) <= 7  # D20 roll: 1-7 (35% chance)
         
         return recruitment_success
 
@@ -96,7 +96,7 @@ class FactionOperative:
         ]
         
         mission_type = random.choice(mission_types)
-        success = random.random() < 0.7  # 70% success rate
+        success = random.randint(1, 20) <= 14  # D20 roll: 1-14 (70% success rate)
         
         consequences = {
             "faction_influence": 0.02 if success else -0.01,
@@ -181,7 +181,7 @@ class FactionSystem:
         print(f"\n🦹 FACTION OPERATIONS:")
         
         # 001's activities
-        if random.random() < 0.3:  # 30% chance per turn
+        if random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance per turn)
             self.traveler_001_activity(world_state, player_team)
         
         # Operative missions
@@ -196,7 +196,7 @@ class FactionSystem:
                 print(f"   🎭 {result['operative']}: {result['description']}")
         
         # Recruitment attempts
-        if random.random() < 0.2:  # 20% chance per turn
+        if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance per turn)
             self.attempt_player_recruitment(player_team, world_state)
     
     def traveler_001_activity(self, world_state, player_team):

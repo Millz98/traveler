@@ -1,4 +1,3 @@
-
 # game.py
 import director_ai
 from messenger import Messenger
@@ -598,6 +597,14 @@ class Game:
             # Apply mission consequences
             self.apply_mission_consequences(mission, final_outcome)
             
+            # Show detailed world consequences
+            mission_exec_data = {
+                'mission': mission,
+                'outcome': final_outcome,
+                'phase_results': phase_results
+            }
+            self.show_timeline_consequences(mission_exec_data)
+            
             # Remove completed mission
             self.active_missions.remove(mission_execution)
             
@@ -770,48 +777,189 @@ class Game:
     def show_timeline_consequences(self, mission_exec):
         """Show how the mission outcome affects the timeline"""
         print(f"\n📊 TIMELINE IMPACT ANALYSIS")
-        print("=" * 40)
+        print("=" * 60)
         
-        if mission_exec['outcome'] == "Success":
-            print("✅ Mission Success Consequences:")
-            print(f"• {mission_exec['mission']['type'].title()} objective achieved")
-            print("• Timeline stability improved")
-            print("• Future catastrophic events prevented")
-            print("• Team reputation enhanced")
+        outcome = mission_exec['outcome']
+        mission_type = mission_exec['mission']['type'].replace('_', ' ').title()
+        
+        # Determine outcome category and show appropriate consequences
+        if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+            print("🎉 MISSION SUCCESS CONSEQUENCES:")
+            print(f"• {mission_type} objective achieved successfully")
+            print("• Timeline stability significantly improved")
+            print("• Future catastrophic events delayed or prevented")
+            print("• Team reputation and standing enhanced")
+            print("• Host body integration strengthened")
             
             # Generate positive timeline event
-            positive_event = self.event_generation.generate_event()
-            print(f"\n🔄 New Timeline Event: {positive_event.description}")
-            print(f"Impact: {positive_event.impact_on_future}")
+            try:
+                positive_event = self.event_generation.generate_event()
+                print(f"\n🔄 NEW TIMELINE EVENT:")
+                print(f"   {positive_event.description}")
+                print(f"   Impact: {positive_event.impact_on_future}")
+            except:
+                print(f"\n🔄 NEW TIMELINE EVENT:")
+                print(f"   Society shows signs of recovery and stability")
+                print(f"   Impact: Positive ripple effects throughout the timeline")
             
-        else:
-            print("❌ Mission Failure Consequences:")
-            print(f"• {mission_exec['mission']['type'].title()} objective not achieved")
+        elif outcome == "PARTIAL_SUCCESS":
+            print("⚠️  MISSION PARTIAL SUCCESS CONSEQUENCES:")
+            print(f"• {mission_type} objective partially achieved")
+            print("• Timeline stability slightly improved")
+            print("• Some future events may still occur")
+            print("• Team performance adequate but not exceptional")
+            print("• Minor complications in host body integration")
+            
+            # Generate mixed timeline event
+            print(f"\n🔄 NEW TIMELINE EVENT:")
+            print(f"   Mixed signals in society - some improvement, some challenges remain")
+            print(f"   Impact: Timeline remains unstable but not critically so")
+            
+        elif outcome in ["FAILURE", "CRITICAL_FAILURE"]:
+            print("❌ MISSION FAILURE CONSEQUENCES:")
+            print(f"• {mission_type} objective not achieved")
             print("• Timeline stability compromised")
             print("• Future catastrophic events may accelerate")
-            print("• Team must regroup and reassess")
+            print("• Team must regroup and reassess strategy")
+            print("• Host body integration strained")
             
             # Generate negative timeline event
-            negative_event = self.event_generation.generate_event()
-            print(f"\n🔄 New Timeline Event: {negative_event.description}")
-            print(f"Impact: {negative_event.impact_on_past}")
+            try:
+                negative_event = self.event_generation.generate_event()
+                print(f"\n🔄 NEW TIMELINE EVENT:")
+                print(f"   {negative_event.description}")
+                print(f"   Impact: {negative_event.impact_on_past}")
+            except:
+                print(f"\n🔄 NEW TIMELINE EVENT:")
+                print(f"   Society shows increased instability and chaos")
+                print(f"   Impact: Negative ripple effects accelerating timeline collapse")
         
         # Show specific timeline changes
         timeline_changes = self.calculate_timeline_changes(mission_exec)
-        print(f"\n📈 Timeline Stability: {timeline_changes['stability']:.1%}")
-        print(f"🌍 Global Impact: {timeline_changes['global_impact']}")
-        print(f"⏰ Time Acceleration: {timeline_changes['time_acceleration']} years")
+        print(f"\n📈 TIMELINE METRICS:")
+        print(f"   Stability: {timeline_changes['stability']:.1%}")
+        print(f"   Global Impact: {timeline_changes['global_impact']}")
+        print(f"   Time Acceleration: {timeline_changes['time_acceleration']} years")
+        
+        # Show world-specific consequences based on mission type
+        print(f"\n🌍 WORLD-SPECIFIC CONSEQUENCES:")
+        self.show_mission_specific_consequences(mission_exec)
+        
+        print("=" * 60)
+
+    def show_mission_specific_consequences(self, mission_exec):
+        """Show mission-specific world consequences"""
+        mission_type = mission_exec['mission']['type']
+        outcome = mission_exec['outcome']
+        
+        if mission_type == "prevent_traveler_exposure":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                print("   🔒 Traveler identities remain secure")
+                print("   📱 Social media patterns successfully scrubbed")
+                print("   🚔 Law enforcement investigation halted")
+                print("   👥 Host families continue normal lives")
+            elif outcome == "PARTIAL_SUCCESS":
+                print("   ⚠️  Some social media traces remain")
+                print("   🚔 Law enforcement investigation slowed but not stopped")
+                print("   👥 Host families show minor suspicions")
+            else:
+                print("   🚨 Traveler identities potentially exposed")
+                print("   📱 Social media patterns still visible")
+                print("   🚔 Law enforcement investigation continues")
+                print("   👥 Host families becoming suspicious")
+                
+        elif mission_type == "host_body_crisis":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                print("   💕 Host body relationships stabilized")
+                print("   🧠 Personality changes explained away")
+                print("   👨‍👩‍👧‍👦 Family concerns resolved")
+                print("   🎭 Cover story maintained successfully")
+            elif outcome == "PARTIAL_SUCCESS":
+                print("   ⚠️  Some family concerns remain")
+                print("   🧠 Personality changes partially explained")
+                print("   👨‍👩‍👧‍👦 Family relationships strained but intact")
+            else:
+                print("   🚨 Host body relationships severely damaged")
+                print("   🧠 Personality changes too obvious to hide")
+                print("   👨‍👩‍👧‍👦 Family relationships broken")
+                print("   🎭 Cover story compromised")
+                
+        elif mission_type == "timeline_correction":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                print("   ⏰ Timeline deviation corrected")
+                print("   🌍 Future catastrophic events prevented")
+                print("   📊 Historical records updated")
+                print("   🔄 Temporal paradox resolved")
+            elif outcome == "PARTIAL_SUCCESS":
+                print("   ⚠️  Timeline partially corrected")
+                print("   🌍 Some future events still possible")
+                print("   📊 Historical records partially updated")
+            else:
+                print("   🚨 Timeline deviation worsened")
+                print("   🌍 Future catastrophic events accelerated")
+                print("   📊 Historical records corrupted")
+                print("   🔄 Temporal paradox intensified")
+                
+        elif mission_type == "faction_elimination":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                print("   🦹 Faction operatives eliminated")
+                print("   🚫 Timeline disruption operations halted")
+                print("   🛡️  Future threats neutralized")
+                print("   📊 Faction intelligence gathered")
+            elif outcome == "PARTIAL_SUCCESS":
+                print("   ⚠️  Some faction operatives escaped")
+                print("   🚫 Some disruption operations halted")
+                print("   🛡️  Partial threat neutralization")
+            else:
+                print("   🚨 Faction operatives remain active")
+                print("   🚫 Disruption operations continue")
+                print("   🛡️  Threats intensified")
+                print("   📊 Team potentially compromised")
+                
+        else:
+            # Generic consequences for other mission types
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                print("   ✅ Mission objectives achieved")
+                print("   🌍 Positive impact on world stability")
+                print("   🎯 Strategic goals advanced")
+            elif outcome == "PARTIAL_SUCCESS":
+                print("   ⚠️  Mission objectives partially achieved")
+                print("   🌍 Mixed impact on world stability")
+                print("   🎯 Some strategic goals advanced")
+            else:
+                print("   ❌ Mission objectives failed")
+                print("   🌍 Negative impact on world stability")
+                print("   🎯 Strategic goals compromised")
 
     def calculate_timeline_changes(self, mission_exec):
         """Calculate specific timeline changes based on mission outcome"""
-        if mission_exec['outcome'] == "Success":
+        outcome = mission_exec['outcome']
+        
+        if outcome == "COMPLETE_SUCCESS":
+            stability = min(1.0, 0.9 + random.random() * 0.1)
+            global_impact = "Exceptional - Future events significantly delayed"
+            time_acceleration = random.randint(-8, -3)  # Significantly slows down negative events
+        elif outcome == "SUCCESS":
             stability = min(1.0, 0.8 + random.random() * 0.2)
             global_impact = "Positive - Future events delayed"
             time_acceleration = random.randint(-5, -1)  # Slows down negative events
-        else:
-            stability = max(0.0, 0.6 - random.random() * 0.2)
+        elif outcome == "PARTIAL_SUCCESS":
+            stability = max(0.0, 0.6 + random.random() * 0.1)
+            global_impact = "Mixed - Some future events delayed"
+            time_acceleration = random.randint(-2, 1)  # Minimal impact on timeline
+        elif outcome == "FAILURE":
+            stability = max(0.0, 0.4 - random.random() * 0.2)
             global_impact = "Negative - Future events accelerated"
             time_acceleration = random.randint(1, 5)  # Speeds up negative events
+        elif outcome == "CRITICAL_FAILURE":
+            stability = max(0.0, 0.2 - random.random() * 0.2)
+            global_impact = "Catastrophic - Future events dramatically accelerated"
+            time_acceleration = random.randint(3, 8)  # Dramatically speeds up negative events
+        else:
+            # Fallback for unknown outcomes
+            stability = max(0.0, 0.5 - random.random() * 0.1)
+            global_impact = "Unknown - Timeline impact unclear"
+            time_acceleration = random.randint(-1, 1)
         
         return {
             "stability": stability,
@@ -985,7 +1133,7 @@ class Game:
         
         # Show recent timeline events
         if timeline_status['recent_events']:
-            print(f"📈 RECENT TIMELINE EVENTS:")
+            print(f"\n📈 RECENT TIMELINE EVENTS:")
             for event in timeline_status['recent_events']:
                 change_symbol = "📈" if event['change'] > 0 else "📉"
                 print(f"{change_symbol} {event['source'].replace('_', ' ').title()}")
@@ -994,7 +1142,7 @@ class Game:
                 print(f"   Time: {event['timestamp']}")
                 print()
         else:
-            print(f"📈 No recent timeline events recorded")
+            print(f"\n📈 No recent timeline events recorded")
         
         self.print_separator()
         
@@ -1315,7 +1463,7 @@ class Game:
         ]
         
         event = random.choice(events)
-        success = random.random() < 0.8  # 80% success rate
+        success = random.randint(1, 20) <= 16  # D20 roll: 1-16 (80% success rate)
         
         if success:
             print(f"    ✅ Successfully handled: {event}")
@@ -1334,7 +1482,7 @@ class Game:
         ]
         
         event = random.choice(events)
-        success = random.random() < 0.85  # 85% success rate
+        success = random.randint(1, 20) <= 17  # D20 roll: 1-17 (85% success rate)
         
         if success:
             print(f"    ❤️  Positive interaction: {event}")
@@ -1353,7 +1501,7 @@ class Game:
         ]
         
         event = random.choice(events)
-        success = random.random() < 0.75  # 75% success rate
+        success = random.randint(1, 20) <= 15  # D20 roll: 1-15 (75% success rate)
         
         if success:
             print(f"    👴👵 Positive interaction: {event}")
@@ -1382,7 +1530,7 @@ class Game:
             ]
             
             event = random.choice(work_events)
-            success = random.random() < 0.7  # 70% success rate (work can be challenging)
+            success = random.randint(1, 20) <= 14  # D20 roll: 1-14 (70% success rate for work)
             
             if success:
                 print(f"    ✅ Work success: {event}")
@@ -1409,7 +1557,7 @@ class Game:
         ]
         
         event = random.choice(daily_events)
-        success = random.random() < 0.9  # 90% success rate for routine activities
+        success = random.randint(1, 20) <= 18  # D20 roll: 1-18 (90% success rate for routine activities)
         
         if success:
             print(f"    ✅ Daily routine: {event}")
@@ -2575,12 +2723,12 @@ class Game:
         for name, data in programmers.items():
             if data["status"] == "defected":
                 # Defected programmers have a chance to appear as antagonists
-                if random.random() < 0.3:  # 30% chance
+                if random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance)
                     active_programmers[name] = data.copy()
                     active_programmers[name]["current_host"] = self.generate_programmer_host(name, data)
             else:
                 # Active programmers have a chance to be sent on critical missions
-                if random.random() < 0.4:  # 40% chance
+                if random.randint(1, 20) <= 8:  # D20 roll: 1-8 (40% chance)
                     active_programmers[name] = data.copy()
                     active_programmers[name]["current_host"] = self.generate_programmer_host(name, data)
         

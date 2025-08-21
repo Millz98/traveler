@@ -158,7 +158,7 @@ class LivingWorld:
                     activity.turns_remaining -= 1
                     
                     # Show progress updates for high-threat activities
-                    if activity.threat_level in ["HIGH", "CRITICAL"] and random.random() < 0.3:
+                    if activity.threat_level in ["HIGH", "CRITICAL"] and random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance)
                         updates.append({
                             "type": "faction_progress",
                             "activity": activity.activity_type,
@@ -220,20 +220,20 @@ class LivingWorld:
         
         # Higher chance of events if timeline is unstable
         if self.timeline_stability < 0.6:
-            if random.random() < 0.4:  # 40% chance
+            if random.randint(1, 20) <= 8:  # D20 roll: 1-8 (40% chance)
                 new_event = self.create_timeline_crisis()
                 if new_event:
                     new_events.append(new_event)
         
         # Higher chance of faction activities if they're gaining influence
         if self.faction_influence > 0.3:
-            if random.random() < 0.3:  # 30% chance
+            if random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance)
                 new_event = self.create_faction_activity()
                 if new_event:
                     new_events.append(new_event)
         
         # Random world events
-        if random.random() < 0.2:  # 20% chance
+        if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance)
             new_event = self.create_random_world_event()
             if new_event:
                 new_events.append(new_event)

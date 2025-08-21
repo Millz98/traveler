@@ -1,19 +1,18 @@
 {
   "team_leader": {
-    "name": "Holly",
-    "designation": "1250",
+    "name": "Isabella",
+    "designation": "3120",
     "role": "Team Leader",
-    "occupation": "Scientist",
+    "occupation": "Engineer",
     "skills": [
-      "Tracking",
-      "Oceanography",
-      "Entrepreneurship",
-      "Data Mining",
-      "Athletics"
+      "Planetary Science",
+      "Sociology",
+      "Agriculture",
+      "Linguistics"
     ],
     "abilities": [
-      "Master Historian",
-      "Master Hunter"
+      "Expert Medic",
+      "Skilled Engineer"
     ],
     "mission_count": 0,
     "success_rate": 0.0,
@@ -22,83 +21,83 @@
   },
   "team_members": [
     {
-      "name": "Michelle",
-      "designation": "1269",
+      "name": "Zoe",
+      "designation": "6205",
       "role": "Historian",
+      "occupation": "Engineer",
+      "skills": [
+        "Horticulture",
+        "Civil Engineering",
+        "Network Security",
+        "Dietetics"
+      ],
+      "abilities": [
+        "Skilled Leader",
+        "Expert Negotiator",
+        "Master Surgeon"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Robert",
+      "designation": "8889",
+      "role": "Engineer",
+      "occupation": "Tactician",
+      "skills": [
+        "Combat",
+        "Chemistry",
+        "Marketing"
+      ],
+      "abilities": [
+        "Skilled Negotiator",
+        "Gifted Sportsman",
+        "Exceptional Hearing"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Ryan",
+      "designation": "128",
+      "role": "Medic",
       "occupation": "Historian",
       "skills": [
-        "History",
-        "Natural Language Processing",
-        "Leadership"
-      ],
-      "abilities": [
-        "Master Martial Artist",
-        "Master Author",
-        "Exceptional Pilot",
-        "Skilled Athlete"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Tyler",
-      "designation": "4594",
-      "role": "Engineer",
-      "occupation": "Soldier",
-      "skills": [
         "First Aid",
-        "Linguistics",
-        "Cryptography",
-        "Marketing",
-        "Cryptography"
-      ],
-      "abilities": [
-        "Master Sailor",
-        "Charismatic Leader",
-        "Gifted Sportsman",
-        "Multilingualism"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Mackenzie",
-      "designation": "3168",
-      "role": "Medic",
-      "occupation": "Engineer",
-      "skills": [
-        "Natural Language Processing",
-        "Navigation",
-        "Cartography"
-      ],
-      "abilities": [
-        "Skilled Athlete",
-        "Master Trainer"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Andrew",
-      "designation": "7782",
-      "role": "Tactician",
-      "occupation": "Engineer",
-      "skills": [
         "Planetary Science",
-        "Cooking",
-        "Data Warehousing",
-        "Algorithm Design",
-        "Aerospace Engineering"
+        "Business Intelligence",
+        "Theater",
+        "Persuasion"
       ],
       "abilities": [
-        "Expert Designer",
-        "Genius-Level Intellect"
+        "Exceptional Dancer",
+        "Skilled Musician",
+        "Master Hunter"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Madison",
+      "designation": "3537",
+      "role": "Tactician",
+      "occupation": "Historian",
+      "skills": [
+        "Demolitions",
+        "Accounting",
+        "Nutrition",
+        "Human Resources",
+        "Cooking"
+      ],
+      "abilities": [
+        "Expert Sommelier",
+        "Gifted Mathematician"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -111,25 +110,34 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.735,
+  "timeline_stability": 0.865,
   "timeline_fragility": 0.3,
   "timeline_events": [
+    {
+      "timestamp": "March 15, 2018",
+      "change": -0.1,
+      "actual_change": -0.13,
+      "old_stability": 0.8,
+      "new_stability": 0.67,
+      "source": "mission_prevent_historical_disaster_failure",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 15, 2018",
+      "change": 0.1,
+      "actual_change": 0.13,
+      "old_stability": 0.67,
+      "new_stability": 0.8,
+      "source": "mission_prevent_historical_disaster_complete_success",
+      "fragility_impact": 0.3
+    },
     {
       "timestamp": "March 15, 2018",
       "change": 0.05,
       "actual_change": 0.065,
       "old_stability": 0.8,
       "new_stability": 0.865,
-      "source": "mission_host_body_crisis_success",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 16, 2018",
-      "change": -0.1,
-      "actual_change": -0.13,
-      "old_stability": 0.865,
-      "new_stability": 0.735,
-      "source": "mission_protocol_violation_cleanup_failure",
+      "source": "mission_faction_interference_success",
       "fragility_impact": 0.3
     }
   ]

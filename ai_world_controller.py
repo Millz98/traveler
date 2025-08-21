@@ -179,7 +179,7 @@ class AITravelerTeam(AIEntity):
         
         # 5. Check for new missions (only if life is stable)
         if self.life_balance_score > 0.4:
-            if random.random() < 0.3:  # 30% chance of new mission
+            if random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance of new mission)
                 self.generate_ai_mission(world_state)
         
         # 6. Execute active missions (if life allows)
@@ -189,7 +189,7 @@ class AITravelerTeam(AIEntity):
                     self.active_missions.remove(mission)
         
         # 7. Handle host body complications
-        if random.random() < 0.25:  # 25% chance of complication
+        if random.randint(1, 20) <= 5:  # D20 roll: 1-5 (25% chance of complication)
             self.handle_host_complication(world_state)
         
         # 8. Update life balance score
@@ -207,19 +207,19 @@ class AITravelerTeam(AIEntity):
             self.execute_daily_routine(host_life, i, time_system)
             
             # Handle random life events
-            if random.random() < 0.15:  # 15% chance of life event
+            if random.randint(1, 20) <= 3:  # D20 roll: 1-3 (15% chance of life event)
                 self.generate_life_event(host_life, i)
             
             # Handle random life complications
-            if random.random() < 0.1:  # 10% chance of random complication
+            if random.randint(1, 20) <= 2:  # D20 roll: 1-2 (10% chance of random complication)
                 self.generate_random_life_complication(host_life)
             
             # Handle relationship events
-            if random.random() < 0.12:  # 12% chance of relationship event
+            if random.randint(1, 20) <= 2:  # D20 roll: 1-2 (12% chance of relationship event)
                 self.generate_relationship_event(host_life)
             
             # Handle career events
-            if random.random() < 0.08:  # 8% chance of career event
+            if random.randint(1, 20) <= 2:  # D20 roll: 1-2 (8% chance of career event)
                 self.generate_career_event(host_life)
             
             # Update stress and happiness levels
@@ -242,7 +242,7 @@ class AITravelerTeam(AIEntity):
         
         # Execute activities
         for activity in activities:
-            success = random.random() < 0.8  # 80% success rate for routine activities
+            success = random.randint(1, 20) <= 16  # D20 roll: 1-16 (80% success rate for routine activities)
             
             if success:
                 print(f"    ✅ {host_life['name']} completed {activity} successfully")
@@ -288,7 +288,7 @@ class AITravelerTeam(AIEntity):
         print(f"    ⚠️  Random complication for {host_life['name']}: {complication}")
         
         # Handle the complication
-        if random.random() < 0.7:  # 70% success rate
+        if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% success rate)
             print(f"      ✅ Complication resolved")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.02)  # Relief
         else:
@@ -308,7 +308,7 @@ class AITravelerTeam(AIEntity):
         
         # Handle relationship event
         if "conflict" in event.lower() or "argument" in event.lower() or "gossip" in event.lower():
-            if random.random() < 0.6:  # 60% success rate
+            if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% success rate)
                 print(f"      ✅ Conflict resolved")
                 host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
             else:
@@ -332,7 +332,7 @@ class AITravelerTeam(AIEntity):
         
         # Handle career event
         if "deadline" in event.lower() or "review" in event.lower() or "presentation" in event.lower():
-            if random.random() < 0.7:  # 70% success rate
+            if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% success rate)
                 print(f"      ✅ Career challenge met")
                 host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
                 host_life['relationships']['work']['job_satisfaction'] = min(1.0, host_life['relationships']['work']['job_satisfaction'] + 0.05)
@@ -346,7 +346,7 @@ class AITravelerTeam(AIEntity):
     
     def handle_social_event(self, host_life, event):
         """Handle social and family events"""
-        if random.random() < 0.7:  # 70% positive outcome
+        if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% positive outcome)
             print(f"      ✅ Social event handled positively")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.05)
@@ -356,7 +356,7 @@ class AITravelerTeam(AIEntity):
     
     def handle_work_event(self, host_life, event):
         """Handle work and career events"""
-        if random.random() < 0.6:  # 60% positive outcome
+        if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% positive outcome)
             print(f"      ✅ Work event handled successfully")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         else:
@@ -365,7 +365,7 @@ class AITravelerTeam(AIEntity):
     
     def handle_health_event(self, host_life, event):
         """Handle health and medical events"""
-        if random.random() < 0.8:  # 80% positive outcome
+        if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% positive outcome)
             print(f"      ✅ Health concern addressed")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         else:
@@ -405,7 +405,7 @@ class AITravelerTeam(AIEntity):
                 self.celebrate_special_date(host_life, i)
             
             # Generate random personal events
-            if random.random() < 0.1:  # 10% chance of personal event
+            if random.randint(1, 20) <= 2:  # D20 roll: 1-2 (10% chance of personal event)
                 self.generate_personal_event(host_life, i)
             
             # Check for seasonal events
@@ -421,7 +421,7 @@ class AITravelerTeam(AIEntity):
     def is_special_date(self, host_life, current_date):
         """Check if current date is special for the host body"""
         # Simplified special date checking
-        return random.random() < 0.05  # 5% chance of special date
+        return random.randint(1, 20) <= 1  # D20 roll: 1 (5% chance of special date)
     
     def celebrate_special_date(self, host_life, member_index):
         """Celebrate a special date for a host body"""
@@ -449,7 +449,7 @@ class AITravelerTeam(AIEntity):
         print(f"    🌟 Personal event for {host_life['name']}: {event}")
         
         # Handle personal event
-        if random.random() < 0.8:  # 80% positive outcome
+        if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% positive outcome)
             print(f"      ✅ Personal event was enjoyable")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
         else:
@@ -512,7 +512,7 @@ class AITravelerTeam(AIEntity):
     
     def handle_social_connections(self, host_life, member_index):
         """Handle social connections and friendships"""
-        if random.random() < 0.6:  # 60% chance of social interaction
+        if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% chance of social interaction)
             print(f"    👥 {host_life['name']} had social interaction")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
     
@@ -524,7 +524,7 @@ class AITravelerTeam(AIEntity):
             "Charity event", "Political meeting", "Town hall", "Community cleanup"
         ]
         
-        if random.random() < 0.2:  # 20% chance of community event
+        if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance of community event)
             event = random.choice(community_events)
             print(f"    🏘️  Community event for {host_life['name']}: {event}")
             
@@ -540,7 +540,7 @@ class AITravelerTeam(AIEntity):
             "Gaming time", "Outdoor hobby", "Indoor hobby", "Hobby milestone"
         ]
         
-        if random.random() < 0.25:  # 25% chance of hobby event
+        if random.randint(1, 20) <= 5:  # D20 roll: 1-5 (25% chance of hobby event)
             event = random.choice(hobby_events)
             print(f"    🎨 Hobby event for {host_life['name']}: {event}")
             
@@ -554,19 +554,19 @@ class AITravelerTeam(AIEntity):
         
         for i, host_life in enumerate(self.host_lives):
             # Handle daily work tasks
-            if random.random() < 0.8:  # 80% chance of work task
+            if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% chance of work task)
                 self.handle_work_task(host_life, i)
             
             # Handle career development
-            if random.random() < 0.2:  # 20% chance of career event
+            if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance of career event)
                 self.handle_career_event(host_life, i)
             
             # Handle financial management
-            if random.random() < 0.15:  # 15% chance of financial event
+            if random.randint(1, 20) <= 3:  # D20 roll: 1-3 (15% chance of financial event)
                 self.handle_financial_event(host_life, i)
             
             # Handle health and wellness
-            if random.random() < 0.12:  # 12% chance of health event
+            if random.randint(1, 20) <= 2:  # D20 roll: 1-2 (12% chance of health event)
                 self.handle_health_event(host_life, i)
     
     def handle_financial_event(self, host_life, member_index):
@@ -581,7 +581,7 @@ class AITravelerTeam(AIEntity):
         print(f"    💰 Financial event for {host_life['name']}: {event}")
         
         # Financial events can be stressful but rewarding
-        if random.random() < 0.7:  # 70% success rate
+        if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% success rate)
             print(f"      ✅ Financial event handled well")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.03)
@@ -601,7 +601,7 @@ class AITravelerTeam(AIEntity):
         print(f"    🏥 Health event for {host_life['name']}: {event}")
         
         # Health events are generally positive
-        if random.random() < 0.8:  # 80% success rate
+        if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% success rate)
             print(f"      ✅ Health event positive")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.08)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.05)
@@ -679,6 +679,12 @@ class AITravelerTeam(AIEntity):
             "progress": 0,
             "status": "active"
         }
+        
+        # Ensure all required attributes exist
+        if "progress" not in mission:
+            mission["progress"] = 0
+        if "status" not in mission:
+            mission["status"] = "active"
         
         self.active_missions.append(mission)
         print(f"    📋 New mission: {mission_type} at {mission['location']}")
@@ -842,7 +848,7 @@ class AITravelerTeam(AIEntity):
         print(f"    🎉 Weekend event for {host_life['name']}: {event}")
         
         # Weekend events are generally positive
-        if random.random() < 0.8:  # 80% positive outcome
+        if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% positive outcome)
             print(f"      ✅ Weekend event was enjoyable")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.12)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.08)
@@ -861,7 +867,7 @@ class AITravelerTeam(AIEntity):
         print(f"    💼 Weekday event for {host_life['name']}: {event}")
         
         # Weekday events can be more challenging
-        if random.random() < 0.6:  # 60% positive outcome
+        if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% positive outcome)
             print(f"      ✅ Weekday event handled well")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         else:
@@ -890,7 +896,7 @@ class AIFactionOperative(AIEntity):
             self.execute_operation(world_state)
         
         # Check for detection
-        if random.random() < (1.0 - self.stealth_level) * 0.1:
+        if random.randint(1, 20) <= int((1.0 - self.stealth_level) * 2):  # D20 roll based on stealth level
             self.handle_detection(world_state)
         
         # Update world state
@@ -915,6 +921,12 @@ class AIFactionOperative(AIEntity):
             "resources_needed": random.randint(1, 3)
         }
         
+        # Ensure all required attributes exist
+        if "progress" not in self.current_operation:
+            self.current_operation["progress"] = 0
+        if "type" not in self.current_operation:
+            self.current_operation["type"] = "unknown"
+        
         print(f"  📋 Planning {op_type} operation against {target['name']}")
     
     def execute_operation(self, world_state):
@@ -935,7 +947,7 @@ class AIFactionOperative(AIEntity):
         
         if op["progress"] >= 100:
             # Operation completed
-            success = random.random() < (self.stealth_level * 0.8)
+            success = random.randint(1, 20) <= int(self.stealth_level * 16)  # D20 roll based on stealth level
             
             if success:
                 print(f"  ✅ {op['type']} operation completed successfully")
@@ -946,7 +958,7 @@ class AIFactionOperative(AIEntity):
             
             self.current_operation = None
         else:
-            print(f"  🔄 Operation {op['type']} in progress: {op['progress']}%")
+            print(f"  🔄 Operation {op['type']} in progress: {op.get('progress', 0)}%")
     
     def select_operation_target(self, world_state):
         """Select a target for Faction operations"""
@@ -965,7 +977,7 @@ class AIFactionOperative(AIEntity):
         print(f"  🚨 Operative {self.operative_id} detected!")
         
         # Attempt to escape
-        escape_success = random.random() < self.stealth_level
+        escape_success = random.randint(1, 20) <= int(self.stealth_level * 20)  # D20 roll based on stealth level
         
         if escape_success:
             print(f"  ✅ Successfully escaped detection")
@@ -1132,11 +1144,17 @@ class AIGovernmentAgent(AIEntity):
         
         print(f"    🕵️  Starting investigation: {best_report['type']} at {best_report['location']}")
         
-        # Initialize investigation
+        # Initialize investigation with all required attributes
         self.current_investigation["progress"] = 0
         self.current_investigation["evidence"] = []
         self.current_investigation["suspects"] = []
         self.current_investigation["methods"] = self.generate_investigation_methods()
+        
+        # Ensure all required attributes exist
+        if "threat_level" not in self.current_investigation:
+            self.current_investigation["threat_level"] = "MEDIUM"
+        if "location" not in self.current_investigation:
+            self.current_investigation["location"] = "Unknown Location"
     
     def generate_investigation_methods(self):
         """Generate investigation methods based on agency and specialization"""
@@ -1159,7 +1177,7 @@ class AIGovernmentAgent(AIEntity):
             return
             
         investigation = self.current_investigation
-        print(f"    🔍 Investigating: {investigation['type']} - Progress: {investigation['progress']}%")
+        print(f"    🔍 Investigating: {investigation['type']} - Progress: {investigation.get('progress', 0)}%")
         
         # Conduct investigation activities
         self.gather_evidence(investigation)
@@ -1652,7 +1670,7 @@ class AIWorldController:
         if team.active_missions:
             print(f"    📋 Active Missions: {len(team.active_missions)}")
             for mission in team.active_missions:
-                print(f"      • {mission['type']} at {mission['location']} - {mission['progress']}% complete")
+                print(f"      • {mission['type']} at {mission['location']} - {mission.get('progress', 0)}% complete")
         else:
             print(f"    📋 No active missions (focusing on host body life)")
     
@@ -1667,7 +1685,7 @@ class AIWorldController:
         if agent.current_investigation:
             investigation = agent.current_investigation
             print(f"    🔍 Active Investigation: {investigation['type']} at {investigation['location']}")
-            print(f"      • Progress: {investigation['progress']}%")
+            print(f"      • Progress: {investigation.get('progress', 0)}%")
             print(f"      • Threat Level: {investigation['threat_level']}")
             print(f"      • Evidence: {len(investigation.get('evidence', []))} items")
             print(f"      • Methods: {', '.join(investigation.get('methods', []))}")

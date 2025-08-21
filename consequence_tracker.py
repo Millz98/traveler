@@ -143,7 +143,7 @@ class ConsequenceTracker:
             })
         
         # High-profile investigations may reveal Traveler activity
-        if action_type == "investigation" and random.random() < 0.1:  # 10% chance
+        if action_type == "investigation" and random.randint(1, 20) <= 2:  # D20 roll: 1-2 (10% chance)
             consequences.append({
                 "type": "traveler_exposure_risk",
                 "exposure_increase": 0.05,
@@ -230,7 +230,7 @@ class ConsequenceTracker:
         })
         
         # Surveillance may detect other activities
-        if random.random() < 0.2:  # 20% chance
+        if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance)
             consequences.append({
                 "type": "intelligence_gain",
                 "intelligence_value": 0.05,
@@ -360,7 +360,7 @@ class ConsequenceTracker:
         
         # Successful actions can create unintended consequences
         if "outcome" in action_record["action_details"] and "SUCCESS" in action_record["action_details"]["outcome"]:
-            if random.random() < 0.2:  # 20% chance for butterfly effect
+            if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance for butterfly effect)
                 butterfly_effects.append({
                     "type": "butterfly_effect",
                     "original_action": action_type,
