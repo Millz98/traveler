@@ -419,15 +419,17 @@ class Game:
                     elif choice == "24":
                         self.view_government_news_and_status()
                     elif choice == "25":
-                        self.end_turn()
+                        self.view_us_political_system_status()
                     elif choice == "26":
-                        self.save_game()
+                        self.end_turn()
                     elif choice == "27":
+                        self.save_game()
+                    elif choice == "28":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
                     else:
-                        print("\n❌ Invalid choice. Please enter a number between 1 and 27.")
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 28.")
                         input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
@@ -454,7 +456,6 @@ class Game:
             print("4.  View Host Body Life")
             print("5.  Save Game")
             print("6.  Quit Game")
-            choice = input(f"\nEnter your choice (1-6): ")
         else:
             print("1.  View Timeline Status")
             print("2.  View Team Status")
@@ -480,9 +481,10 @@ class Game:
             print("22. View Dynamic World Status")
             print("23. View World Activity Feed")
             print("24. View Government News & Status")
-            print("25. End Turn")
-            print("26. Save Game")
-            print("27. Quit Game")
+            print("25. View US Political System Status")
+            print("26. End Turn")
+            print("27. Save Game")
+            print("28. Quit Game")
         
         self.print_separator()
         
@@ -500,7 +502,7 @@ class Game:
         if not self.team_formed:
             choice = input(f"\nEnter your choice (1-6): ")
         else:
-            choice = input(f"\nEnter your choice (1-27): ")
+            choice = input(f"\nEnter your choice (1-28): ")
         
         return choice
 
@@ -1455,6 +1457,13 @@ class Game:
             print("\n🌍 Processing Dynamic World Events...")
             self.messenger_system.dynamic_world_events.process_world_turn()
             print("✅ Dynamic world events processed - Director's Core Programmers and NPCs acted!")
+        
+        # FOURTH: Execute US Political System turn (Executive, Legislative, Judicial, Federal Agencies)
+        if hasattr(self, 'us_political_system'):
+            print("\n🏛️  Processing US Political System...")
+            world_state = self.get_game_state()
+            self.us_political_system.process_political_turn(world_state)
+            print("✅ US Political System processed - Government branches and agencies acted!")
         
         # FINALLY: Advance the world turn and show summary (this will now use the updated real-time values)
         print("\n📅 Generating Daily Summary with real-time world state...")
@@ -2861,6 +2870,19 @@ class Game:
         self.dialogue_manager = dialogue_system.DialogueManager()
         self.hacking_system = hacking_system.HackingSystem()
         
+        # Initialize comprehensive US Political System
+        try:
+            from us_political_system import USPoliticalSystem
+            self.us_political_system = USPoliticalSystem()
+            self.us_political_system.initialize_political_system()
+            print("🏛️  US Political System integrated successfully")
+        except ImportError as e:
+            print(f"⚠️  Warning: Could not import US Political System: {e}")
+            self.us_political_system = None
+        except Exception as e:
+            print(f"⚠️  Warning: Could not initialize US Political System: {e}")
+            self.us_political_system = None
+        
         # Initialize Dynamic World Events System for real-time NPC and faction actions
         print("🌍 Initializing Dynamic World Events System...")
         self.messenger_system.dynamic_world_events.initialize_npc_mission_system()
@@ -4122,6 +4144,181 @@ class Game:
             print("   • Government consequences and news not accessible")
         except Exception as e:
             print(f"❌ Error accessing government systems: {e}")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_us_political_system_status(self):
+        """View comprehensive US Political System status"""
+        self.clear_screen()
+        self.print_header("US POLITICAL SYSTEM STATUS")
+        
+        try:
+            if not hasattr(self, 'us_political_system') or self.us_political_system is None:
+                print("❌ US Political System not available")
+                print("   • Political system not initialized")
+                print("   • Check game system initialization")
+                self.print_separator()
+                input("Press Enter to continue...")
+                return
+            
+            print("🏛️  US POLITICAL SYSTEM - COMPREHENSIVE STATUS")
+            print("=" * 70)
+            
+            # Get political system status
+            political_system = self.us_political_system
+            
+            # Executive Branch Status
+            print(f"\n👑 EXECUTIVE BRANCH:")
+            if hasattr(political_system, 'executive_branch') and political_system.executive_branch:
+                exec_branch = political_system.executive_branch
+                if hasattr(exec_branch, 'president') and exec_branch.president:
+                    pres = exec_branch.president
+                    party_str = pres.party.value if hasattr(pres.party, 'value') else str(pres.party)
+                    print(f"   • President: {pres.name} ({party_str})")
+                    print(f"     Approval Rating: {pres.approval_rating:.1%}")
+                    print(f"     Political Capital: {pres.political_capital:.1f}")
+                    print(f"     Executive Orders: {len(pres.executive_orders)}")
+                
+                if hasattr(exec_branch, 'vice_president') and exec_branch.vice_president:
+                    vp = exec_branch.vice_president
+                    party_str = vp.party.value if hasattr(vp.party, 'value') else str(vp.party)
+                    print(f"   • Vice President: {vp.name} ({party_str})")
+                    print(f"     Effectiveness: {vp.effectiveness:.1%}")
+                    print(f"     Political Capital: {vp.political_capital:.1f}")
+                
+                if hasattr(exec_branch, 'cabinet') and exec_branch.cabinet:
+                    cabinet = exec_branch.cabinet
+                    if isinstance(cabinet, list):
+                        print(f"   • Cabinet Members: {len(cabinet)}")
+                        for member in cabinet[:5]:  # Show first 5
+                            if hasattr(member, 'name') and hasattr(member, 'office') and hasattr(member, 'party'):
+                                party_str = member.party.value if hasattr(member.party, 'value') else str(member.party)
+                                print(f"     • {member.name} ({member.office}) - {party_str}")
+                    else:
+                        print(f"   • Cabinet Members: {len(cabinet) if hasattr(cabinet, '__len__') else 'Unknown'}")
+            else:
+                print("   • Executive branch not available")
+            
+            # Legislative Branch Status
+            print(f"\n🏛️  LEGISLATIVE BRANCH:")
+            if hasattr(political_system, 'legislative_branch') and political_system.legislative_branch:
+                leg_branch = political_system.legislative_branch
+                if hasattr(leg_branch, 'senate') and leg_branch.senate:
+                    senate = leg_branch.senate
+                    if hasattr(senate, 'majority_party') and hasattr(senate, 'members'):
+                        party_str = senate.majority_party.value if hasattr(senate.majority_party, 'value') else str(senate.majority_party)
+                        majority_count = getattr(senate, 'majority_count', len([m for m in senate.members if hasattr(m, 'party') and m.party == senate.majority_party]))
+                        print(f"   • Senate: {party_str} majority ({majority_count}/{len(senate.members)})")
+                        print(f"     Members: {len(senate.members)}")
+                    else:
+                        print(f"   • Senate: {len(senate.members) if hasattr(senate, 'members') else 'Unknown'} members")
+                
+                if hasattr(leg_branch, 'house') and leg_branch.house:
+                    house = leg_branch.house
+                    if hasattr(house, 'majority_party') and hasattr(house, 'members'):
+                        party_str = house.majority_party.value if hasattr(house.majority_party, 'value') else str(house.majority_party)
+                        majority_count = getattr(house, 'majority_count', len([m for m in house.members if hasattr(m, 'party') and m.party == house.majority_party]))
+                        print(f"   • House: {party_str} majority ({majority_count}/{len(house.members)})")
+                        print(f"     Members: {len(house.members)}")
+                    else:
+                        print(f"   • House: {len(house.members) if hasattr(house, 'members') else 'Unknown'} members")
+            else:
+                print("   • Legislative branch not available")
+            
+            # Judicial Branch Status
+            print(f"\n⚖️  JUDICIAL BRANCH:")
+            if hasattr(political_system, 'judicial_branch') and political_system.judicial_branch:
+                jud_branch = political_system.judicial_branch
+                if hasattr(jud_branch, 'supreme_court') and jud_branch.supreme_court:
+                    sc = jud_branch.supreme_court
+                    if hasattr(sc, 'justices') and sc.justices:
+                        print(f"   • Supreme Court: {len(sc.justices)} justices")
+                        try:
+                            conservative = sum(1 for j in sc.justices if hasattr(j, 'ideology') and j.ideology == 'Conservative')
+                            liberal = sum(1 for j in sc.justices if hasattr(j, 'ideology') and j.ideology == 'Liberal')
+                            print(f"     Conservative: {conservative}, Liberal: {liberal}")
+                        except:
+                            print(f"     • Justices present but ideology information unavailable")
+                    else:
+                        print(f"   • Supreme Court: Justices not available")
+                else:
+                    print(f"   • Supreme Court: Not available")
+            else:
+                print("   • Judicial branch not available")
+            
+            # Federal Agencies Status
+            print(f"\n🏢 FEDERAL AGENCIES:")
+            if hasattr(political_system, 'federal_agencies') and political_system.federal_agencies:
+                agencies = political_system.federal_agencies
+                if hasattr(agencies, 'agencies') and agencies.agencies:
+                    print(f"   • Active Agencies: {len(agencies.agencies)}")
+                    for agency_name, agency_data in agencies.agencies.items():
+                        if hasattr(agency_data, 'head') and agency_data.head:
+                            head = agency_data.head
+                            effectiveness = getattr(agency_data, 'effectiveness', 0.5)
+                            print(f"     • {agency_name}: {head.name} (Effectiveness: {effectiveness:.1%})")
+            else:
+                print("   • Federal agencies not available")
+            
+            # Political Parties Status
+            print(f"\n🏛️  POLITICAL PARTIES:")
+            if hasattr(political_system, 'political_parties') and political_system.political_parties:
+                parties = political_system.political_parties
+                if hasattr(parties, 'parties') and parties.parties:
+                    for party_name, party_data in parties.parties.items():
+                        if hasattr(party_data, 'leader') and party_data.leader:
+                            leader = party_data.leader
+                            strength = getattr(party_data, 'strength', 0.5)
+                            print(f"   • {party_name}: {leader.name} (Strength: {strength:.1%})")
+            else:
+                print("   • Political parties not available")
+            
+            # Election System Status
+            print(f"\n🗳️  ELECTION SYSTEM:")
+            if hasattr(political_system, 'election_system') and political_system.election_system:
+                election = political_system.election_system
+                if hasattr(election, 'next_presidential_election'):
+                    pres_election = election.next_presidential_election
+                    days_until_pres = (pres_election - election.current_date).days
+                    print(f"   • Next Presidential Election: {pres_election.strftime('%B %d, %Y')}")
+                    print(f"     Days Until Election: {days_until_pres}")
+                
+                if hasattr(election, 'next_midterm_election'):
+                    midterm_election = election.next_midterm_election
+                    days_until_midterm = (midterm_election - election.current_date).days
+                    print(f"   • Next Midterm Election: {midterm_election.strftime('%B %d, %Y')}")
+                    print(f"     Days Until Election: {days_until_midterm}")
+            else:
+                print("   • Election system not available")
+            
+            # Recent D20 Rolls (if available)
+            if hasattr(political_system, 'last_d20_rolls') and political_system.last_d20_rolls:
+                print(f"\n🎲 RECENT D20 ROLLS:")
+                print(f"   • Last {min(5, len(political_system.last_d20_rolls))} rolls:")
+                for roll in political_system.last_d20_rolls[-5:]:
+                    result = roll.get('result', 'Unknown')
+                    context = roll.get('context', 'Unknown')
+                    print(f"     • {result} ({context})")
+            
+            # Critical Events (if available)
+            if hasattr(political_system, 'critical_events') and political_system.critical_events:
+                print(f"\n🚨 CRITICAL EVENTS:")
+                print(f"   • Recent critical events: {len(political_system.critical_events)}")
+                for event in political_system.critical_events[-3:]:  # Show last 3
+                    print(f"     • {event}")
+            
+            print(f"\n⚠️  IMPORTANT NOTES:")
+            print("   • All political decisions use D20 system for outcomes")
+            print("   • Elections follow real-world timing (first Tuesday of November)")
+            print("   • Government officials are randomly generated each game")
+            print("   • Political actions directly impact world state")
+            print("   • System operates in real-time as game progresses")
+            
+        except Exception as e:
+            print(f"❌ Error accessing US Political System: {e}")
+            print("   • Political system may not be fully initialized")
+            print("   • Check game system setup")
         
         self.print_separator()
         input("Press Enter to continue...")

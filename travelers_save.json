@@ -1,42 +1,43 @@
 {
   "team_leader": {
-    "name": "Morgan",
-    "designation": "7444",
+    "name": "Natalie",
+    "designation": "8917",
     "role": "Team Leader",
-    "occupation": "Scientist",
+    "occupation": "Soldier",
     "skills": [
-      "Sociology",
-      "Intimidation",
-      "Dance",
-      "Film"
+      "Oceanography",
+      "Culinary Arts",
+      "Safecracking",
+      "Network Security",
+      "Persuasion"
     ],
     "abilities": [
-      "Gifted Investigator",
-      "Master Trainer"
+      "Skilled Thief",
+      "Exceptional Peacemaker"
     ],
-    "mission_count": 0,
+    "mission_count": 1,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Bryson",
-      "designation": "5785",
+      "name": "Ryan",
+      "designation": "7061",
       "role": "Historian",
-      "occupation": "Scientist",
+      "occupation": "Engineer",
       "skills": [
-        "Volcanology",
-        "Astronomy",
-        "Toxicology",
-        "Data Analysis",
-        "First Aid"
+        "Gunnery",
+        "Nutrition",
+        "Marksmanship",
+        "Aerospace Engineering",
+        "Accounting"
       ],
       "abilities": [
-        "Expert Journalist",
-        "Master of Escape",
-        "Photographic Memory",
-        "Exceptional Competitor"
+        "Exceptional Pilot",
+        "Genius-Level Intellect",
+        "Master Historian",
+        "Gifted Fisherman"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -44,41 +45,19 @@
       "timeline_impact": 0
     },
     {
-      "name": "Brandon",
-      "designation": "3008",
+      "name": "Paul",
+      "designation": "2434",
       "role": "Engineer",
       "occupation": "Scientist",
       "skills": [
-        "Penetration Testing",
-        "Fashion Design",
-        "Management"
+        "Veterinary Medicine",
+        "Anthropology",
+        "Artificial Intelligence",
+        "Acrobatics"
       ],
       "abilities": [
-        "Skilled Driver",
-        "Expert Forger",
-        "Exceptional Scientist"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Cole",
-      "designation": "9065",
-      "role": "Medic",
-      "occupation": "Leader",
-      "skills": [
-        "Marketing",
-        "Psychology",
-        "Algorithm Design",
-        "Persuasion",
-        "Networking"
-      ],
-      "abilities": [
-        "Exceptional Peacemaker",
-        "Gifted Coach",
-        "Photographic Memory",
+        "Gifted Orator",
+        "Exceptional Cartographer",
         "Skilled Writer"
       ],
       "mission_count": 0,
@@ -87,20 +66,42 @@
       "timeline_impact": 0
     },
     {
-      "name": "Larry",
-      "designation": "8381",
-      "role": "Tactician",
+      "name": "William",
+      "designation": "2804",
+      "role": "Medic",
       "occupation": "Medic",
       "skills": [
-        "Forensics",
-        "Agriculture",
-        "Architecture",
-        "Electrical Engineering",
-        "Mathematics"
+        "First Aid",
+        "Dietetics",
+        "Culinary Arts"
       ],
       "abilities": [
-        "Exceptional Scientist",
-        "Skilled Negotiator"
+        "Master Historian",
+        "Exceptional Pilot",
+        "Skilled Diplomat"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Megan",
+      "designation": "7291",
+      "role": "Tactician",
+      "occupation": "Engineer",
+      "skills": [
+        "Chemistry",
+        "Physics",
+        "Anthropology",
+        "Natural Language Processing",
+        "Data Mining"
+      ],
+      "abilities": [
+        "Expert Professor",
+        "Skilled Thief",
+        "Exceptional Competitor",
+        "Expert Tracker"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -108,30 +109,38 @@
       "timeline_impact": 0
     }
   ],
-  "mission_status": "Active Missions: 1",
-  "current_mission": null,
+  "mission_status": "Mission Available",
+  "current_mission": {
+    "type": "prevent_traveler_exposure",
+    "location": "Los Angeles, CA - Downtown",
+    "npc": "Marcy Warton (3569) - Intelligence Specialist / Intellectually Disabled Host",
+    "resource": "Prototype Device",
+    "challenge": "Extreme-risk - Maximum security, multiple high-level threats",
+    "description": "Local police are investigating suspicious behavior of Traveler 3326 - provide cover",
+    "objectives": [
+      "Prevent law enforcement investigation from progressing",
+      "Maintain host body cover stories and relationships",
+      "Ensure no witnesses can connect the dots"
+    ],
+    "time_limit": "48 hours - Two days for mission completion",
+    "consequences": [
+      "Government agencies may attempt to weaponize Travelers",
+      "Program secrecy maintained, operations can continue"
+    ]
+  },
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.765,
+  "timeline_stability": 0.9079999999999999,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
-      "change": -0.2,
-      "actual_change": -0.26,
+      "change": -0.02,
+      "actual_change": -0.026000000000000002,
       "old_stability": 0.85,
-      "new_stability": 0.59,
-      "source": "mission_prevent_historical_disaster_critical_failure",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 16, 2018",
-      "change": 0.1,
-      "actual_change": 0.13,
-      "old_stability": 0.635,
-      "new_stability": 0.765,
-      "source": "mission_prevent_traveler_exposure_complete_success",
+      "new_stability": 0.824,
+      "source": "mission_prevent_traveler_exposure_partial_success",
       "fragility_impact": 0.3
     }
   ]

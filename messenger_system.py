@@ -623,33 +623,99 @@ class MessengerSystem:
         final_roll = random.randint(1, 20)
         final_total = final_roll + base_modifier
         
-        # Determine success and show narrative result
-        if final_total >= difficulty_class:
-            success = True
-            if final_roll == 20:
-                print(f"\n🎉 CRITICAL SUCCESS!")
-                print(f"Your team executed the mission with exceptional precision!")
-                total_progress = min(100, total_progress + 10)  # Bonus progress
-            else:
-                print(f"\n🎉 MISSION SUCCESS!")
-                print(f"Mission objectives achieved successfully.")
-        else:
-            success = False
-            if final_roll == 1:
-                print(f"\n💀 CRITICAL FAILURE!")
-                print(f"Catastrophic mission failure with severe consequences.")
-                total_progress = max(0, total_progress - 20)  # Penalty
-            else:
-                print(f"\n❌ MISSION FAILED!")
-                print(f"Mission objectives were not achieved.")
+        # Enhanced D20-based outcome determination
+        print(f"🎲 Final Roll: {final_roll} + Modifier: {base_modifier} = {final_total}")
+        print(f"🎯 Target DC: {difficulty_class}")
         
-        # Final progress display
+        # Determine success level based on D20 roll and modifiers
+        if final_total >= difficulty_class + 5:
+            success_level = "CRITICAL_SUCCESS"
+            success = True
+            print(f"\n🎉 CRITICAL SUCCESS!")
+            print(f"Your team executed the mission with exceptional precision!")
+            print(f"Roll {final_roll} + {base_modifier} = {final_total} vs DC {difficulty_class}")
+            total_progress = min(100, total_progress + 15)  # Significant bonus progress
+            mission_quality = "EXCEPTIONAL"
+            
+        elif final_total >= difficulty_class:
+            success_level = "SUCCESS"
+            success = True
+            print(f"\n🎉 MISSION SUCCESS!")
+            print(f"Mission objectives achieved successfully.")
+            print(f"Roll {final_roll} + {base_modifier} = {final_total} vs DC {difficulty_class}")
+            total_progress = min(100, total_progress + 5)  # Small bonus progress
+            mission_quality = "GOOD"
+            
+        elif final_total >= difficulty_class - 3:
+            success_level = "PARTIAL_SUCCESS"
+            success = True  # Still counts as success but with complications
+            print(f"\n⚠️  PARTIAL SUCCESS!")
+            print(f"Mission completed but with significant complications.")
+            print(f"Roll {final_roll} + {base_modifier} = {final_total} vs DC {difficulty_class}")
+            total_progress = max(0, total_progress - 5)  # Small penalty
+            mission_quality = "MARGINAL"
+            
+        elif final_total >= difficulty_class - 7:
+            success_level = "FAILURE"
+            success = False
+            print(f"\n❌ MISSION FAILED!")
+            print(f"Mission objectives were not achieved.")
+            print(f"Roll {final_roll} + {base_modifier} = {final_total} vs DC {difficulty_class}")
+            total_progress = max(0, total_progress - 15)  # Significant penalty
+            mission_quality = "POOR"
+            
+        else:
+            success_level = "CRITICAL_FAILURE"
+            success = False
+            print(f"\n💀 CRITICAL FAILURE!")
+            print(f"Catastrophic mission failure with severe consequences.")
+            print(f"Roll {final_roll} + {base_modifier} = {final_total} vs DC {difficulty_class}")
+            total_progress = max(0, total_progress - 25)  # Major penalty
+            mission_quality = "CATASTROPHIC"
+        
+        # Show roll analysis
+        print(f"\n📊 ROLL ANALYSIS:")
+        if final_roll == 20:
+            print(f"   🎲 Natural 20! Critical success chance!")
+        elif final_roll == 1:
+            print(f"   🎲 Natural 1! Critical failure chance!")
+        elif final_roll >= 18:
+            print(f"   🎲 High roll ({final_roll}) - Excellent execution!")
+        elif final_roll >= 15:
+            print(f"   🎲 Good roll ({final_roll}) - Solid performance!")
+        elif final_roll >= 10:
+            print(f"   🎲 Average roll ({final_roll}) - Standard execution!")
+        elif final_roll >= 5:
+            print(f"   🎲 Low roll ({final_roll}) - Poor performance!")
+        else:
+            print(f"   🎲 Very low roll ({final_roll}) - Terrible execution!")
+        
+        # Final progress display with quality assessment
         final_progress_bar = self.create_progress_bar(total_progress, 100)
         print(f"\n📊 FINAL MISSION PROGRESS:")
         print(f"Progress: {final_progress_bar} {total_progress:.1f}%")
+        print(f"Mission Quality: {mission_quality}")
         print(f"{'='*60}")
         
+        # Store success level for detailed outcome analysis
+        self.last_mission_success_level = success_level
+        
         return success, total_progress, phase_results
+    
+    def _get_roll_impact_description(self):
+        """Get a description of how the D20 roll affected the mission outcome"""
+        if not hasattr(self, 'last_mission_success_level'):
+            return "Unknown"
+        
+        impact_descriptions = {
+            "CRITICAL_SUCCESS": "Natural 20 or exceptional roll - Mission exceeded all expectations",
+            "SUCCESS": "Good roll - Mission completed as planned",
+            "PARTIAL_SUCCESS": "Average roll - Mission completed with complications",
+            "FAILURE": "Low roll - Mission failed to achieve objectives",
+            "CRITICAL_FAILURE": "Natural 1 or very low roll - Mission failed catastrophically"
+        }
+        
+        return impact_descriptions.get(self.last_mission_success_level, "Unknown")
 
     def create_progress_bar(self, current, total, width=40):
         """Create a visual progress bar"""
@@ -662,11 +728,12 @@ class MessengerSystem:
         print(f"\n📊 MESSENGER MISSION IMPACT ANALYSIS")
         print(f"{'='*60}")
         
-        # Show mission performance summary
+        # Show mission performance summary with enhanced D20 analysis
         print(f"🎯 MISSION PERFORMANCE SUMMARY:")
         print(f"• Final Progress: {total_progress:.1f}%")
         print(f"• Phases Successful: {sum(phase_results)}/{len(phase_results)}")
-        print(f"• Mission Outcome: {'SUCCESS' if success else 'FAILURE'}")
+        print(f"• Mission Outcome: {getattr(self, 'last_mission_success_level', 'UNKNOWN')}")
+        print(f"• D20 Roll Impact: {self._get_roll_impact_description()}")
         
         # Apply real-time world state changes
         print(f"\n🌍 APPLYING REAL-TIME WORLD CHANGES...")
@@ -683,11 +750,39 @@ class MessengerSystem:
                 print(f"• Timeline stability significantly improved")
                 print(f"• Local law enforcement coordination enhanced")
                 print(f"• Civilian casualties prevented")
-                # Update world state through GlobalWorldStateTracker
+                # Update world state through GlobalWorldStateTracker with D20-based scaling
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", 0.12, "increase")
-                global_world_tracker.apply_single_effect("faction_influence", -0.08, "decrease")
-                global_world_tracker.apply_single_effect("director_control", 0.06, "increase")
+                success_level = getattr(self, 'last_mission_success_level', 'SUCCESS')
+                
+                # Scale effects based on success level
+                effect_multiplier = {
+                    "CRITICAL_SUCCESS": 1.5,
+                    "SUCCESS": 1.0,
+                    "PARTIAL_SUCCESS": 0.7,
+                    "FAILURE": 0.3,
+                    "CRITICAL_FAILURE": 0.1
+                }.get(success_level, 1.0)
+                
+                print(f"   📊 Success Level: {success_level} (Multiplier: {effect_multiplier}x)")
+                
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": 0.12 * effect_multiplier,
+                    "operation": "add"
+                })
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "faction_influence",
+                    "value": -0.08 * effect_multiplier,
+                    "operation": "add"
+                })
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "director_control",
+                    "value": 0.06 * effect_multiplier,
+                    "operation": "add"
+                })
                     
             elif "dr. delaney" in messenger.message_content.lower():
                 print(f"• Dr. Delaney protected successfully")
@@ -695,9 +790,27 @@ class MessengerSystem:
                 print(f"• Assassination plot thwarted")
                 print(f"• Scientific community remains intact")
                 print(f"• Future technology development secured")
-                # Update world state through GlobalWorldStateTracker
+                # Update world state through GlobalWorldStateTracker with D20-based scaling
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", 0.08, "increase")
+                success_level = getattr(self, 'last_mission_success_level', 'SUCCESS')
+                
+                # Scale effects based on success level
+                effect_multiplier = {
+                    "CRITICAL_SUCCESS": 1.5,
+                    "SUCCESS": 1.0,
+                    "PARTIAL_SUCCESS": 0.7,
+                    "FAILURE": 0.3,
+                    "CRITICAL_FAILURE": 0.1
+                }.get(success_level, 1.0)
+                
+                print(f"   📊 Success Level: {success_level} (Multiplier: {effect_multiplier}x)")
+                
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": 0.08 * effect_multiplier,
+                    "operation": "add"
+                })
                     
             elif "001" in messenger.message_content:
                 print(f"• Traveler 001 movements tracked")
@@ -707,7 +820,12 @@ class MessengerSystem:
                 print(f"• Faction operational patterns revealed")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("faction_influence", -0.04, "decrease")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "faction_influence",
+                    "value": -0.04,
+                    "operation": "add"
+                })
                     
             elif "protocol violation" in messenger.message_content.lower() or "host body rejection" in messenger.message_content.lower():
                 print(f"• Host body rejection symptoms stabilized")
@@ -717,7 +835,12 @@ class MessengerSystem:
                 print(f"• Timeline contamination minimized")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", 0.06, "increase")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": 0.06,
+                    "operation": "add"
+                })
                     
             elif "faction" in messenger.message_content.lower():
                 print(f"• Faction operations disrupted successfully")
@@ -727,8 +850,18 @@ class MessengerSystem:
                 print(f"• Infrastructure security enhanced")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", 0.08, "increase")
-                global_world_tracker.apply_single_effect("faction_influence", -0.05, "decrease")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": 0.08,
+                    "operation": "add"
+                })
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "faction_influence",
+                    "value": -0.05,
+                    "operation": "add"
+                })
                     
             elif "emergency" in messenger.message_content.lower() or "critical mission" in messenger.message_content.lower() or "protocol alpha" in messenger.message_content.lower():
                 print(f"• Emergency response protocols successful")
@@ -738,8 +871,18 @@ class MessengerSystem:
                 print(f"• Emergency protocols validated")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", 0.10, "increase")
-                global_world_tracker.apply_single_effect("director_control", 0.08, "increase")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": 0.10,
+                    "operation": "add"
+                })
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "director_control",
+                    "value": 0.08,
+                    "operation": "add"
+                })
                     
             else:
                 # Fallback for any other message types
@@ -750,7 +893,12 @@ class MessengerSystem:
                 print(f"• Director control enhanced")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", 0.04, "increase")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": 0.04,
+                    "operation": "add"
+                })
                     
             # Reward team leader
             if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader'):
@@ -768,8 +916,18 @@ class MessengerSystem:
                 print(f"• Local infrastructure damage")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", -0.08, "decrease")
-                global_world_tracker.apply_single_effect("faction_influence", 0.06, "increase")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": -0.08,
+                    "operation": "add"
+                })
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "faction_influence",
+                    "value": 0.06,
+                    "operation": "add"
+                })
                     
             elif "dr. delaney" in messenger.message_content.lower():
                 print(f"• Dr. Delaney assassination successful")
@@ -779,7 +937,12 @@ class MessengerSystem:
                 print(f"• Research funding diverted")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", -0.12, "decrease")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": -0.12,
+                    "operation": "add"
+                })
                     
             elif "protocol violation" in messenger.message_content.lower() or "host body rejection" in messenger.message_content.lower():
                 print(f"• Host body rejection symptoms worsen")
@@ -789,7 +952,12 @@ class MessengerSystem:
                 print(f"• Timeline contamination increases")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", -0.10, "decrease")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": -0.10,
+                    "operation": "add"
+                })
                     
             elif "faction" in messenger.message_content.lower():
                 print(f"• Faction operations continue unchecked")
@@ -799,8 +967,18 @@ class MessengerSystem:
                 print(f"• Infrastructure security weakened")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", -0.08, "decrease")
-                global_world_tracker.apply_single_effect("faction_influence", 0.06, "increase")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": -0.08,
+                    "operation": "add"
+                })
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "faction_influence",
+                    "value": 0.06,
+                    "operation": "add"
+                })
                     
             elif "president" in messenger.message_content.lower() and "assassination" in messenger.message_content.lower():
                 print(f"🚨 PRESIDENTIAL ASSASSINATION MISSION FAILED!")
@@ -821,8 +999,18 @@ class MessengerSystem:
                 print(f"• Emergency protocols need review")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", -0.10, "decrease")
-                global_world_tracker.apply_single_effect("director_control", -0.08, "decrease")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": -0.10,
+                    "operation": "add"
+                })
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "director_control",
+                    "value": -0.08,
+                    "operation": "add"
+                })
                     
             else:
                 # Fallback for any other message types
@@ -833,7 +1021,12 @@ class MessengerSystem:
                 print(f"• Director control diminished")
                 # Update world state through GlobalWorldStateTracker
                 from messenger_system import global_world_tracker
-                global_world_tracker.apply_single_effect("timeline_stability", -0.06, "decrease")
+                global_world_tracker.apply_single_effect({
+                    "type": "attribute_change",
+                    "target": "timeline_stability",
+                    "value": -0.06,
+                    "operation": "add"
+                })
                     
             # Penalize team leader
             if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader'):
@@ -2378,17 +2571,22 @@ class DynamicWorldEventsSystem:
         
         for name, data in game_programmers.items():
             if data.get('status') == 'active':
+                # Get programmer mission data
+                missions = self._get_programmer_missions(data.get("specialty", "General"))
+                consequences = self._get_programmer_consequences(data.get("specialty", "General"))
+                
                 # Convert game programmer data to tracking format
                 self.directors_programmers[name] = {
                     "role": data.get("role", "Core Programmer"),
-                    "missions": self._get_programmer_missions(data.get("specialty", "General")),
+                    "specialty": data.get("specialty", "General"),  # Store original specialty
+                    "missions": missions,
                     "current_mission": None,  # Start with no mission
                     "mission_cooldown": 0,
                     "success_rate": 0.8,  # Default success rate
                     "loyalty": "loyal" if data.get("loyalty") == "Director" else "defected",
                     "threat_level": 0.0,  # Start with no threat
                     "protection_priority": "MEDIUM",  # Default protection priority
-                    "consequences": self._get_programmer_consequences(data.get("specialty", "General")),
+                    "consequences": consequences,
                     # NEW: Dynamic defection tracking
                     "loyalty_score": 100,  # 0-100 scale, 100 = completely loyal
                     "defection_risk": self._calculate_defection_risk(data.get("specialty", "General")),
@@ -2396,6 +2594,17 @@ class DynamicWorldEventsSystem:
                     "defection_triggers": [],  # Events that could trigger defection
                     "stress_level": 0.0,  # 0.0-1.0, increases with failed missions
                     "faction_exposure": 0.0  # 0.0-1.0, increases with faction contact
+                }
+                
+                # CRITICAL FIX: Add to npc_schedules so they can actually be assigned missions!
+                self.npc_schedules[name] = {
+                    "role": data.get("role", "Core Programmer"),
+                    "missions": missions,
+                    "current_mission": None,  # Start with no mission
+                    "mission_cooldown": 0,
+                    "success_rate": 0.8,  # Default success rate
+                    "loyalty": "loyal" if data.get("loyalty") == "Director" else "defected",
+                    "consequences": consequences
                 }
                 
                 # Initialize defection status
@@ -2412,8 +2621,83 @@ class DynamicWorldEventsSystem:
                 }
                 
                 print(f"   👨‍💻 Added {name} ({data.get('specialty', 'General')}) - Loyalty: {data.get('loyalty', 'Unknown')}")
+                print(f"      🚀 Enabled for mission assignment: {', '.join(missions[:3])}...")
         
         print(f"✅ Director's Programmers tracking system now has {len(self.directors_programmers)} programmers")
+        print(f"✅ Mission assignment system now has {len([n for n in self.npc_schedules.keys() if n in self.directors_programmers])} Director programmers available")
+        
+        # Automatically assign protective missions to available programmers
+        self.auto_assign_protective_missions()
+    
+    def auto_assign_protective_missions(self):
+        """Automatically assign protective missions to available Director programmers"""
+        if not self.directors_programmers:
+            return
+        
+        # Find loyal programmers available for missions
+        available_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if (data["loyalty"] == "loyal" and 
+                data["current_mission"] is None and 
+                data["mission_cooldown"] <= 0)
+        ]
+        
+        if not available_programmers:
+            print("   ⚠️  No Director programmers available for immediate mission assignment")
+            return
+        
+        # Assign protective missions based on current threats
+        missions_assigned = 0
+        
+        for programmer_name in available_programmers:
+            programmer_data = self.directors_programmers[programmer_name]
+            
+            # Determine mission type based on programmer specialty
+            # Note: specialty is stored in the programmer_data from the original game data
+            specialty = programmer_data.get("specialty", "General")
+            
+            # Get available missions for this specialty
+            available_missions = self._get_programmer_missions(specialty)
+            
+            # Choose an appropriate mission type
+            if "Quantum Frame Construction" in specialty:
+                mission_type = "data_recovery"  # Use data_recovery instead of security_audit
+                reason = "quantum infrastructure protection"
+            elif "Quantum Frame Architecture" in specialty:
+                mission_type = "security_audit"
+                reason = "quantum infrastructure protection"
+            elif "Temporal" in specialty:
+                mission_type = "timeline_stabilization"
+                reason = "timeline integrity monitoring"
+            elif "AI Consciousness Transfer" in specialty:
+                mission_type = "intelligence_gathering"
+                reason = "intelligence monitoring"
+            elif "Core Systems" in specialty:
+                mission_type = "director_protection"
+                reason = "Director core systems security"
+            elif "AI Consciousness" in specialty:
+                mission_type = "threat_analysis"
+                reason = "consciousness transfer security"
+            else:
+                # Fallback to first available mission
+                mission_type = available_missions[0] if available_missions else "director_protection"
+                reason = "general protection duties"
+            
+            # Start the mission
+            mission_id = self.start_npc_mission(programmer_name, mission_type)
+            
+            if mission_id:
+                print(f"   🛡️  {programmer_name} assigned to {mission_type} mission ({reason})")
+                missions_assigned += 1
+            
+            # Limit to 2-3 initial missions to avoid overwhelming the system
+            if missions_assigned >= 3:
+                break
+        
+        if missions_assigned > 0:
+            print(f"✅ Automatically assigned {missions_assigned} Director programmers to protective missions")
+        else:
+            print("   ℹ️  No immediate protective missions needed")
     
     def _calculate_defection_risk(self, specialty):
         """Calculate base defection risk based on programmer specialty"""
@@ -2445,7 +2729,8 @@ class DynamicWorldEventsSystem:
             "Quantum Frame Architecture": {
                 "security_audit": {"security_level": 0.05, "threat_detection": "ENHANCED"},
                 "code_analysis": {"system_efficiency": 0.04, "code_quality": "IMPROVED"},
-                "director_protection": {"director_security": 0.12, "threat_level": -0.06}
+                "director_protection": {"director_security": 0.12, "threat_level": -0.06},
+                "threat_analysis": {"threat_level": -0.04, "security_alert": "ACTIVE"}
             },
             "Temporal Mechanics": {
                 "threat_analysis": {"threat_level": -0.04, "timeline_stability": 0.03},
@@ -2460,12 +2745,18 @@ class DynamicWorldEventsSystem:
             "AI Consciousness Transfer": {
                 "intelligence_gathering": {"government_intel": 0.06, "threat_detection": "ENHANCED"},
                 "host_body_monitoring": {"consciousness_stability": 0.04, "host_survival": "ENHANCED"},
-                "director_protection": {"director_security": 0.09, "threat_level": -0.04}
+                "director_protection": {"director_security": 0.09, "threat_level": -0.04},
+                "threat_analysis": {"threat_level": -0.04, "security_alert": "ACTIVE"}
             },
             "General": {
                 "security_audit": {"security_level": 0.04, "threat_detection": "ENHANCED"},
                 "threat_analysis": {"threat_level": -0.03, "security_alert": "ACTIVE"},
                 "director_protection": {"director_security": 0.10, "threat_level": -0.05}
+            },
+            "Director Core Systems": {
+                "security_audit": {"security_level": 0.06, "threat_detection": "ENHANCED"},
+                "threat_analysis": {"threat_level": -0.05, "security_alert": "ACTIVE"},
+                "director_protection": {"director_security": 0.15, "threat_level": -0.08}
             }
         }
         return consequence_map.get(specialty, consequence_map["General"])
@@ -4071,6 +4362,44 @@ class DynamicWorldEventsSystem:
                         # Change expired, remove it
                         del global_world_tracker.ongoing_world_changes[change_id]
                         print(f"⏰ Ongoing world change expired: {change.get('description', 'Unknown change')}")
+    
+    def get_programmer_defection_status(self, programmer_name):
+        """Get detailed defection status for a specific programmer"""
+        if programmer_name not in self.directors_programmers:
+            return None
+            
+        programmer = self.directors_programmers[programmer_name]
+        defection_info = self.defection_status.get(programmer_name, {})
+        
+        return {
+            "name": programmer_name,
+            "loyalty": programmer["loyalty"],
+            "loyalty_score": programmer.get("loyalty_score", 100),
+            "defection_risk": programmer.get("defection_risk", 0.15),
+            "stress_level": programmer.get("stress_level", 0.0),
+            "faction_exposure": programmer.get("faction_exposure", 0.0),
+            "current_mission": programmer.get("current_mission"),
+            "defection_status": defection_info,
+            "risk_factors": {
+                "base_risk": programmer.get("defection_risk", 0.15),
+                "stress_contribution": programmer.get("stress_level", 0.0) * 0.2,
+                "exposure_contribution": programmer.get("faction_exposure", 0.0) * 0.25,
+                "total_estimated_risk": min(0.8, 
+                    programmer.get("defection_risk", 0.15) + 
+                    programmer.get("stress_level", 0.0) * 0.2 + 
+                    programmer.get("faction_exposure", 0.0) * 0.25
+                )
+            }
+        }
+    
+    def get_all_programmer_defection_risks(self):
+        """Get defection risk assessment for all active programmers"""
+        risk_assessment = {}
+        
+        for programmer_name in self.directors_programmers:
+            risk_assessment[programmer_name] = self.get_programmer_defection_status(programmer_name)
+        
+        return risk_assessment
 
 
 # Create global instance
@@ -4794,44 +5123,6 @@ def get_world_activity_feed():
             )
         
         return False
-    
-    def get_programmer_defection_status(self, programmer_name):
-        """Get detailed defection status for a specific programmer"""
-        if programmer_name not in self.directors_programmers:
-            return None
-            
-        programmer = self.directors_programmers[programmer_name]
-        defection_info = self.defection_status.get(programmer_name, {})
-        
-        return {
-            "name": programmer_name,
-            "loyalty": programmer["loyalty"],
-            "loyalty_score": programmer.get("loyalty_score", 100),
-            "defection_risk": programmer.get("defection_risk", 0.15),
-            "stress_level": programmer.get("stress_level", 0.0),
-            "faction_exposure": programmer.get("faction_exposure", 0.0),
-            "current_mission": programmer.get("current_mission"),
-            "defection_status": defection_info,
-            "risk_factors": {
-                "base_risk": programmer.get("defection_risk", 0.15),
-                "stress_contribution": programmer.get("stress_level", 0.0) * 0.2,
-                "exposure_contribution": programmer.get("faction_exposure", 0.0) * 0.25,
-                "total_estimated_risk": min(0.8, 
-                    programmer.get("defection_risk", 0.15) + 
-                    programmer.get("stress_level", 0.0) * 0.2 + 
-                    programmer.get("faction_exposure", 0.0) * 0.25
-                )
-            }
-        }
-    
-    def get_all_programmer_defection_risks(self):
-        """Get defection risk assessment for all active programmers"""
-        risk_assessment = {}
-        
-        for programmer_name in self.directors_programmers:
-            risk_assessment[programmer_name] = self.get_programmer_defection_status(programmer_name)
-        
-        return risk_assessment
 
 
 # Create global instance
