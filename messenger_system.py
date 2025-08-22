@@ -4778,8 +4778,8 @@ def get_world_activity_feed():
     except Exception as e:
         print(f"  • AI Teams: System initializing...")
     
-    print(f"\n" + "="*60)
-    print(f"🌍 Live World Activity Feed Complete - All Data is REAL-TIME")
+        print(f"\n" + "="*60)
+        print(f"🌍 Live World Activity Feed Complete - All Data is REAL-TIME")
     
     def check_programmer_defection_risk(self, programmer_name, game_ref):
         """Check if a programmer should defect based on current game conditions"""
@@ -5125,7 +5125,7 @@ def get_world_activity_feed():
         return False
 
 
-# Create global instance
-dynamic_world_events = DynamicWorldEventsSystem()
+# Note: DynamicWorldEventsSystem instances are created by individual MessengerSystem instances
+# to ensure proper scope and avoid attribute errors
 
 

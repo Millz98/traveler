@@ -208,6 +208,11 @@ class Game:
         from messenger_system import global_world_tracker
         
         try:
+            # Check if team is properly formed before saving
+            if not hasattr(self, 'team') or not self.team or not self.team.leader:
+                print("⚠️  Cannot save game: Team not properly formed yet")
+                return
+            
             save_data = {
                 "team_leader": {
                     "name": self.team.leader.name,
@@ -229,7 +234,8 @@ class Game:
                 "communication_level": self.team.communication_level,
                 "timeline_stability": global_world_tracker.world_state_cache.get("timeline_stability", 0.85),
                 "timeline_fragility": self.timeline_fragility,
-                "timeline_events": self.timeline_events
+                "timeline_events": self.timeline_events,
+                "us_political_system": self._save_us_political_system_state() if hasattr(self, 'us_political_system') and self.us_political_system else None
             }
             
             # Save team members
@@ -259,6 +265,116 @@ class Game:
             
         except Exception as e:
             print(f"Error saving game: {e}")
+    
+    def _save_us_political_system_state(self):
+        """Save the current state of the US Political System"""
+        if not hasattr(self, 'us_political_system') or not self.us_political_system:
+            return None
+        
+        try:
+            # Save executive branch state
+            exec_state = {}
+            if hasattr(self.us_political_system.executive_branch, 'president') and self.us_political_system.executive_branch.president:
+                pres = self.us_political_system.executive_branch.president
+                exec_state['president'] = {
+                    'name': pres.name,
+                    'party': pres.party.value if hasattr(pres.party, 'value') else str(pres.party)
+                }
+            
+            if hasattr(self.us_political_system.executive_branch, 'vice_president') and self.us_political_system.executive_branch.vice_president:
+                vp = self.us_political_system.executive_branch.vice_president
+                exec_state['vice_president'] = {
+                    'name': vp.name,
+                    'party': vp.party.value if hasattr(vp.party, 'value') else str(vp.party)
+                }
+            
+            # Save legislative branch state
+            leg_state = {}
+            if hasattr(self.us_political_system.legislative_branch, 'senate'):
+                senate = self.us_political_system.legislative_branch.senate
+                leg_state['senate'] = {
+                    'majority_party': senate.majority_party.value if hasattr(senate.majority_party, 'value') else str(senate.majority_party),
+                    'majority_count': getattr(senate, 'majority_count', 51)
+                }
+            
+            if hasattr(self.us_political_system.legislative_branch, 'house'):
+                house = self.us_political_system.legislative_branch.house
+                leg_state['house'] = {
+                    'majority_party': house.majority_party.value if hasattr(house.majority_party, 'value') else str(house.majority_party),
+                    'majority_count': getattr(house, 'majority_count', 218)
+                }
+            
+            return {
+                'executive_branch': exec_state,
+                'legislative_branch': leg_state,
+                'turn_count': getattr(self.us_political_system, 'turn_count', 0)
+            }
+        except Exception as e:
+            print(f"Warning: Could not save US Political System state: {e}")
+            return None
+    
+    def _restore_us_political_system_state(self, saved_state):
+        """Restore the US Political System state from saved data"""
+        if not hasattr(self, 'us_political_system') or not self.us_political_system:
+            return
+        
+        try:
+            # Restore executive branch state
+            if 'executive_branch' in saved_state:
+                exec_state = saved_state['executive_branch']
+                
+                if 'president' in exec_state:
+                    pres_data = exec_state['president']
+                    # Find the PoliticalParty enum value
+                    from us_political_system import PoliticalParty
+                    party_enum = None
+                    for party in PoliticalParty:
+                        if party.value == pres_data['party']:
+                            party_enum = party
+                            break
+                    
+                    if party_enum:
+                        self.us_political_system.executive_branch.set_president(party_enum.value, pres_data['name'])
+                
+                if 'vice_president' in exec_state:
+                    vp_data = exec_state['vice_president']
+                    # Find the PoliticalParty enum value
+                    from us_political_system import PoliticalParty
+                    party_enum = None
+                    for party in PoliticalParty:
+                        if party.value == vp_data['party']:
+                            party_enum = party
+                            break
+                    
+                    if party_enum:
+                        self.us_political_system.executive_branch.set_vice_president(party_enum.value, vp_data['name'])
+            
+            # Restore legislative branch state
+            if 'legislative_branch' in saved_state:
+                leg_state = saved_state['legislative_branch']
+                
+                if 'senate' in leg_state:
+                    senate_data = leg_state['senate']
+                    self.us_political_system.legislative_branch.senate.set_majority(
+                        senate_data['majority_party'], 
+                        senate_data['majority_count']
+                    )
+                
+                if 'house' in leg_state:
+                    house_data = leg_state['house']
+                    self.us_political_system.legislative_branch.house.set_majority(
+                        house_data['majority_party'], 
+                        house_data['majority_count']
+                    )
+            
+            # Restore turn count
+            if 'turn_count' in saved_state:
+                self.us_political_system.turn_count = saved_state['turn_count']
+            
+            print("🏛️  US Political System state restored from save file")
+            
+        except Exception as e:
+            print(f"Warning: Could not restore US Political System state: {e}")
 
     def load_game(self):
         """Load a saved game state"""
@@ -320,6 +436,10 @@ class Game:
                 self.timeline_fragility = save_data["timeline_fragility"]
             if "timeline_events" in save_data:
                 self.timeline_events = save_data["timeline_events"]
+            
+            # Restore US Political System state if available
+            if "us_political_system" in save_data and save_data["us_political_system"] and hasattr(self, 'us_political_system') and self.us_political_system:
+                self._restore_us_political_system_state(save_data["us_political_system"])
             
             print("\n" + "=" * 40)
             print("           GAME LOADED")
@@ -2797,13 +2917,23 @@ class Game:
 
     def get_game_state(self):
         """Get current game state for systems to check"""
+        # Check if team is formed and has a leader
+        if hasattr(self, 'team') and self.team and hasattr(self.team, 'leader') and self.team.leader:
+            protocol_violations = self.team.leader.protocol_violations
+            team_morale = self.team.team_cohesion
+            mission_count = self.team.leader.mission_count
+        else:
+            protocol_violations = 0
+            team_morale = 0.5
+            mission_count = 0
+        
         game_state = {
-            "active_missions": len(self.active_missions),
-            "protocol_violations": self.team.leader.protocol_violations,
+            "active_missions": len(self.active_missions) if hasattr(self, 'active_missions') else 0,
+            "protocol_violations": protocol_violations,
             "faction_activity": self.living_world.faction_influence,
             "timeline_instability": 1.0 - self.living_world.timeline_stability,
-            "team_morale": self.team.team_cohesion,
-            "mission_count": self.team.leader.mission_count,
+            "team_morale": team_morale,
+            "mission_count": mission_count,
             "timeline_stability": self.living_world.timeline_stability,
             "faction_influence": self.living_world.faction_influence,
             "director_control": self.living_world.director_control

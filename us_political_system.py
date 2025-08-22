@@ -68,8 +68,8 @@ class USPoliticalSystem:
         self.last_d20_rolls = []
         self.critical_events = []
         
-        # Initialize the system
-        self.initialize_political_system()
+        # Note: System will be initialized when explicitly called
+        # to avoid duplicate initialization and ensure consistency
     
     def roll_d20(self, modifier=0, difficulty_class=15, context="government_decision"):
         """Roll D20 for government decisions with modifiers and difficulty class"""
@@ -139,13 +139,14 @@ class USPoliticalSystem:
         # Initialize federal agencies
         self.federal_agencies.initialize_agencies()
         
-        # Set up current government composition
+        # Set up current government composition FIRST
         self.setup_current_government()
         
         # Generate random members for all branches
         self.executive_branch.generate_random_cabinet()
         self.legislative_branch.generate_random_members()
         
+        # NOW display the status AFTER everything is set up
         print("✅ US Political System initialized with full complexity")
         print(f"   Executive: {self.executive_branch.president.party} President")
         print(f"   Congress: {self.legislative_branch.senate.majority_party} Senate, {self.legislative_branch.house.majority_party} House")
@@ -1042,6 +1043,10 @@ class ExecutiveBranch:
         self.vice_president = VicePresident(vp_party, vp_name)
         
         print(f"👑 New administration: {party} President {name} with {vp_party} VP {vp_name}")
+    
+    def set_vice_president(self, party, name):
+        """Set the vice president directly"""
+        self.vice_president = VicePresident(party, name)
     
     def generate_random_vp_name(self):
         """Generate a random vice presidential name"""
@@ -2987,7 +2992,7 @@ class ElectionSystem:
         print(f"🗳️  Holding {self.election_type} election...")
         
         # Roll D20 for overall election outcome
-        base_modifier = self.calculate_election_modifier(world_state)
+        base_modifier = self.calculate_election_modifier(world_state, political_system)
         result, total, roll = political_system.roll_d20(
             modifier=base_modifier,
             difficulty_class=15,
@@ -3032,7 +3037,7 @@ class ElectionSystem:
             "world_state": world_state.copy()
         })
     
-    def calculate_election_modifier(self, world_state):
+    def calculate_election_modifier(self, world_state, political_system):
         """Calculate election modifier based on world state"""
         modifier = 0
         
@@ -3468,5 +3473,5 @@ class PublicOpinionSystem:
             else:
                 print(f"      🛡️  Scandal contained")
 
-# Create global instance
-us_political_system = USPoliticalSystem()
+# Note: US Political System instances are created by individual game instances
+# to ensure data consistency and proper save/load functionality

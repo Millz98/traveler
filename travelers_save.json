@@ -1,19 +1,19 @@
 {
   "team_leader": {
-    "name": "Natalie",
-    "designation": "8917",
+    "name": "Megan",
+    "designation": "3939",
     "role": "Team Leader",
-    "occupation": "Soldier",
+    "occupation": "Engineer",
     "skills": [
-      "Oceanography",
-      "Culinary Arts",
-      "Safecracking",
-      "Network Security",
-      "Persuasion"
+      "Cartography",
+      "Architecture",
+      "Veterinary Medicine"
     ],
     "abilities": [
-      "Skilled Thief",
-      "Exceptional Peacemaker"
+      "Gifted Navigator",
+      "Expert Coach",
+      "Skilled Athlete",
+      "Master Surgeon"
     ],
     "mission_count": 1,
     "success_rate": 0.0,
@@ -22,22 +22,22 @@
   },
   "team_members": [
     {
-      "name": "Ryan",
-      "designation": "7061",
+      "name": "Elijah",
+      "designation": "4125",
       "role": "Historian",
-      "occupation": "Engineer",
+      "occupation": "Hacker",
       "skills": [
-        "Gunnery",
-        "Nutrition",
-        "Marksmanship",
-        "Aerospace Engineering",
-        "Accounting"
+        "Vulnerability Assessment",
+        "Data Analysis",
+        "Film",
+        "Algorithm Design",
+        "Medicine"
       ],
       "abilities": [
-        "Exceptional Pilot",
-        "Genius-Level Intellect",
         "Master Historian",
-        "Gifted Fisherman"
+        "Exceptional Scientist",
+        "Skilled Leader",
+        "Peak Physical Conditioning"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -45,20 +45,21 @@
       "timeline_impact": 0
     },
     {
-      "name": "Paul",
-      "designation": "2434",
+      "name": "Anthony",
+      "designation": "9466",
       "role": "Engineer",
-      "occupation": "Scientist",
+      "occupation": "Hacker",
       "skills": [
-        "Veterinary Medicine",
-        "Anthropology",
-        "Artificial Intelligence",
-        "Acrobatics"
+        "Linguistics",
+        "Finance",
+        "Data Warehousing",
+        "Cooking"
       ],
       "abilities": [
-        "Gifted Orator",
-        "Exceptional Cartographer",
-        "Skilled Writer"
+        "Exceptional Storyteller",
+        "Exceptional Lockpick",
+        "Gifted Fisherman",
+        "Expert Composer"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -66,19 +67,19 @@
       "timeline_impact": 0
     },
     {
-      "name": "William",
-      "designation": "2804",
+      "name": "Robert",
+      "designation": "8037",
       "role": "Medic",
       "occupation": "Medic",
       "skills": [
-        "First Aid",
-        "Dietetics",
-        "Culinary Arts"
+        "Oceanography",
+        "Medicine",
+        "Archery",
+        "Network Security"
       ],
       "abilities": [
-        "Master Historian",
-        "Exceptional Pilot",
-        "Skilled Diplomat"
+        "Gifted Singer",
+        "Gifted Scientist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -86,22 +87,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "Megan",
-      "designation": "7291",
+      "name": "Andrew",
+      "designation": "1764",
       "role": "Tactician",
-      "occupation": "Engineer",
+      "occupation": "Soldier",
       "skills": [
-        "Chemistry",
-        "Physics",
-        "Anthropology",
-        "Natural Language Processing",
-        "Data Mining"
+        "Literature",
+        "Cooking",
+        "Network Security"
       ],
       "abilities": [
-        "Expert Professor",
-        "Skilled Thief",
-        "Exceptional Competitor",
-        "Expert Tracker"
+        "Master Hunter",
+        "Gifted Singer",
+        "Exceptional Athlete",
+        "Exceptional Detective"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -109,39 +108,81 @@
       "timeline_impact": 0
     }
   ],
-  "mission_status": "Mission Available",
-  "current_mission": {
-    "type": "prevent_traveler_exposure",
-    "location": "Los Angeles, CA - Downtown",
-    "npc": "Marcy Warton (3569) - Intelligence Specialist / Intellectually Disabled Host",
-    "resource": "Prototype Device",
-    "challenge": "Extreme-risk - Maximum security, multiple high-level threats",
-    "description": "Local police are investigating suspicious behavior of Traveler 3326 - provide cover",
-    "objectives": [
-      "Prevent law enforcement investigation from progressing",
-      "Maintain host body cover stories and relationships",
-      "Ensure no witnesses can connect the dots"
-    ],
-    "time_limit": "48 hours - Two days for mission completion",
-    "consequences": [
-      "Government agencies may attempt to weaponize Travelers",
-      "Program secrecy maintained, operations can continue"
-    ]
-  },
+  "mission_status": "Active Missions: 1",
+  "current_mission": null,
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.9079999999999999,
+  "timeline_stability": 0.7739999999999999,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
+      "change": 0.1,
+      "actual_change": 0.13,
+      "old_stability": 0.85,
+      "new_stability": 0.98,
+      "source": "mission_faction_interference_complete_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 15, 2018",
+      "change": -0.2,
+      "actual_change": -0.26,
+      "old_stability": 0.98,
+      "new_stability": 0.72,
+      "source": "mission_prevent_historical_disaster_critical_failure",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
+      "change": 0.05,
+      "actual_change": 0.065,
+      "old_stability": 0.72,
+      "new_stability": 0.7849999999999999,
+      "source": "mission_faction_interference_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 17, 2018",
+      "change": -0.1,
+      "actual_change": -0.13,
+      "old_stability": 0.8669999999999999,
+      "new_stability": 0.7369999999999999,
+      "source": "mission_protocol_violation_cleanup_failure",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 17, 2018",
       "change": -0.02,
       "actual_change": -0.026000000000000002,
-      "old_stability": 0.85,
-      "new_stability": 0.824,
+      "old_stability": 0.7369999999999999,
+      "new_stability": 0.7109999999999999,
       "source": "mission_prevent_traveler_exposure_partial_success",
       "fragility_impact": 0.3
     }
-  ]
+  ],
+  "us_political_system": {
+    "executive_branch": {
+      "president": {
+        "name": "Donald J. Trump",
+        "party": "Republican"
+      },
+      "vice_president": {
+        "name": "William Gonzalez",
+        "party": "Republican"
+      }
+    },
+    "legislative_branch": {
+      "senate": {
+        "majority_party": "Republican",
+        "majority_count": 51
+      },
+      "house": {
+        "majority_party": "Republican",
+        "majority_count": 218
+      }
+    },
+    "turn_count": 3
+  }
 }
