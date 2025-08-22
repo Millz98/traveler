@@ -358,3 +358,72 @@ def get_government_status():
 def add_government_operation(operation_data: Dict):
     """Add a government operation"""
     government_news.add_government_operation(operation_data)
+
+def capture_turn_events(event_type: str, event_data: Dict):
+    """Capture events that occur during turn processing and convert them to government news"""
+    if event_type == "political_event":
+        # Convert political events to government news
+        if event_data.get("type") == "congressional_hearing":
+            news_data = {
+                "response_details": [f"Congressional hearing on {event_data.get('topic', 'national security')}"],
+                "actions": [f"Congressional oversight initiated on {event_data.get('topic', 'national security')}"]
+            }
+            government_news.generate_news_story("government_response", news_data)
+            
+        elif event_data.get("type") == "presidential_executive_order":
+            news_data = {
+                "response_details": [f"Presidential Executive Order: {event_data.get('order_type', 'National Security')}"],
+                "actions": [f"Executive Order {event_data.get('order_type', 'National Security')} implemented"]
+            }
+            government_news.generate_news_story("government_response", news_data)
+            
+        elif event_data.get("type") == "supreme_court_decision":
+            news_data = {
+                "response_details": [f"Supreme Court decision on {event_data.get('case_type', 'constitutional matter')}"],
+                "actions": [f"Judicial ruling affects government operations"]
+            }
+            government_news.generate_news_story("government_response", news_data)
+            
+        elif event_data.get("type") == "federal_agency_announcement":
+            news_data = {
+                "response_details": [f"Federal agency announcement: {event_data.get('announcement', 'Policy update')}"],
+                "actions": [f"Agency policy changes implemented"]
+            }
+            government_news.generate_news_story("government_response", news_data)
+    
+    elif event_type == "hacking_event":
+        # Convert hacking events to government news
+        if event_data.get("detected"):
+            news_data = {
+                "response_details": [f"Cyber attack detected on {event_data.get('target', 'government system')}"],
+                "actions": [
+                    "FBI cyber division activated",
+                    "DHS cybersecurity response initiated",
+                    "Government systems secured"
+                ]
+            }
+            government_news.generate_news_story("national_security", news_data)
+    
+    elif event_type == "crisis_event":
+        # Convert crisis events to government news
+        news_data = {
+            "response_details": [f"Government response to {event_data.get('crisis_type', 'national crisis')}"],
+            "actions": [
+                "Emergency protocols activated",
+                "Federal agencies mobilized",
+                "National security measures implemented"
+            ]
+        }
+        government_news.generate_news_story("government_response", news_data)
+    
+    elif event_type == "agency_coordination":
+        # Convert agency coordination events to government news
+        news_data = {
+            "response_details": [f"Inter-agency coordination: {event_data.get('coordination_type', 'joint operation')}"],
+            "actions": [
+                "Multiple agencies coordinating response",
+                "Joint task force established",
+                "Federal coordination protocols activated"
+            ]
+        }
+        government_news.generate_news_story("government_response", news_data)

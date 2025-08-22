@@ -7,6 +7,8 @@
 - [x] `fix_director_updates` - Fix 'UpdateSystem' object has no attribute 'has_pending_updates' error
 - [x] `add_missing_menu_methods` - Add all missing menu methods: view_host_body_complications, view_grand_plan_status, view_mission_revision_status, view_consequence_tracking, show_traveler_designations, show_mission_history, view_tribunal_status
 - [x] `restore_turn_based_mechanics` - Add missing 'End Turn' option to main menu and restore turn-based progression
+- [x] `fix_crisis_escalation_error` - Fix KeyError: 'escalation_level' in US political system crisis processing
+- [x] `implement_dynamic_mission_system` - Create sophisticated dynamic mission generation system that responds to real-time world conditions and threats
 
 ## In Progress
 - [ ] `standardize_d20_system` - Convert all random systems to use D20 rolls for consistency

@@ -1576,7 +1576,38 @@ class AIWorldController:
                     "timestamp": "immediate"
                 }
                 agent.suspicious_activity_reports.append(new_report)
-                print(f"      🕵️  Assigned to {agent.agency} Agent {agent.agent_id}")
+                print(f"      🕵️  Assigned to {agent.agent_id}")
+        
+        # Capture government response events in government news system
+        try:
+            from government_news_system import capture_turn_events
+            response_data = {
+                "crisis_type": f"{event['type']} incident",
+                "location": event.get("location", "unknown location"),
+                "response_actions": [
+                    "Government agencies mobilized",
+                    "Surveillance increased",
+                    "Investigation launched"
+                ]
+            }
+            capture_turn_events("crisis_event", response_data)
+        except ImportError:
+            pass  # Government news system not available
+        
+        # Add detection event to government detection system
+        try:
+            from government_detection_system import add_detection_event
+            add_detection_event(
+                event_type="government_response_triggered",
+                severity=0.6,  # Moderate severity
+                location=event.get("location", "unknown location"),
+                description=f"Government response triggered to {event['type']} incident",
+                involved_entities=["government"],
+                detection_chance=0.9,  # Government knows about their own responses
+                risk_multiplier=0.8   # Lower risk since it's government action
+            )
+        except ImportError:
+            pass  # Government detection system not available
     
     def update_faction_activities(self, world_state):
         """Update ongoing Faction activities"""
@@ -1647,7 +1678,19 @@ class AIWorldController:
             world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.05)
             if random.random() < 0.4:  # 40% chance of threat detection
                 print(f"      🚨 New threat pattern identified")
-                world_state['traveler_exposure_risk'] = min(1.0, world_state.get('traveler_exposure_risk', 0.2) + 0.05)
+        
+        # Capture government activity completions in government news system
+        try:
+            from government_news_system import capture_turn_events
+            activity_data = {
+                "coordination_type": f"government {activity['type']} operation",
+                "agencies": ["FBI", "CIA", "DHS"],  # Typical agencies involved
+                "success": True,
+                "operation_type": activity["type"]
+            }
+            capture_turn_events("agency_coordination", activity_data)
+        except ImportError:
+            pass  # Government news system not available
     
     def generate_base_location(self):
         """Generate a base location for AI entities"""

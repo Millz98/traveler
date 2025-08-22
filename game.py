@@ -19,6 +19,7 @@ import time
 import json
 import os
 import random
+from typing import Dict
 
 class Game:
     def __init__(self):
@@ -40,8 +41,42 @@ class Game:
         self.dialogue_manager = dialogue_system.DialogueManager()
         self.hacking_system = hacking_system.HackingSystem()
         
+        # Initialize government detection system
+        try:
+            from government_detection_system import government_detection
+            self.government_detection_system = government_detection
+        except ImportError:
+            print("⚠️  Government detection system not available")
+            self.government_detection_system = None
+        
+        # Initialize dynamic traveler system
+        try:
+            from dynamic_traveler_system import dynamic_traveler_system
+            self.dynamic_traveler_system = dynamic_traveler_system
+        except ImportError:
+            print("⚠️  Dynamic traveler system not available")
+            self.dynamic_traveler_system = None
+        
+        # Initialize Traveler 001 system
+        try:
+            from traveler_001_system import traveler_001_system
+            self.traveler_001_system = traveler_001_system
+            self.traveler_001_system.game_ref = self  # Set reference back to game
+        except ImportError:
+            print("⚠️  Traveler 001 system not available")
+            self.traveler_001_system = None
+        
         # Set time system reference in mission generator
         self.mission_generation.time_system = self.time_system
+        
+        # Initialize dynamic mission system
+        try:
+            from dynamic_mission_system import dynamic_mission_system
+            self.dynamic_mission_system = dynamic_mission_system
+            print("✅ Dynamic Mission System initialized - Director is watching and adapting")
+        except ImportError:
+            print("⚠️  Dynamic Mission System not available")
+            self.dynamic_mission_system = None
         
         # Set game reference in update system
         self.update_system.game_ref = self
@@ -541,15 +576,19 @@ class Game:
                     elif choice == "25":
                         self.view_us_political_system_status()
                     elif choice == "26":
-                        self.end_turn()
+                        self.view_dynamic_traveler_systems_status()
                     elif choice == "27":
-                        self.save_game()
+                        self.view_dynamic_mission_system_status()
                     elif choice == "28":
+                        self.end_turn()
+                    elif choice == "29":
+                        self.save_game()
+                    elif choice == "30":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
                     else:
-                        print("\n❌ Invalid choice. Please enter a number between 1 and 28.")
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 30.")
                         input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
@@ -600,11 +639,13 @@ class Game:
             print("21. View Director's Programmers")
             print("22. View Dynamic World Status")
             print("23. View World Activity Feed")
-            print("24. View Government News & Status")
-            print("25. View US Political System Status")
-            print("26. End Turn")
-            print("27. Save Game")
-            print("28. Quit Game")
+        print("24. View Government News & Status")
+        print("25. View US Political System Status")
+        print("26. View Dynamic Traveler Systems Status")
+        print("27. View Dynamic Mission System Status")
+        print("28. End Turn")
+        print("29. Save Game")
+        print("30. Quit Game")
         
         self.print_separator()
         
@@ -622,7 +663,7 @@ class Game:
         if not self.team_formed:
             choice = input(f"\nEnter your choice (1-6): ")
         else:
-            choice = input(f"\nEnter your choice (1-28): ")
+            choice = input(f"\nEnter your choice (1-30): ")
         
         return choice
 
@@ -636,17 +677,52 @@ class Game:
             self.show_mission_choices()
 
     def generate_new_mission(self):
-        """Generate a new mission"""
-        self.mission_generation.generate_mission()
-        self.current_mission = self.mission_generation.mission
-        self.mission_status = "Mission Available"
+        """Generate a new mission using dynamic threat assessment"""
+        if hasattr(self, 'dynamic_mission_system') and self.dynamic_mission_system:
+            # Use dynamic mission system for threat-based mission generation
+            world_state = self.get_game_state()
+            game_state = self.get_game_state()
+            
+            # Assess current world threats
+            threats = self.dynamic_mission_system.assess_world_threats(world_state, game_state)
+            
+            if threats:
+                # Generate mission based on highest priority threat
+                top_threat = threats[0]
+                team_capabilities = self._assess_team_capabilities()
+                
+                mission = self.dynamic_mission_system.generate_dynamic_mission(top_threat, team_capabilities)
+                self.current_mission = mission
+                self.mission_status = f"Dynamic Mission Available - {top_threat.threat_type.replace('_', ' ').title()}"
+                
+                print(f"\n🎯 DIRECTOR ALERT: Threat detected at {top_threat.location}")
+                print(f"   Threat Level: {top_threat.threat_level:.1%}")
+                print(f"   Urgency: {top_threat.urgency:.1%}")
+                print(f"   Mission Type: {top_threat.threat_type.replace('_', ' ').title()}")
+            else:
+                # No immediate threats - generate standard mission
+                self.mission_generation.generate_mission()
+                self.current_mission = self.mission_generation.mission
+                self.mission_status = "Standard Mission Available"
+        else:
+            # Fallback to standard mission generation
+            self.mission_generation.generate_mission()
+            self.current_mission = self.mission_generation.mission
+            self.mission_status = "Mission Available"
 
     def present_mission(self):
         """Present the current mission to the player"""
         print("\n" + "=" * 40)
         print("           MISSION BRIEFING")
         print("=" * 40)
-        print(self.mission_generation.get_mission_briefing())
+        
+        if hasattr(self, 'dynamic_mission_system') and self.dynamic_mission_system and self.current_mission.get("mission_id"):
+            # Use dynamic mission briefing
+            print(self.dynamic_mission_system.get_mission_briefing(self.current_mission))
+        else:
+            # Use standard mission briefing
+            print(self.mission_generation.get_mission_briefing())
+        
         print("=" * 40)
 
     def show_mission_choices(self):
@@ -732,6 +808,105 @@ class Game:
         print("=" * 40)
         
         input("\nPress Enter to continue...")
+    
+    def _assess_team_capabilities(self) -> Dict:
+        """Assess current team capabilities for mission planning"""
+        try:
+            capabilities = {
+                "stealth": 0.5,
+                "combat": 0.5,
+                "technical": 0.5,
+                "intelligence": 0.5,
+                "social": 0.5,
+                "medical": 0.5,
+                "coordination": 0.5,
+                "experience": 0.5,
+                "individual_skill": 0.5
+            }
+            
+            if hasattr(self, 'team') and self.team:
+                # Assess team cohesion and communication
+                # Check both possible attribute names for cohesion
+                cohesion_value = None
+                if hasattr(self.team, 'cohesion'):
+                    cohesion_value = self.team.cohesion
+                elif hasattr(self.team, 'team_cohesion'):
+                    cohesion_value = self.team.team_cohesion
+                
+                if cohesion_value is not None:
+                    if isinstance(cohesion_value, (int, float)):
+                        capabilities["coordination"] = min(1.0, float(cohesion_value) * 0.8)
+                    else:
+                        capabilities["coordination"] = 0.5  # Default fallback
+                
+                # Check both possible attribute names for communication
+                communication_value = None
+                if hasattr(self.team, 'communication'):
+                    communication_value = self.team.communication
+                elif hasattr(self.team, 'communication_level'):
+                    communication_value = self.team.communication_level
+                
+                if communication_value is not None:
+                    if isinstance(communication_value, (int, float)):
+                        # Ensure coordination is a number before adding
+                        current_coordination = capabilities["coordination"]
+                        if isinstance(current_coordination, (int, float)):
+                            capabilities["coordination"] = min(1.0, float(current_coordination) + float(communication_value) * 0.2)
+                        else:
+                            capabilities["coordination"] = min(1.0, 0.5 + float(communication_value) * 0.2)
+                    else:
+                        # Small bonus for having communication
+                        current_coordination = capabilities["coordination"]
+                        if isinstance(current_coordination, (int, float)):
+                            capabilities["coordination"] = min(1.0, float(current_coordination) + 0.1)
+                        else:
+                            capabilities["coordination"] = 0.6
+                
+                # Assess individual team member skills
+                if hasattr(self.team, 'members') and self.team.members:
+                    total_skills = 0.0  # Ensure it's a float
+                    for member in self.team.members:
+                        if hasattr(member, 'skills'):
+                            # Handle both dictionary and list skill formats
+                            if isinstance(member.skills, dict):
+                                try:
+                                    member_skills = sum(float(v) for v in member.skills.values()) / len(member.skills) if member.skills else 0.5
+                                except (ValueError, TypeError):
+                                    member_skills = 0.5  # Default fallback
+                            elif isinstance(member.skills, list):
+                                try:
+                                    member_skills = sum(float(v) for v in member.skills) / len(member.skills) if member.skills else 0.5
+                                except (ValueError, TypeError):
+                                    member_skills = 0.5  # Default fallback
+                            else:
+                                member_skills = 0.5  # Default fallback
+                            
+                            # Ensure member_skills is a number before adding
+                            if isinstance(member_skills, (int, float)):
+                                total_skills += float(member_skills)
+                            else:
+                                total_skills += 0.5  # Default fallback
+                    
+                    avg_skills = total_skills / len(self.team.members) if self.team.members else 0.5
+                    capabilities["individual_skill"] = float(avg_skills)
+                    capabilities["experience"] = float(avg_skills) * 0.8  # Experience correlates with skills
+        
+        except Exception as e:
+            print(f"⚠️  Error in team capabilities assessment: {e}")
+            # Return default capabilities on error
+            return {
+                "stealth": 0.5,
+                "combat": 0.5,
+                "technical": 0.5,
+                "intelligence": 0.5,
+                "social": 0.5,
+                "medical": 0.5,
+                "coordination": 0.5,
+                "experience": 0.5,
+                "individual_skill": 0.5
+            }
+        
+        return capabilities
 
     def execute_active_missions(self):
         """Execute all active missions"""
@@ -1585,7 +1760,34 @@ class Game:
             self.us_political_system.process_political_turn(world_state)
             print("✅ US Political System processed - Government branches and agencies acted!")
         
-        # FINALLY: Advance the world turn and show summary (this will now use the updated real-time values)
+                    # FIFTH: Execute Government Detection System turn (D20-based detection of Travelers and Faction)
+            if hasattr(self, 'government_detection_system'):
+                print("\n🔍 Processing Government Detection System...")
+                world_state = self.get_game_state()
+                self.government_detection_system.process_turn(world_state, self.get_game_state())
+                print("✅ Government Detection System processed - D20 detection rolls completed!")
+            else:
+                print("\n🔍 Government Detection System not initialized - skipping detection processing")
+            
+            # SIXTH: Execute Dynamic Traveler System turn (new arrivals, team formation, consequences)
+            if hasattr(self, 'dynamic_traveler_system'):
+                print("\n🌊 Processing Dynamic Traveler System...")
+                world_state = self.get_game_state()
+                self.dynamic_traveler_system.process_turn(world_state, self.get_game_state())
+                print("✅ Dynamic Traveler System processed - new arrivals and consequences handled!")
+            else:
+                print("\n🌊 Dynamic Traveler System not initialized - skipping traveler processing")
+            
+            # SEVENTH: Execute Traveler 001 System turn (real NPC with actual consequences)
+            if hasattr(self, 'traveler_001_system'):
+                print("\n🦹 Processing Traveler 001 System...")
+                world_state = self.get_game_state()
+                self.traveler_001_system.process_turn(world_state, self.get_game_state())
+                print("✅ Traveler 001 System processed - rogue Traveler activities completed!")
+            else:
+                print("\n🦹 Traveler 001 System not initialized - skipping 001 processing")
+            
+            # FINALLY: Advance the world turn and show summary (this will now use the updated real-time values)
         print("\n📅 Generating Daily Summary with real-time world state...")
         turn_summary = self.advance_world_turn()
         
@@ -4191,6 +4393,41 @@ class Game:
         self.clear_screen()
         self.print_header("GOVERNMENT NEWS & STATUS")
         
+        # Add detection system status if available
+        if hasattr(self, 'government_detection_system') and self.government_detection_system:
+            try:
+                from government_detection_system import get_detection_status
+                detection_status = get_detection_status()
+                
+                print("🔍 GOVERNMENT DETECTION SYSTEM STATUS")
+                print("=" * 60)
+                print(f"  • Turn: {detection_status['turn_count']}")
+                print(f"  • Traveler Teams Exposure: {detection_status['exposure_risk']['traveler_teams']:.1%}")
+                print(f"  • Faction Exposure: {detection_status['exposure_risk']['faction']:.1%}")
+                print(f"  • Overall Exposure: {detection_status['exposure_risk']['overall']:.1%}")
+                print(f"  • Active Investigations: {detection_status['active_investigations']}")
+                
+                # Show exposure warnings
+                for entity, risk in detection_status['exposure_risk'].items():
+                    if entity != "overall":
+                        threshold = detection_status['detection_thresholds'][entity]
+                        if risk > threshold:
+                            print(f"  🚨 WARNING: {entity.replace('_', ' ').title()} exposure at {risk:.1%} - Investigation threshold exceeded!")
+                        elif risk > threshold * 0.8:
+                            print(f"  ⚠️  CAUTION: {entity.replace('_', ' ').title()} exposure at {risk:.1%} - Approaching investigation threshold")
+                
+                print(f"\n📡 SURVEILLANCE NETWORKS:")
+                for network, coverage in detection_status['surveillance_networks'].items():
+                    print(f"  • {network.replace('_', ' ').title()}: {coverage:.1%}")
+                
+                print("\n" + "=" * 60)
+                
+            except ImportError:
+                print("⚠️  Detection system status not available")
+        
+        print("📰 GOVERNMENT NEWS & REAL-TIME STATUS")
+        print("=" * 60)
+        
         try:
             # Import government systems
             from government_news_system import get_government_news, get_government_status
@@ -4274,6 +4511,128 @@ class Game:
             print("   • Government consequences and news not accessible")
         except Exception as e:
             print(f"❌ Error accessing government systems: {e}")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_dynamic_traveler_systems_status(self):
+        """View comprehensive status of dynamic Traveler systems"""
+        self.clear_screen()
+        self.print_header("DYNAMIC TRAVELER SYSTEMS STATUS")
+        
+        print("🌊 DYNAMIC TRAVELER SYSTEM & 🦹 TRAVELER 001 STATUS")
+        print("=" * 70)
+        
+        # Dynamic Traveler System Status
+        if hasattr(self, 'dynamic_traveler_system') and self.dynamic_traveler_system:
+            try:
+                from dynamic_traveler_system import get_dynamic_traveler_status
+                dynamic_status = get_dynamic_traveler_status()
+                
+                print("🌊 DYNAMIC TRAVELER SYSTEM:")
+                print(f"  • New Arrivals: {dynamic_status['new_arrivals']}")
+                print(f"  • Team Formation Queue: {dynamic_status['team_formation_queue']}")
+                print(f"  • Active Consequences: {dynamic_status['active_consequences']}")
+                print(f"  • Timeline Crisis Level: {dynamic_status['timeline_crisis_level']:.1%}")
+                
+                # Show arrival patterns
+                if hasattr(self.dynamic_traveler_system, 'new_arrivals'):
+                    arrivals = self.dynamic_traveler_system.new_arrivals
+                    if arrivals:
+                        print(f"\n🚀 RECENT ARRIVALS:")
+                        for arrival in arrivals[-5:]:  # Show last 5
+                            print(f"  • Traveler {arrival.designation}: {arrival.host_body}")
+                            print(f"    Location: {arrival.location}")
+                            print(f"    Priority: {arrival.mission_priority}")
+                            print(f"    Status: {arrival.status}")
+                            print(f"    Consciousness: {arrival.consciousness_stability:.1%}")
+                
+                # Show team formation status
+                if hasattr(self.dynamic_traveler_system, 'team_formation_queue'):
+                    teams = self.dynamic_traveler_system.team_formation_queue
+                    if teams:
+                        print(f"\n👥 TEAM FORMATION STATUS:")
+                        for team in teams:
+                            print(f"  • {team['team_id']}: {len(team['members'])} members - {team['status']}")
+                            member_designations = [m.designation for m in team['members']]
+                            print(f"    Members: {', '.join(member_designations)}")
+                
+                # Show active consequences
+                if hasattr(self.dynamic_traveler_system, 'active_consequences'):
+                    consequences = self.dynamic_traveler_system.active_consequences
+                    if consequences:
+                        print(f"\n💥 ACTIVE CONSEQUENCES:")
+                        for consequence in consequences:
+                            print(f"  • {consequence.mission_id}: {consequence.description}")
+                            print(f"    Type: {consequence.consequence_type}")
+                            print(f"    Severity: {consequence.severity:.1%}")
+                            print(f"    Timeline Impact: {consequence.timeline_impact:+.3f}")
+                            print(f"    Required Response: {consequence.required_response}")
+                
+            except ImportError:
+                print("⚠️  Dynamic Traveler System status not available")
+        else:
+            print("❌ Dynamic Traveler System not initialized")
+        
+        print("\n" + "=" * 70)
+        
+        # Traveler 001 System Status
+        if hasattr(self, 'traveler_001_system') and self.traveler_001_system:
+            try:
+                from traveler_001_system import get_traveler_001_status
+                traveler_001_status = get_traveler_001_status()
+                
+                print("🦹 TRAVELER 001 (VINCENT INGRAM) STATUS:")
+                print(f"  • Current Alias: {traveler_001_status['current_alias']}")
+                print(f"  • Location: {traveler_001_status['location']}")
+                print(f"  • Consciousness Stability: {traveler_001_status['consciousness_stability']:.1%}")
+                print(f"  • Threat Level: {traveler_001_status['threat_level']}")
+                print(f"  • Active Missions: {traveler_001_status['active_missions']}")
+                print(f"  • Completed Missions: {traveler_001_status['completed_missions']}")
+                
+                # Show 001's current objectives
+                if hasattr(self.traveler_001_system, 'objectives'):
+                    objectives = self.traveler_001_system.objectives
+                    print(f"\n🎯 TRAVELER 001 OBJECTIVES:")
+                    for objective, data in objectives.items():
+                        progress = data["progress"]
+                        priority = data["priority"]
+                        print(f"  • {objective.replace('_', ' ').title()}: {progress:.1%} ({priority})")
+                
+                # Show active missions
+                if hasattr(self.traveler_001_system, 'active_missions'):
+                    missions = self.traveler_001_system.active_missions
+                    if missions:
+                        print(f"\n🔄 TRAVELER 001 ACTIVE MISSIONS:")
+                        for mission in missions:
+                            print(f"  • {mission.mission_id}: {mission.description}")
+                            print(f"    Success Chance: {mission.success_chance:.1%}")
+                            print(f"    Timeline Impact: {mission.timeline_impact:+.3f}")
+                            print(f"    Faction Gain: +{mission.faction_influence_gain:.3f}")
+                            print(f"    Government Response: {mission.government_response:.1%}")
+                
+                # Show recent consequences
+                if hasattr(self, 'get_game_state'):
+                    game_state = self.get_game_state()
+                    if 'traveler_001_consequences' in game_state and game_state['traveler_001_consequences']:
+                        recent_consequences = game_state['traveler_001_consequences'][-3:]  # Last 3
+                        print(f"\n💥 RECENT TRAVELER 001 CONSEQUENCES:")
+                        for consequence in recent_consequences:
+                            print(f"  • {consequence['mission_id']}: {consequence['outcome']}")
+                            print(f"    Timeline: {consequence['timeline_impact']:+.3f}")
+                            print(f"    Faction: +{consequence['faction_influence_gain']:.3f}")
+                
+            except ImportError:
+                print("⚠️  Traveler 001 System status not available")
+        else:
+            print("❌ Traveler 001 System not initialized")
+        
+        print(f"\n⚠️  IMPORTANT NOTES:")
+        print("   • New Travelers arrive dynamically based on world conditions")
+        print("   • Traveler 001 is a real NPC with actual consequences")
+        print("   • Mission outcomes affect the timeline in real-time")
+        print("   • Team formation happens automatically when conditions are met")
+        print("   • Every action has real consequences for the war for the future")
         
         self.print_separator()
         input("Press Enter to continue...")
@@ -4448,6 +4807,132 @@ class Game:
         except Exception as e:
             print(f"❌ Error accessing US Political System: {e}")
             print("   • Political system may not be fully initialized")
+            print("   • Check game system setup")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+    
+    def view_dynamic_mission_system_status(self):
+        """View comprehensive status of the dynamic mission system"""
+        self.clear_screen()
+        self.print_header("DYNAMIC MISSION SYSTEM STATUS")
+        
+        print("🎯 DYNAMIC MISSION SYSTEM - DIRECTOR'S THREAT ASSESSMENT")
+        print("=" * 70)
+        
+        if hasattr(self, 'dynamic_mission_system') and self.dynamic_mission_system:
+            try:
+                # Get current world state for threat assessment
+                world_state = self.get_game_state()
+                game_state = self.get_game_state()
+                
+                # Assess current threats
+                threats = self.dynamic_mission_system.assess_world_threats(world_state, game_state)
+                
+                print(f"🔍 CURRENT THREAT ASSESSMENT:")
+                if threats:
+                    for i, threat in enumerate(threats[:5], 1):  # Show top 5 threats
+                        print(f"  {i}. {threat.threat_type.replace('_', ' ').title()}")
+                        print(f"     Location: {threat.location}")
+                        print(f"     Threat Level: {threat.threat_level:.1%}")
+                        print(f"     Urgency: {threat.urgency:.1%}")
+                        print(f"     Complexity: {threat.complexity:.1%}")
+                        print(f"     Timeline Impact: {threat.timeline_impact:.1%}")
+                        print(f"     Faction Involvement: {threat.faction_involvement:.1%}")
+                        print(f"     Entities: {', '.join(threat.involved_entities)}")
+                        print()
+                else:
+                    print("  ✅ No immediate threats detected - timeline stable")
+                
+                # Show mission history
+                if hasattr(self.dynamic_mission_system, 'mission_history'):
+                    history = self.dynamic_mission_system.mission_history
+                    print(f"📋 MISSION HISTORY:")
+                    print(f"  • Total Missions Generated: {len(history)}")
+                    
+                    if history and isinstance(history, list):
+                        # Analyze mission types
+                        mission_types = {}
+                        for mission in history:
+                            if isinstance(mission, dict):
+                                mission_type = mission.get('type', 'unknown')
+                                mission_types[mission_type] = mission_types.get(mission_type, 0) + 1
+                        
+                        if mission_types:
+                            print(f"  • Mission Type Distribution:")
+                            for mission_type, count in mission_types.items():
+                                percentage = (count / len(history)) * 100
+                                print(f"     • {mission_type.replace('_', ' ').title()}: {count} ({percentage:.1f}%)")
+                        
+                        # Show recent missions
+                        print(f"\n  • Recent Missions (Last 5):")
+                        for mission in history[-5:]:
+                            if isinstance(mission, dict):
+                                print(f"     • {mission.get('mission_id', 'Unknown')}: {mission.get('type', 'Unknown').replace('_', ' ').title()}")
+                                print(f"       Location: {mission.get('location', 'Unknown')}")
+                                print(f"       Threat Level: {mission.get('threat_level', 0):.1%}")
+                                print(f"       Generated: {mission.get('generation_timestamp', 'Unknown')[:19]}")
+                    elif not history:
+                        print("  • No missions generated yet")
+                    else:
+                        print(f"  • Warning: Unexpected history format: {type(history)}")
+                
+                # Show system statistics
+                print(f"\n📊 SYSTEM STATISTICS:")
+                if hasattr(self.dynamic_mission_system, 'mission_templates'):
+                    templates = self.dynamic_mission_system.mission_templates
+                    if isinstance(templates, dict):
+                        print(f"  • Mission Templates Available: {len(templates)}")
+                    else:
+                        print(f"  • Mission Templates Available: {type(templates)} (unexpected format)")
+                else:
+                    print("  • Mission Templates Available: Not accessible")
+                
+                if hasattr(self.dynamic_mission_system, 'mission_priorities'):
+                    priorities = self.dynamic_mission_system.mission_priorities
+                    if isinstance(priorities, dict):
+                        print(f"  • Mission Priorities Configured: {len(priorities)}")
+                    else:
+                        print(f"  • Mission Priorities Configured: {type(priorities)} (unexpected format)")
+                else:
+                    print("  • Mission Priorities Configured: Not accessible")
+                
+                # Show current mission status
+                if self.current_mission:
+                    print(f"\n🎯 CURRENT MISSION STATUS:")
+                    print(f"  • Mission ID: {self.current_mission.get('mission_id', 'Unknown')}")
+                    print(f"  • Type: {self.current_mission.get('type', 'Unknown').replace('_', ' ').title()}")
+                    print(f"  • Status: {self.mission_status}")
+                    print(f"  • Location: {self.current_mission.get('location', 'Unknown')}")
+                    print(f"  • Threat Level: {self.current_mission.get('threat_level', 0):.1%}")
+                    print(f"  • Urgency: {self.current_mission.get('urgency', 0):.1%}")
+                    print(f"  • Complexity: {self.current_mission.get('complexity', 0):.1%}")
+                else:
+                    print(f"\n🎯 CURRENT MISSION STATUS:")
+                    print(f"  • No active mission")
+                
+                # Show team capabilities assessment
+                if hasattr(self, '_assess_team_capabilities'):
+                    team_capabilities = self._assess_team_capabilities()
+                    print(f"\n👥 TEAM CAPABILITIES ASSESSMENT:")
+                    for capability, level in team_capabilities.items():
+                        print(f"  • {capability.replace('_', ' ').title()}: {level:.1%}")
+                
+                print(f"\n⚠️  IMPORTANT NOTES:")
+                print("   • The Director is always watching and analyzing threats")
+                print("   • Missions are generated based on real-time world conditions")
+                print("   • Threat levels determine mission priority and complexity")
+                print("   • Team capabilities influence mission requirements")
+                print("   • Every mission has real consequences for the timeline")
+                print("   • The system adapts based on mission outcomes")
+                
+            except Exception as e:
+                print(f"❌ Error accessing Dynamic Mission System: {e}")
+                print("   • Dynamic mission system may not be fully initialized")
+                print("   • Check system integration")
+        else:
+            print("❌ Dynamic Mission System not initialized")
+            print("   • System may not be available in this game instance")
             print("   • Check game system setup")
         
         self.print_separator()

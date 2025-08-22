@@ -1,43 +1,39 @@
 {
   "team_leader": {
-    "name": "Megan",
-    "designation": "3939",
+    "name": "Jessica",
+    "designation": "4059",
     "role": "Team Leader",
-    "occupation": "Engineer",
+    "occupation": "Historian",
     "skills": [
-      "Cartography",
-      "Architecture",
-      "Veterinary Medicine"
+      "Civil Engineering",
+      "Robotics",
+      "Hand-to-Hand"
     ],
     "abilities": [
-      "Gifted Navigator",
-      "Expert Coach",
-      "Skilled Athlete",
-      "Master Surgeon"
+      "Gifted Inventor",
+      "Gifted Investigator"
     ],
-    "mission_count": 1,
+    "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Elijah",
-      "designation": "4125",
+      "name": "Jennifer",
+      "designation": "6440",
       "role": "Historian",
-      "occupation": "Hacker",
+      "occupation": "Scientist",
       "skills": [
-        "Vulnerability Assessment",
-        "Data Analysis",
-        "Film",
-        "Algorithm Design",
-        "Medicine"
+        "Sword Fighting",
+        "Landscape Architecture",
+        "Navigation",
+        "Geology"
       ],
       "abilities": [
-        "Master Historian",
-        "Exceptional Scientist",
-        "Skilled Leader",
-        "Peak Physical Conditioning"
+        "Exceptional Cartographer",
+        "Expert Designer",
+        "Skilled Writer"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -45,21 +41,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "Anthony",
-      "designation": "9466",
+      "name": "Cameron",
+      "designation": "627",
       "role": "Engineer",
-      "occupation": "Hacker",
+      "occupation": "Engineer",
       "skills": [
-        "Linguistics",
-        "Finance",
-        "Data Warehousing",
-        "Cooking"
+        "Fashion Design",
+        "Architecture",
+        "Network Security",
+        "Literature"
       ],
       "abilities": [
-        "Exceptional Storyteller",
-        "Exceptional Lockpick",
-        "Gifted Fisherman",
-        "Expert Composer"
+        "Skilled Linguist",
+        "Exceptional Peacemaker",
+        "Skilled Hacker"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -67,19 +62,22 @@
       "timeline_impact": 0
     },
     {
-      "name": "Robert",
-      "designation": "8037",
+      "name": "Julie",
+      "designation": "4351",
       "role": "Medic",
-      "occupation": "Medic",
+      "occupation": "Leader",
       "skills": [
-        "Oceanography",
-        "Medicine",
-        "Archery",
-        "Network Security"
+        "Philosophy",
+        "Computer Vision",
+        "Entrepreneurship",
+        "Dance",
+        "Nutrition"
       ],
       "abilities": [
-        "Gifted Singer",
-        "Gifted Scientist"
+        "Exceptional Athlete",
+        "Expert Composer",
+        "Skilled Musician",
+        "Master Chef"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -87,20 +85,18 @@
       "timeline_impact": 0
     },
     {
-      "name": "Andrew",
-      "designation": "1764",
+      "name": "William",
+      "designation": "4051",
       "role": "Tactician",
-      "occupation": "Soldier",
+      "occupation": "Historian",
       "skills": [
-        "Literature",
-        "Cooking",
-        "Network Security"
+        "Persuasion",
+        "Leadership",
+        "Geology"
       ],
       "abilities": [
-        "Master Hunter",
-        "Gifted Singer",
-        "Exceptional Athlete",
-        "Exceptional Detective"
+        "Genius-Level Intellect",
+        "Expert Negotiator"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -113,52 +109,61 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.7739999999999999,
+  "timeline_stability": 0.7779999999999999,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
-      "change": 0.1,
-      "actual_change": 0.13,
+      "change": -0.1,
+      "actual_change": -0.13,
       "old_stability": 0.85,
-      "new_stability": 0.98,
-      "source": "mission_faction_interference_complete_success",
+      "new_stability": 0.72,
+      "source": "mission_counter_intelligence_failure",
       "fragility_impact": 0.3
     },
     {
       "timestamp": "March 15, 2018",
-      "change": -0.2,
-      "actual_change": -0.26,
-      "old_stability": 0.98,
-      "new_stability": 0.72,
-      "source": "mission_prevent_historical_disaster_critical_failure",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 16, 2018",
       "change": 0.05,
       "actual_change": 0.065,
       "old_stability": 0.72,
       "new_stability": 0.7849999999999999,
-      "source": "mission_faction_interference_success",
+      "source": "mission_intelligence_gathering_success",
       "fragility_impact": 0.3
     },
     {
-      "timestamp": "March 17, 2018",
-      "change": -0.1,
-      "actual_change": -0.13,
-      "old_stability": 0.8669999999999999,
-      "new_stability": 0.7369999999999999,
-      "source": "mission_protocol_violation_cleanup_failure",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 17, 2018",
+      "timestamp": "March 15, 2018",
       "change": -0.02,
       "actual_change": -0.026000000000000002,
-      "old_stability": 0.7369999999999999,
-      "new_stability": 0.7109999999999999,
-      "source": "mission_prevent_traveler_exposure_partial_success",
+      "old_stability": 0.7849999999999999,
+      "new_stability": 0.7589999999999999,
+      "source": "mission_intelligence_gathering_partial_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 15, 2018",
+      "change": -0.1,
+      "actual_change": -0.13,
+      "old_stability": 0.7589999999999999,
+      "new_stability": 0.6289999999999999,
+      "source": "mission_stealth_preparation_failure",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
+      "change": -0.02,
+      "actual_change": -0.026000000000000002,
+      "old_stability": 0.6739999999999999,
+      "new_stability": 0.6479999999999999,
+      "source": "mission_intelligence_gathering_partial_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
+      "change": 0.1,
+      "actual_change": 0.13,
+      "old_stability": 0.6479999999999999,
+      "new_stability": 0.7779999999999999,
+      "source": "mission_intelligence_gathering_complete_success",
       "fragility_impact": 0.3
     }
   ],
@@ -169,7 +174,7 @@
         "party": "Republican"
       },
       "vice_president": {
-        "name": "William Gonzalez",
+        "name": "Michael Williams",
         "party": "Republican"
       }
     },
@@ -183,6 +188,6 @@
         "majority_count": 218
       }
     },
-    "turn_count": 3
+    "turn_count": 2
   }
 }

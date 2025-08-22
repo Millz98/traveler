@@ -35,12 +35,18 @@ class HackingTool:
         detection_roll = random.random()
         detected = detection_roll < self.detection_risk
         
-        return {
+        result = {
             "success": success,
             "detected": detected,
             "effectiveness": self.effectiveness,
             "message": f"{self.name} {'succeeded' if success else 'failed'}"
         }
+        
+        # Debug logging
+        if not all(key in result for key in ["success", "detected", "effectiveness", "message"]):
+            print(f"⚠️  Warning: Tool {self.name} returning incomplete result: {result}")
+        
+        return result
 
 class HackingTarget:
     """Target system that can be hacked"""
@@ -66,6 +72,11 @@ class HackingTarget:
         # Use the hacking tool
         result = tool.use_tool(total_difficulty)
         
+        # Ensure result has required keys
+        if "detected" not in result:
+            print(f"⚠️  Warning: Tool {tool.name} returned incomplete result: {result}")
+            result["detected"] = False  # Default to not detected
+        
         if result["success"]:
             # Create breach
             breach = {
@@ -87,7 +98,7 @@ class HackingTarget:
             return breach
         else:
             # Failed breach attempt
-            if result["detected"]:
+            if result.get("detected", False):
                 self.alert_level = min(1.0, self.alert_level + 0.1)
             return None
     
@@ -103,7 +114,7 @@ class HackingTarget:
         severity *= value_multipliers.get(self.value, 1.0)
         
         # Detection affects severity (undetected breaches are more severe)
-        if not result["detected"]:
+        if not result.get("detected", False):
             severity *= 1.2
             
         return min(1.0, severity)
@@ -509,6 +520,20 @@ class HackingSystem:
         # Generate cyber events
         self.generate_cyber_events(world_state)
         
+        # Capture cyber events in government news system if they're government-related
+        if self.cyber_events:
+            try:
+                from government_news_system import capture_turn_events
+                for event in self.cyber_events[-3:]:  # Check last 3 events
+                    if any(keyword in event.lower() for keyword in ["breach", "attack", "government", "federal"]):
+                        cyber_data = {
+                            "crisis_type": "cyber threat",
+                            "description": event
+                        }
+                        capture_turn_events("crisis_event", cyber_data)
+            except ImportError:
+                pass  # Government news system not available
+        
         # Show summary
         self.show_hacking_summary()
         
@@ -553,6 +578,33 @@ class HackingSystem:
             if random.random() < 0.4:
                 print(f"    🚨 Operation detected - government response triggered")
                 world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.05)
+                
+                # Capture detected hacking events in government news system
+                try:
+                    from government_news_system import capture_turn_events
+                    hacking_data = {
+                        "detected": True,
+                        "target": result.get("target_name", "government system"),
+                        "severity": result.get("severity", 0.5)
+                    }
+                    capture_turn_events("hacking_event", hacking_data)
+                except ImportError:
+                    pass  # Government news system not available
+                
+                # Add detection event to government detection system
+                try:
+                    from government_detection_system import add_detection_event
+                    add_detection_event(
+                        event_type="cyber_attack_detected",
+                        severity=result.get("severity", 0.5),
+                        location="digital_network",
+                        description=f"Cyber attack detected on {result.get('target_name', 'government system')}",
+                        involved_entities=["faction"] if "faction" in str(result.get("hacker", "")) else ["unknown"],
+                        detection_chance=0.8,  # High chance of detection for detected attacks
+                        risk_multiplier=1.2
+                    )
+                except ImportError:
+                    pass  # Government detection system not available
         
         # Update world state based on breach severity
         if result["severity"] > 0.7:

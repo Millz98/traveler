@@ -216,7 +216,20 @@ class USPoliticalSystem:
         
         # Regular inter-agency meetings
         if self.turn_count % 5 == 0:  # Every 5 turns
-            self.hold_inter_agency_meeting(world_state)
+            meeting_result = self.hold_inter_agency_meeting(world_state)
+            
+            # Capture inter-agency meetings in government news system
+            if meeting_result:
+                try:
+                    from government_news_system import capture_turn_events
+                    meeting_data = {
+                        "coordination_type": "regular inter-agency meeting",
+                        "agencies": meeting_result.get("participating_agencies", []),
+                        "topics": meeting_result.get("discussion_topics", [])
+                    }
+                    capture_turn_events("agency_coordination", meeting_data)
+                except ImportError:
+                    pass  # Government news system not available
     
     def coordinate_agency_response(self, crisis, world_state):
         """Coordinate multiple agencies in response to a crisis"""
@@ -243,8 +256,23 @@ class USPoliticalSystem:
             crisis["resolution_turn"] = self.turn_count
             print(f"✅ Crisis {crisis['type']} resolved through coordinated response")
         else:
+            # Initialize escalation_level if it doesn't exist
+            if "escalation_level" not in crisis:
+                crisis["escalation_level"] = 0
             crisis["escalation_level"] += 1
             print(f"⚠️  Crisis {crisis['type']} escalated - Level {crisis['escalation_level']}")
+        
+        # Capture agency coordination events in government news system
+        try:
+            from government_news_system import capture_turn_events
+            coordination_data = {
+                "coordination_type": f"{crisis['type']} response",
+                "agencies": responding_agencies,
+                "success": success
+            }
+            capture_turn_events("agency_coordination", coordination_data)
+        except ImportError:
+            pass  # Government news system not available
     
     def determine_responding_agencies(self, crisis):
         """Determine which agencies should respond to a crisis"""
@@ -345,7 +373,14 @@ class USPoliticalSystem:
     
     def get_active_crises(self):
         """Get list of currently active crises"""
-        return [crisis for crisis in self.timeline_events if crisis.get("status") == "active"]
+        active_crises = [crisis for crisis in self.timeline_events if crisis.get("status") == "active"]
+        
+        # Ensure all crises have required keys
+        for crisis in active_crises:
+            if "escalation_level" not in crisis:
+                crisis["escalation_level"] = 0
+        
+        return active_crises
     
     def calculate_crisis_world_impact(self, crisis):
         """Calculate the world impact level of a crisis"""
@@ -365,8 +400,12 @@ class USPoliticalSystem:
         crisis_type = crisis.get("type", "general")
         type_modifier = type_modifiers.get(crisis_type, 0.5)
         
+        # Ensure escalation_level exists
+        if "escalation_level" not in crisis:
+            crisis["escalation_level"] = 0
+        
         # Escalation modifier
-        escalation_modifier = 1.0 + (crisis.get("escalation_level", 0) * 0.2)
+        escalation_modifier = 1.0 + (crisis["escalation_level"] * 0.2)
         
         return base_impact * type_modifier * escalation_modifier
     
@@ -386,6 +425,16 @@ class USPoliticalSystem:
         
         # Apply outcomes to world state
         self.apply_meeting_outcomes(outcomes, world_state)
+        
+        # Return meeting results for government news capture
+        meeting_result = {
+            "participating_agencies": list(set([agency for item in agenda_items for agency in item.get("agencies", [])])),
+            "discussion_topics": [item["description"] for item in agenda_items],
+            "outcomes": outcomes,
+            "turn": self.turn_count
+        }
+        
+        return meeting_result
     
     def generate_meeting_agenda(self, world_state):
         """Generate agenda items for inter-agency meeting"""
@@ -521,6 +570,32 @@ class USPoliticalSystem:
             if event:
                 self.timeline_events.append(event)
                 print(f"📰 Political event generated: {event['description']}")
+                
+                # Capture political events in government news system
+                try:
+                    from government_news_system import capture_turn_events
+                    capture_turn_events("political_event", event)
+                except ImportError:
+                    pass  # Government news system not available
+                
+                # Add detection event to government detection system for major political events
+                try:
+                    from government_detection_system import add_detection_event
+                    
+                    # Determine if this political event could reveal Traveler or Faction activity
+                    if event.get("type") in ["congressional_hearing", "presidential_executive_order"]:
+                        # These events might reveal hidden activities
+                        add_detection_event(
+                            event_type="political_event_revealing",
+                            severity=0.4,  # Moderate severity
+                            location="washington_dc",
+                            description=f"Political event: {event.get('description', 'Government action')}",
+                            involved_entities=["government"],
+                            detection_chance=0.7,  # Good chance of revealing hidden activities
+                            risk_multiplier=1.1
+                        )
+                except ImportError:
+                    pass  # Government detection system not available
     
     def generate_random_political_event(self, world_state):
         """Generate a random political event"""

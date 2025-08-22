@@ -3900,6 +3900,108 @@ class DynamicWorldEventsSystem:
                         del global_world_tracker.ongoing_world_changes[change_id]
                         print(f"⏰ Ongoing world change expired: {change.get('description', 'Unknown change')}")
     
+    def increase_programmer_stress(self, programmer_name, stress_amount=0.1):
+        """Increase a programmer's stress level (called when events occur)"""
+        if programmer_name in self.directors_programmers:
+            current_stress = self.directors_programmers[programmer_name].get("stress_level", 0.0)
+            new_stress = min(1.0, current_stress + stress_amount)
+            self.directors_programmers[programmer_name]["stress_level"] = new_stress
+            
+            # High stress increases defection risk
+            if new_stress >= 0.8:
+                print(f"⚠️  {programmer_name} is under extreme stress - defection risk increased!")
+    
+    def increase_faction_exposure(self, programmer_name, exposure_amount=0.15):
+        """Increase a programmer's faction exposure (called when they encounter Faction agents)"""
+        if programmer_name in self.directors_programmers:
+            current_exposure = self.directors_programmers[programmer_name].get("faction_exposure", 0.0)
+            new_exposure = min(1.0, current_exposure + exposure_amount)
+            self.directors_programmers[programmer_name]["faction_exposure"] = new_exposure
+            
+            # High exposure increases defection risk
+            if new_exposure >= 0.7:
+                print(f"⚠️  {programmer_name} has high Faction exposure - defection risk increased!")
+    
+    def process_programmer_defection_checks(self, game_ref):
+        """Process defection risk checks for all active programmers"""
+        defection_events = []
+        
+        for programmer_name in list(self.directors_programmers.keys()):
+            if self.check_programmer_defection_risk(programmer_name, game_ref):
+                defection_events.append(programmer_name)
+        
+        return defection_events
+    
+    def check_programmer_defection_risk(self, programmer_name, game_ref):
+        """Check if a programmer is at risk of defection"""
+        if programmer_name not in self.directors_programmers:
+            return False
+            
+        programmer = self.directors_programmers[programmer_name]
+        if programmer["loyalty"] == "defected":
+            return False  # Already defected
+        
+        # Calculate defection risk based on stress and exposure
+        stress_level = programmer.get("stress_level", 0.0)
+        faction_exposure = programmer.get("faction_exposure", 0.0)
+        
+        # Base defection chance
+        base_chance = 0.05  # 5% base chance
+        
+        # Stress increases defection chance
+        stress_chance = stress_level * 0.3  # Up to 30% from stress
+        
+        # Faction exposure increases defection chance
+        exposure_chance = faction_exposure * 0.4  # Up to 40% from exposure
+        
+        total_chance = base_chance + stress_chance + exposure_chance
+        
+        # Cap at 80% maximum
+        total_chance = min(total_chance, 0.8)
+        
+        # Roll for defection
+        defection_roll = random.random()
+        
+        if defection_roll <= total_chance:
+            # DEFECTION TRIGGERED!
+            print(f"🚨🚨🚨 {programmer_name} DEFECTION TRIGGERED! 🚨🚨🚨")
+            print(f"   Stress Level: {stress_level:.1%}")
+            print(f"   Faction Exposure: {faction_exposure:.1%}")
+            print(f"   Defection chance: {total_chance:.1%}")
+            print(f"   Roll: {defection_roll:.3f}")
+            
+            self._trigger_programmer_defection(programmer_name, game_ref, total_chance)
+            return True
+        
+        return False
+    
+    def _trigger_programmer_defection(self, programmer_name, game_ref, defection_chance):
+        """Trigger the actual defection of a programmer"""
+        if programmer_name not in self.directors_programmers:
+            return
+        
+        programmer = self.directors_programmers[programmer_name]
+        
+        # Mark as defected
+        programmer["loyalty"] = "defected"
+        programmer["defection_turn"] = getattr(global_world_tracker, 'current_turn', 0)
+        programmer["defection_reason"] = "stress_and_exposure"
+        
+        # Update defection status
+        if programmer_name not in self.defection_status:
+            self.defection_status[programmer_name] = {}
+        
+        self.defection_status[programmer_name].update({
+            "defected": True,
+            "defection_turn": getattr(global_world_tracker, 'current_turn', 0),
+            "defection_reason": "stress_and_exposure",
+            "defection_chance": defection_chance
+        })
+        
+        print(f"💥 {programmer_name} has defected to the Faction!")
+        print(f"   Defection reason: High stress and Faction exposure")
+        print(f"   This is a major blow to the Director's operations!")
+    
     # REMOVED: Duplicate process_npc_missions method - using process_mission_timers instead
     
     def process_faction_operations(self):
@@ -4754,12 +4856,19 @@ def get_world_activity_feed():
     
     # Show AI Traveler Teams status
     try:
-        # Access AI teams through the messenger system
-        from messenger_system import DynamicWorldEventsSystem
-        temp_system = DynamicWorldEventsSystem()
-        ai_teams = temp_system.ai_traveler_teams
+        # Try to access AI teams through the global world tracker first
+        if hasattr(global_world_tracker, 'ai_traveler_teams'):
+            ai_teams = global_world_tracker.ai_traveler_teams
+        else:
+            # Fallback: try to access through the messenger system
+            from messenger_system import DynamicWorldEventsSystem
+            temp_system = DynamicWorldEventsSystem()
+            # Ensure the teams are initialized
+            if not temp_system.ai_traveler_teams:
+                temp_system.initialize_ai_traveler_teams()
+            ai_teams = temp_system.ai_traveler_teams
         
-        if ai_teams:
+        if ai_teams and isinstance(ai_teams, dict):
             print(f"\n🤖 AI TRAVELER TEAMS STATUS:")
             active_teams = [team for team in ai_teams.values() if team["status"] == "active"]
             on_mission_teams = [team for team in ai_teams.values() if team["status"] == "on_mission"]
@@ -4775,6 +4884,13 @@ def get_world_activity_feed():
                 for team in on_mission_teams:
                     for mission in team["active_missions"]:
                         print(f"    - {team['designation']}: {mission['type']} in {mission['location']} (DC: {mission['dc']}, {mission.get('time_remaining', mission['duration'])} turns left)")
+        elif ai_teams and isinstance(ai_teams, list):
+            print(f"\n🤖 AI TRAVELER TEAMS STATUS:")
+            print(f"  • Warning: Teams data is in list format, expected dictionary")
+            print(f"  • Total Teams: {len(ai_teams)}")
+        else:
+            print(f"\n🤖 AI TRAVELER TEAMS STATUS:")
+            print(f"  • Teams data not available or in unexpected format: {type(ai_teams)}")
     except Exception as e:
         print(f"  • AI Teams: System initializing...")
     
@@ -5123,7 +5239,6 @@ def get_world_activity_feed():
             )
         
         return False
-
 
 # Note: DynamicWorldEventsSystem instances are created by individual MessengerSystem instances
 # to ensure proper scope and avoid attribute errors
