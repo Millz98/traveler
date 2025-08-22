@@ -69,7 +69,7 @@ class HackingTarget:
         if result["success"]:
             # Create breach
             breach = {
-                "hacker": hacker.name,
+                "hacker": hacker,  # Store the hacker object, not just the name
                 "tool": tool.name,
                 "timestamp": datetime.now(),
                 "type": tool.tool_type,
@@ -479,12 +479,23 @@ class HackingSystem:
         print(f"\n🖥️  HACKING TURN - {time_system.get_current_date_string()}")
         print("=" * 60)
         
+        # Clear any old format breach data first
+        self.clear_old_breach_data()
+        
         # Execute ongoing operations
         for hacker in self.hackers:
             if hacker.current_operation:
                 result = hacker.execute_operation()
                 if result:
                     print(f"✅ {hacker.name} completed operation: {result['type']}")
+                    # Debug: check result structure
+                    if isinstance(result, dict) and "hacker" in result:
+                        hacker_type = type(result["hacker"])
+                        print(f"    🔍 Debug: Result hacker type: {hacker_type}")
+                        if hasattr(result["hacker"], 'faction'):
+                            print(f"    🔍 Debug: Hacker faction: {result['hacker'].faction}")
+                        else:
+                            print(f"    ⚠️  Warning: Hacker object missing faction attribute")
                     self.handle_operation_result(result, world_state)
         
         # Start new operations
@@ -529,6 +540,11 @@ class HackingSystem:
     
     def handle_operation_result(self, result, world_state):
         """Handle the result of a hacking operation"""
+        # Safety check: ensure result has the expected structure
+        if not isinstance(result, dict) or "hacker" not in result:
+            print(f"    ⚠️  Warning: Invalid operation result format: {result}")
+            return
+            
         if result["detected"]:
             # Increase global alert level
             self.global_alert_level = min(1.0, self.global_alert_level + 0.1)
@@ -540,14 +556,19 @@ class HackingSystem:
         
         # Update world state based on breach severity
         if result["severity"] > 0.7:
-            # Critical breach
-            if result["hacker"].faction == "faction":
-                world_state['faction_influence'] = min(1.0, world_state.get('faction_influence', 0.3) + 0.1)
-                world_state['timeline_stability'] = max(0.0, world_state.get('timeline_stability', 0.5) - 0.1)
-            elif result["hacker"].faction == "traveler":
-                world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.05)
-            elif result["hacker"].faction == "government":
-                world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.08)
+            # Critical breach - result["hacker"] is now the hacker object from our fix
+            # Add additional safety checks for backward compatibility
+            hacker = result["hacker"]
+            if hasattr(hacker, 'faction'):
+                if hacker.faction == "faction":
+                    world_state['faction_influence'] = min(1.0, world_state.get('faction_influence', 0.3) + 0.1)
+                    world_state['timeline_stability'] = max(0.0, world_state.get('timeline_stability', 0.5) - 0.1)
+                elif hacker.faction == "traveler":
+                    world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.05)
+                elif hacker.faction == "government":
+                    world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.08)
+            else:
+                print(f"    ⚠️  Warning: Hacker object missing faction attribute: {hacker}")
     
     def update_target_defenses(self):
         """Update target system defenses"""
@@ -609,7 +630,7 @@ class HackingSystem:
             
             if target.current_breach:
                 breach = target.current_breach
-                print(f"    • Breached by {breach['hacker']} using {breach['tool']}")
+                print(f"    • Breached by {breach['hacker'].name if hasattr(breach['hacker'], 'name') else breach['hacker']} using {breach['tool']}")
     
     def get_hacking_world_state(self):
         """Get current hacking world state"""
@@ -623,3 +644,30 @@ class HackingSystem:
                 "faction": len([h for h in self.hackers if h.faction == "faction"])
             }
         }
+    
+    def clear_old_breach_data(self):
+        """Clear any existing breach data that might have the old format (hacker names as strings)"""
+        print("🧹 Clearing old breach data format...")
+        cleared_count = 0
+        
+        for target in self.targets:
+            if target.current_breach:
+                breach = target.current_breach
+                if isinstance(breach.get("hacker"), str):
+                    print(f"    🗑️  Clearing old format breach on {target.name} (hacker was string: {breach['hacker']})")
+                    target.current_breach = None
+                    cleared_count += 1
+                    
+            # Also check breach history
+            for breach in target.breach_history[:]:
+                if isinstance(breach.get("hacker"), str):
+                    print(f"    🗑️  Clearing old format breach from history on {target.name}")
+                    target.breach_history.remove(breach)
+                    cleared_count += 1
+        
+        if cleared_count > 0:
+            print(f"    ✅ Cleared {cleared_count} old format breach records")
+        else:
+            print("    ✅ No old format breach records found")
+        
+        return cleared_count

@@ -1649,7 +1649,7 @@ class Game:
                 print(f"\n🔴 Recently Breached Systems:")
                 for target in breached_targets[:5]:  # Show last 5
                     breach = target.current_breach
-                    print(f"  • {target.name} - Breached by {breach['hacker']} using {breach['tool']}")
+                    print(f"  • {target.name} - Breached by {breach['hacker'].name if hasattr(breach['hacker'], 'name') else breach['hacker']} using {breach['tool']}")
                     print(f"    Severity: {breach['severity']:.2f}, Detected: {'Yes' if breach['detected'] else 'No'}")
             else:
                 print(f"\n🟢 All systems currently secure")
