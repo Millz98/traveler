@@ -19,7 +19,9 @@ import time
 import json
 import os
 import random
+from datetime import datetime
 from typing import Dict
+from d20_decision_system import CharacterDecision
 
 class Game:
     def __init__(self):
@@ -77,6 +79,15 @@ class Game:
         except ImportError:
             print("⚠️  Dynamic Mission System not available")
             self.dynamic_mission_system = None
+        
+        # Initialize D20 Decision System
+        try:
+            from d20_decision_system import d20_system, CharacterDecision
+            self.d20_system = d20_system
+            print("✅ D20 Decision System initialized - Every character decision uses D20 rolls")
+        except ImportError:
+            print("⚠️  D20 Decision System not available")
+            self.d20_system = None
         
         # Set game reference in update system
         self.update_system.game_ref = self
@@ -580,10 +591,12 @@ class Game:
                     elif choice == "27":
                         self.view_dynamic_mission_system_status()
                     elif choice == "28":
-                        self.end_turn()
+                        self.view_d20_statistics()
                     elif choice == "29":
-                        self.save_game()
+                        self.end_turn()
                     elif choice == "30":
+                        self.save_game()
+                    elif choice == "31":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
@@ -643,9 +656,10 @@ class Game:
         print("25. View US Political System Status")
         print("26. View Dynamic Traveler Systems Status")
         print("27. View Dynamic Mission System Status")
-        print("28. End Turn")
-        print("29. Save Game")
-        print("30. Quit Game")
+        print("28. View D20 Decision System Statistics")
+        print("29. End Turn")
+        print("30. Save Game")
+        print("31. Quit Game")
         
         self.print_separator()
         
@@ -663,7 +677,7 @@ class Game:
         if not self.team_formed:
             choice = input(f"\nEnter your choice (1-6): ")
         else:
-            choice = input(f"\nEnter your choice (1-30): ")
+            choice = input(f"\nEnter your choice (1-31): ")
         
         return choice
 
@@ -824,6 +838,7 @@ class Game:
                 "individual_skill": 0.5
             }
             
+
             if hasattr(self, 'team') and self.team:
                 # Assess team cohesion and communication
                 # Check both possible attribute names for cohesion
@@ -1793,6 +1808,301 @@ class Game:
         
         print(f"\n✅ Turn {self.time_system.current_turn} completed!")
         input("Press Enter to continue...")
+
+    def _execute_ai_world_turn_with_d20(self):
+        """Execute AI world turn with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # AI World Controller makes strategic decisions
+            ai_decision = CharacterDecision(
+                character_name="AI World Controller",
+                character_type="director",
+                decision_type="intelligence",
+                context="Analyze world state and make strategic decisions",
+                difficulty_class=12,
+                modifiers={"ai_analysis": 2, "strategic_planning": 1},
+                consequences={
+                    "success": "Strategic decisions improve world state",
+                    "failure": "Strategic decisions are suboptimal"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(ai_decision)
+            rolls.append(result)
+            
+            # Execute the actual AI turn
+            self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system)
+            self.ai_world_controller.update_world_state_from_ai_turn(self.get_game_state())
+        
+        return rolls
+
+    def _execute_hacking_turn_with_d20(self):
+        """Execute hacking system turn with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # Each hacker makes decisions
+            for hacker in getattr(self.hacking_system, 'hackers', []):
+                if hacker.current_operation:
+                    # Hacker decides whether to continue operation
+                    hacker_decision = CharacterDecision(
+                        character_name=hacker.name,
+                        character_type="faction" if hasattr(hacker, 'faction') and hacker.faction == "Faction" else "traveler",
+                        decision_type="technical",
+                        context=f"Continue {hacker.current_operation['type']} operation",
+                        difficulty_class=14,
+                        modifiers={"hacking_skill": 1, "covert_operations": 1},
+                        consequences={
+                            "success": "Operation progresses successfully",
+                            "failure": "Operation faces difficulties"
+                        }
+                    )
+                    
+                    result = self.d20_system.resolve_character_decision(hacker_decision)
+                    rolls.append(result)
+            
+            # Execute the actual hacking turn
+            self.hacking_system.execute_hacking_turn(self.get_game_state(), self.time_system)
+        
+        return rolls
+
+    def _execute_dynamic_world_events_with_d20(self):
+        """Execute dynamic world events with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # Director's Core Programmers make decisions
+            programmer_decision = CharacterDecision(
+                character_name="Director's Core Programmers",
+                character_type="director",
+                decision_type="intelligence",
+                context="Coordinate world events and NPC actions",
+                difficulty_class=13,
+                modifiers={"programming_expertise": 2, "world_coordination": 1},
+                consequences={
+                    "success": "World events coordinated effectively",
+                    "failure": "World events become chaotic"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(programmer_decision)
+            rolls.append(result)
+            
+            # Execute the actual world events turn
+            self.messenger_system.dynamic_world_events.process_world_turn()
+        
+        return rolls
+
+    def _execute_political_turn_with_d20(self):
+        """Execute political system turn with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # Executive Branch makes decisions
+            executive_decision = CharacterDecision(
+                character_name="Executive Branch",
+                character_type="government",
+                decision_type="social",
+                context="Make executive decisions and policy changes",
+                difficulty_class=15,
+                modifiers={"executive_authority": 1, "policy_expertise": 1},
+                consequences={
+                    "success": "Executive decisions are effective",
+                    "failure": "Executive decisions face resistance"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(executive_decision)
+            rolls.append(result)
+            
+            # Legislative Branch makes decisions
+            legislative_decision = CharacterDecision(
+                character_name="Legislative Branch",
+                character_type="government",
+                decision_type="social",
+                context="Pass legislation and make laws",
+                difficulty_class=16,
+                modifiers={"legislative_expertise": 1, "political_influence": 1},
+                consequences={
+                    "success": "Legislation passes successfully",
+                    "failure": "Legislation faces opposition"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(legislative_decision)
+            rolls.append(result)
+            
+            # Execute the actual political turn
+            world_state = self.get_game_state()
+            self.us_political_system.process_political_turn(world_state)
+        
+        return rolls
+
+    def _execute_government_detection_with_d20(self):
+        """Execute government detection with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # FBI makes detection decisions
+            fbi_decision = CharacterDecision(
+                character_name="FBI",
+                character_type="government",
+                decision_type="intelligence",
+                context="Detect Traveler and Faction activities",
+                difficulty_class=18,
+                modifiers={"investigation_expertise": 1, "surveillance_tech": 1},
+                consequences={
+                    "success": "Activities detected and investigated",
+                    "failure": "Activities remain hidden"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(fbi_decision)
+            rolls.append(result)
+            
+            # CIA makes detection decisions
+            cia_decision = CharacterDecision(
+                character_name="CIA",
+                character_type="government",
+                decision_type="intelligence",
+                context="Gather intelligence on foreign threats",
+                difficulty_class=17,
+                modifiers={"intelligence_network": 2, "covert_operations": 1},
+                consequences={
+                    "success": "Intelligence gathered successfully",
+                    "failure": "Intelligence gathering fails"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(cia_decision)
+            rolls.append(result)
+            
+            # Execute the actual detection turn
+            world_state = self.get_game_state()
+            self.government_detection_system.process_turn(world_state, self.get_game_state())
+        
+        return rolls
+
+    def _execute_dynamic_traveler_turn_with_d20(self):
+        """Execute dynamic traveler turn with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # New arrivals make decisions
+            arrival_decision = CharacterDecision(
+                character_name="New Traveler Arrivals",
+                character_type="traveler",
+                decision_type="survival",
+                context="Adapt to new timeline and find host bodies",
+                difficulty_class=16,
+                modifiers={"traveler_expertise": 2, "timeline_adaptation": 1},
+                consequences={
+                    "success": "Arrivals adapt successfully",
+                    "failure": "Arrivals face difficulties"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(arrival_decision)
+            rolls.append(result)
+            
+            # Execute the actual traveler turn
+            world_state = self.get_game_state()
+            self.dynamic_traveler_system.process_turn(world_state, self.get_game_state())
+        
+        return rolls
+
+    def _execute_traveler001_turn_with_d20(self):
+        """Execute Traveler 001 turn with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # Traveler 001 makes decisions
+            traveler001_decision = CharacterDecision(
+                character_name="Traveler 001",
+                character_type="traveler",
+                decision_type="combat",
+                context="Execute rogue operations and cause chaos",
+                difficulty_class=19,
+                modifiers={"rogue_expertise": 2, "chaos_creation": 1},
+                consequences={
+                    "success": "Rogue operations succeed",
+                    "failure": "Rogue operations fail"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(traveler001_decision)
+            rolls.append(result)
+            
+            # Execute the actual Traveler 001 turn
+            world_state = self.get_game_state()
+            self.traveler_001_system.process_turn(world_state, self.get_game_state())
+        
+        return rolls
+
+    def _execute_living_world_turn_with_d20(self):
+        """Execute living world turn with D20 rolls for every decision"""
+        rolls = []
+        
+        if hasattr(self, 'd20_system') and self.d20_system:
+            # Living world makes decisions
+            living_world_decision = CharacterDecision(
+                character_name="The Living World",
+                character_type="civilian",
+                decision_type="survival",
+                context="Generate world events and faction activities",
+                difficulty_class=14,
+                modifiers={"world_chaos": 0, "natural_disasters": 0},
+                consequences={
+                    "success": "World events occur naturally",
+                    "failure": "World remains stable"
+                }
+            )
+            
+            result = self.d20_system.resolve_character_decision(living_world_decision)
+            rolls.append(result)
+            
+            # Execute the actual living world turn
+            self.living_world.advance_turn(self.time_system)
+        
+        return rolls
+
+    def _display_turn_d20_summary(self, turn_rolls):
+        """Display a summary of all D20 rolls made during this turn"""
+        if not turn_rolls:
+            return
+        
+        print(f"\n🎲 D20 ROLL SUMMARY FOR THIS TURN:")
+        print("=" * 50)
+        
+        # Group rolls by character type
+        character_rolls = {}
+        for roll_data in turn_rolls:
+            roll_result = roll_data["roll_result"]
+            character_name = roll_result.roll  # This should be character name, not roll value
+            if character_name not in character_rolls:
+                character_rolls[character_name] = []
+            character_rolls[character_name].append(roll_data)
+        
+        # Display summary for each character
+        for character_name, rolls in character_rolls.items():
+            print(f"\n👤 {character_name}:")
+            for roll_data in rolls:
+                roll_result = roll_data["roll_result"]
+                print(f"  • D20: {roll_result.roll} - {roll_result.degree_of_success}")
+                print(f"    {roll_result.outcome_description}")
+        
+        # Show overall statistics
+        total_rolls = len(turn_rolls)
+        successes = sum(1 for roll_data in turn_rolls if roll_data["roll_result"].success)
+        critical_successes = sum(1 for roll_data in turn_rolls if roll_data["roll_result"].critical_success)
+        critical_failures = sum(1 for roll_data in turn_rolls if roll_data["roll_result"].critical_failure)
+        
+        print(f"\n📊 TURN STATISTICS:")
+        print(f"  • Total Rolls: {total_rolls}")
+        print(f"  • Success Rate: {(successes/total_rolls)*100:.1f}%")
+        print(f"  • Critical Successes: {critical_successes}")
+        print(f"  • Critical Failures: {critical_failures}")
 
     def view_tribunal_records(self):
         """View tribunal records"""
@@ -3094,19 +3404,66 @@ class Game:
         if turn_summary['faction_updates']['completed']:
             print(f"\n💥 FACTION ACTIVITIES COMPLETED:")
             for activity in turn_summary['faction_updates']['completed']:
-                print(f"• {activity['description']}")
+                try:
+                    # Handle both dictionary and object formats safely
+                    if isinstance(activity, dict) and 'description' in activity:
+                        print(f"• {activity['description']}")
+                    elif hasattr(activity, 'description'):
+                        print(f"• {activity.description}")
+                    else:
+                        # Fallback: try to create a meaningful description
+                        if isinstance(activity, dict):
+                            activity_type = activity.get('activity', 'Unknown activity')
+                            target = activity.get('target', 'Unknown target')
+                            print(f"• {activity_type} completed at {target}")
+                        else:
+                            print(f"• Faction activity completed (details unavailable)")
+                except Exception as e:
+                    print(f"• Error displaying faction activity: {e}")
+                    print(f"  Activity data: {activity}")
         
         # Show new events
         if turn_summary['new_events']:
             print(f"\n🆕 NEW EVENTS:")
             for event in turn_summary['new_events']:
-                print(f"• {event['description']}")
+                try:
+                    # Handle both dictionary and object formats safely
+                    if isinstance(event, dict) and 'description' in event:
+                        print(f"• {event['description']}")
+                    elif hasattr(event, 'description'):
+                        print(f"• {event.description}")
+                    else:
+                        # Fallback: try to create a meaningful description
+                        if isinstance(event, dict):
+                            event_type = event.get('type', 'Unknown event')
+                            print(f"• {event_type} occurred")
+                        else:
+                            print(f"• New world event occurred (details unavailable)")
+                except Exception as e:
+                    print(f"• Error displaying new event: {e}")
+                    print(f"  Event data: {event}")
         
         # Show major changes
         if turn_summary['major_changes']:
             print(f"\n🚨 MAJOR CHANGES:")
             for change in turn_summary['major_changes']:
-                print(f"• {change['description']}")
+                try:
+                    # Handle both dictionary and object formats safely
+                    if isinstance(change, dict) and 'description' in change:
+                        print(f"• {change['description']}")
+                    elif hasattr(change, 'description'):
+                        print(f"• {change.description}")
+                    else:
+                        # Fallback: try to create a meaningful description
+                        if isinstance(change, dict):
+                            change_type = change.get('type', 'Unknown change')
+                            severity = change.get('severity', 'Unknown severity')
+                            print(f"• {change_type} - {severity}")
+                        else:
+                            print(f"• Major world change occurred (details unavailable)")
+                except Exception as e:
+                    print(f"• Error displaying major change: {e}")
+                    print(f"  Change data: {change}")
         
         # Show world status
         status = turn_summary['world_status']
@@ -4120,41 +4477,172 @@ class Game:
         print("📦 TEAM SUPPLIES MANAGEMENT")
         print("=" * 50)
         
-        # Generate random supply levels
-        medical_supplies = random.randint(20, 80)
-        weapons = random.randint(10, 50)
-        communication_devices = random.randint(5, 15)
-        food_water = random.randint(30, 90)
-        money = random.randint(1000, 10000)
+        # Initialize supplies if not already set
+        if not hasattr(self, 'team_supplies'):
+            self.team_supplies = {
+                'medical_supplies': 65,
+                'weapons': 35,
+                'communication_devices': 12,
+                'food_water': 70,
+                'money': 5000,
+                'last_updated': datetime.now().isoformat()
+            }
         
-        print(f"🏥 Medical Supplies: {medical_supplies}%")
-        print(f"🔫 Weapons & Ammunition: {weapons}%")
-        print(f"📱 Communication Devices: {communication_devices}%")
-        print(f"🍽️ Food & Water: {food_water}%")
-        print(f"💰 Available Funds: ${money:,}")
+        # Display current supply levels
+        print(f"🏥 Medical Supplies: {self.team_supplies['medical_supplies']}%")
+        print(f"🔫 Weapons & Ammunition: {self.team_supplies['weapons']}%")
+        print(f"📱 Communication Devices: {self.team_supplies['communication_devices']}%")
+        print(f"🍽️ Food & Water: {self.team_supplies['food_water']}%")
+        print(f"💰 Available Funds: ${self.team_supplies['money']:,}")
         
         print(f"\n📊 SUPPLY STATUS:")
-        if medical_supplies < 30:
+        if self.team_supplies['medical_supplies'] < 30:
             print("  ⚠️  Medical supplies critically low!")
-        if weapons < 20:
+        if self.team_supplies['weapons'] < 20:
             print("  ⚠️  Weapons cache needs replenishment!")
-        if communication_devices < 8:
+        if self.team_supplies['communication_devices'] < 8:
             print("  ⚠️  Communication systems compromised!")
-        if food_water < 40:
+        if self.team_supplies['food_water'] < 40:
             print("  ⚠️  Food and water supplies low!")
         
         print(f"\n🎯 RECOMMENDATIONS:")
-        if medical_supplies < 50:
+        if self.team_supplies['medical_supplies'] < 50:
             print("  • Raid medical facilities for supplies")
-        if weapons < 40:
+        if self.team_supplies['weapons'] < 40:
             print("  • Acquire weapons from military/police sources")
-        if communication_devices < 10:
+        if self.team_supplies['communication_devices'] < 10:
             print("  • Steal communication equipment")
-        if food_water < 60:
+        if self.team_supplies['food_water'] < 60:
             print("  • Secure food and water sources")
+        
+        print(f"\n📅 Last Updated: {self.team_supplies['last_updated'][:19]}")
+        
+        # Automatic supply acquisition based on team D20 rolls
+        print(f"\n🔧 SUPPLY ACQUISITION:")
+        print("1. Team goes to get supplies (D20 rolls per member)")
+        print("2. Return to main menu")
+        
+        choice = input("\nSelect option (1-2): ").strip()
+        
+        if choice == "1":
+            self._team_supply_run()
+        
+        # Update timestamp
+        self.team_supplies['last_updated'] = datetime.now().isoformat()
         
         self.print_separator()
         input("Press Enter to continue...")
+
+    def _team_supply_run(self):
+        """Team goes on a supply run with D20 rolls for each member"""
+        print("\n🎲 TEAM SUPPLY RUN - D20 ROLLS")
+        print("=" * 50)
+        print("Your team is going out to acquire supplies...")
+        print("Each member will roll D20 to determine what they bring back.")
+        
+        if not hasattr(self, 'team') or not self.team or not hasattr(self.team, 'members'):
+            print("❌ No team members available for supply run.")
+            return
+        
+        total_medical = 0
+        total_weapons = 0
+        total_communication = 0
+        total_food_water = 0
+        total_money = 0
+        
+        print(f"\n👥 TEAM MEMBERS ROLLING D20:")
+        print("-" * 40)
+        
+        for i, member in enumerate(self.team.members, 1):
+            # Roll D20 for each team member
+            roll = random.randint(1, 20)
+            
+            # Determine what this member brings back based on their roll
+            if roll >= 18:  # Critical success (18-20)
+                medical = random.randint(15, 25)
+                weapons = random.randint(10, 20)
+                communication = random.randint(3, 8)
+                food_water = random.randint(20, 35)
+                money = random.randint(800, 1500)
+                result = "🎯 CRITICAL SUCCESS"
+            elif roll >= 15:  # Great success (15-17)
+                medical = random.randint(10, 20)
+                weapons = random.randint(8, 15)
+                communication = random.randint(2, 6)
+                food_water = random.randint(15, 25)
+                money = random.randint(500, 1000)
+                result = "✅ GREAT SUCCESS"
+            elif roll >= 12:  # Good success (12-14)
+                medical = random.randint(8, 15)
+                weapons = random.randint(5, 12)
+                communication = random.randint(1, 4)
+                food_water = random.randint(10, 20)
+                money = random.randint(300, 700)
+                result = "👍 GOOD SUCCESS"
+            elif roll >= 8:  # Partial success (8-11)
+                medical = random.randint(5, 12)
+                weapons = random.randint(3, 8)
+                communication = random.randint(1, 3)
+                food_water = random.randint(8, 15)
+                money = random.randint(200, 500)
+                result = "⚠️  PARTIAL SUCCESS"
+            elif roll >= 4:  # Poor success (4-7)
+                medical = random.randint(2, 8)
+                weapons = random.randint(1, 5)
+                communication = random.randint(0, 2)
+                food_water = random.randint(5, 12)
+                money = random.randint(100, 300)
+                result = "😐 POOR SUCCESS"
+            else:  # Critical failure (1-3)
+                medical = random.randint(0, 3)
+                weapons = random.randint(0, 2)
+                communication = random.randint(0, 1)
+                food_water = random.randint(2, 8)
+                money = random.randint(50, 150)
+                result = "💥 CRITICAL FAILURE"
+            
+            # Display member's results
+            member_name = getattr(member, 'name', f'Team Member {i}')
+            print(f"{i}. {member_name}: D20 = {roll} - {result}")
+            print(f"   🏥 Medical: +{medical}% | 🔫 Weapons: +{weapons}% | 📱 Comm: +{communication}% | 🍽️ Food: +{food_water}% | 💰 Money: +${money}")
+            
+            # Add to totals
+            total_medical += medical
+            total_weapons += weapons
+            total_communication += communication
+            total_food_water += food_water
+            total_money += money
+        
+        # Update team supplies
+        self.team_supplies['medical_supplies'] = min(100, self.team_supplies['medical_supplies'] + total_medical)
+        self.team_supplies['weapons'] = min(100, self.team_supplies['weapons'] + total_weapons)
+        self.team_supplies['communication_devices'] = min(20, self.team_supplies['communication_devices'] + total_communication)
+        self.team_supplies['food_water'] = min(100, self.team_supplies['food_water'] + total_food_water)
+        self.team_supplies['money'] += total_money
+        
+        # Display final results
+        print(f"\n📊 SUPPLY RUN RESULTS:")
+        print("=" * 40)
+        print(f"🏥 Medical Supplies: +{total_medical}% (Total: {self.team_supplies['medical_supplies']}%)")
+        print(f"🔫 Weapons & Ammunition: +{total_weapons}% (Total: {self.team_supplies['weapons']}%)")
+        print(f"📱 Communication Devices: +{total_communication}% (Total: {self.team_supplies['communication_devices']}%)")
+        print(f"🍽️ Food & Water: +{total_food_water}% (Total: {self.team_supplies['food_water']}%)")
+        print(f"💰 Money Acquired: +${total_money:,} (Total: ${self.team_supplies['money']:,})")
+        
+        # Determine overall success
+        total_roll = sum(random.randint(1, 20) for _ in range(len(self.team.members)))
+        avg_roll = total_roll / len(self.team.members)
+        
+        if avg_roll >= 15:
+            print(f"\n🎉 EXCELLENT SUPPLY RUN! Average D20: {avg_roll:.1f}")
+        elif avg_roll >= 12:
+            print(f"\n✅ GOOD SUPPLY RUN! Average D20: {avg_roll:.1f}")
+        elif avg_roll >= 8:
+            print(f"\n⚠️  MODERATE SUPPLY RUN! Average D20: {avg_roll:.1f}")
+        else:
+            print(f"\n😞 POOR SUPPLY RUN! Average D20: {avg_roll:.1f}")
+        
+        print(f"\n📅 Supply run completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     def establish_base_of_operations(self):
         """Establish a base of operations for the team"""
@@ -4166,46 +4654,169 @@ class Game:
             input("Press Enter to continue...")
             return
         
-        print("🏠 ESTABLISHING BASE OF OPERATIONS")
-        print("=" * 50)
-        print("Your team needs a secure location to:")
-        print("• Coordinate missions and planning")
-        print("• Store equipment and supplies")
-        print("• Provide medical treatment")
-        print("• Establish secure communications")
+        # Initialize base data if not already set
+        if not hasattr(self, 'base_data'):
+            self.base_data = {
+                'established': False,
+                'location': None,
+                'security_level': None,
+                'accessibility': None,
+                'cover_story': None,
+                'establishment_date': None,
+                'facilities': [],
+                'defenses': []
+            }
         
-        # Generate potential base locations
-        base_options = [
-            "Abandoned warehouse in industrial district",
-            "Underground parking garage",
-            "Vacant office building",
-            "Old hospital wing",
-            "School basement (summer break)",
-            "Church basement",
-            "Library storage area",
-            "Mall storage room"
-        ]
-        
-        print(f"\n📍 AVAILABLE LOCATIONS:")
-        for i, location in enumerate(base_options, 1):
-            print(f"{i}. {location}")
-        
-        print(f"\n🎯 RECOMMENDATION:")
-        recommended = random.choice(base_options)
-        print(f"   The Director suggests: {recommended}")
-        print(f"   This location offers good security and accessibility.")
-        
-        # Set the base
-        self.team.base_of_operations = recommended
-        
-        print(f"\n✅ BASE ESTABLISHED!")
-        print(f"   Location: {recommended}")
-        print(f"   Security Level: Medium")
-        print(f"   Accessibility: Good")
-        print(f"   Cover Story: 'Private research facility'")
+        if self.base_data['established']:
+            # Show existing base status
+            print("🏠 CURRENT BASE OF OPERATIONS")
+            print("=" * 50)
+            print(f"📍 Location: {self.base_data['location']}")
+            print(f"🛡️  Security Level: {self.base_data['security_level']}")
+            print(f"🚪 Accessibility: {self.base_data['accessibility']}")
+            print(f"🎭 Cover Story: {self.base_data['cover_story']}")
+            print(f"📅 Established: {self.base_data['establishment_date'][:19]}")
+            
+            if self.base_data['facilities']:
+                print(f"\n🏗️  FACILITIES:")
+                for facility in self.base_data['facilities']:
+                    print(f"  • {facility}")
+            
+            if self.base_data['defenses']:
+                print(f"\n🛡️  DEFENSES:")
+                for defense in self.base_data['defenses']:
+                    print(f"  • {defense}")
+            
+            print(f"\n✅ Base is fully operational and secure.")
+            
+        else:
+            # Establish new base
+            print("🏠 ESTABLISHING BASE OF OPERATIONS")
+            print("=" * 50)
+            print("Your team needs a secure location to:")
+            print("• Coordinate missions and planning")
+            print("• Store equipment and supplies")
+            print("• Provide medical treatment")
+            print("• Establish secure communications")
+            
+            # Predefined base locations with consistent properties
+            base_options = [
+                {
+                    'name': "Abandoned warehouse in industrial district",
+                    'security': "High",
+                    'accessibility': "Good",
+                    'cover': "Private research facility",
+                    'facilities': ["Large storage space", "Loading dock access", "Industrial power grid"],
+                    'defenses': ["Reinforced doors", "Security cameras", "Escape tunnels"]
+                },
+                {
+                    'name': "Underground parking garage",
+                    'security': "Medium",
+                    'accessibility': "Excellent",
+                    'cover': "Parking management office",
+                    'facilities': ["Vehicle access", "Multiple entry points", "Concrete barriers"],
+                    'defenses': ["Security gates", "Surveillance system", "Multiple exits"]
+                },
+                {
+                    'name': "Vacant office building",
+                    'security': "Medium",
+                    'accessibility': "Good",
+                    'cover': "Startup company office",
+                    'facilities': ["Meeting rooms", "IT infrastructure", "Professional appearance"],
+                    'defenses': ["Access control", "Security system", "Fire escapes"]
+                },
+                {
+                    'name': "Old hospital wing",
+                    'security': "High",
+                    'accessibility': "Fair",
+                    'cover': "Medical research facility",
+                    'facilities': ["Medical equipment", "Isolation rooms", "Emergency power"],
+                    'defenses': ["Medical security", "Containment protocols", "Emergency exits"]
+                }
+            ]
+            
+            print(f"\n📍 AVAILABLE LOCATIONS:")
+            for i, base in enumerate(base_options, 1):
+                print(f"{i}. {base['name']}")
+                print(f"   Security: {base['security']} | Accessibility: {base['accessibility']}")
+            
+            print(f"\n🎯 RECOMMENDATION:")
+            recommended = base_options[0]  # Always recommend the warehouse for consistency
+            print(f"   The Director suggests: {recommended['name']}")
+            print(f"   This location offers {recommended['security']} security and {recommended['accessibility']} accessibility.")
+            
+            # Set the base with consistent data
+            self.base_data.update({
+                'established': True,
+                'location': recommended['name'],
+                'security_level': recommended['security'],
+                'accessibility': recommended['accessibility'],
+                'cover_story': recommended['cover'],
+                'establishment_date': datetime.now().isoformat(),
+                'facilities': recommended['facilities'],
+                'defenses': recommended['defenses']
+            })
+            
+            if hasattr(self, 'team') and self.team:
+                self.team.base_of_operations = recommended['name']
+            
+            print(f"\n✅ BASE ESTABLISHED!")
+            print(f"   Location: {recommended['name']}")
+            print(f"   Security Level: {recommended['security']}")
+            print(f"   Accessibility: {recommended['accessibility']}")
+            print(f"   Cover Story: {recommended['cover']}")
+            print(f"   Facilities: {', '.join(recommended['facilities'])}")
+            print(f"   Defenses: {', '.join(recommended['defenses'])}")
         
         self.print_separator()
         input("Press Enter to continue...")
+
+    def update_supplies_from_mission(self, mission_outcome: str, mission_type: str):
+        """Update team supplies based on mission outcome"""
+        if not hasattr(self, 'team_supplies'):
+            return
+        
+        # Base supply changes based on mission outcome
+        if mission_outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+            # Successful missions provide supplies
+            self.team_supplies['medical_supplies'] = min(100, self.team_supplies['medical_supplies'] + 10)
+            self.team_supplies['weapons'] = min(100, self.team_supplies['weapons'] + 8)
+            self.team_supplies['communication_devices'] = min(20, self.team_supplies['communication_devices'] + 2)
+            self.team_supplies['food_water'] = min(100, self.team_supplies['food_water'] + 15)
+            self.team_supplies['money'] += 1000
+        elif mission_outcome == "PARTIAL_SUCCESS":
+            # Partial success provides some supplies
+            self.team_supplies['medical_supplies'] = min(100, self.team_supplies['medical_supplies'] + 5)
+            self.team_supplies['weapons'] = min(100, self.team_supplies['weapons'] + 3)
+            self.team_supplies['food_water'] = min(100, self.team_supplies['food_water'] + 8)
+            self.team_supplies['money'] += 500
+        elif mission_outcome in ["FAILURE", "CRITICAL_FAILURE"]:
+            # Failed missions consume supplies
+            self.team_supplies['medical_supplies'] = max(0, self.team_supplies['medical_supplies'] - 15)
+            self.team_supplies['weapons'] = max(0, self.team_supplies['weapons'] - 10)
+            self.team_supplies['communication_devices'] = max(0, self.team_supplies['communication_devices'] - 1)
+            self.team_supplies['food_water'] = max(0, self.team_supplies['food_water'] - 20)
+            self.team_supplies['money'] = max(0, self.team_supplies['money'] - 500)
+        
+        # Mission-specific supply changes
+        if mission_type == "combat":
+            if mission_outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                self.team_supplies['weapons'] = min(100, self.team_supplies['weapons'] + 15)
+            else:
+                self.team_supplies['weapons'] = max(0, self.team_supplies['weapons'] - 20)
+        elif mission_type == "medical":
+            if mission_outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                self.team_supplies['medical_supplies'] = min(100, self.team_supplies['medical_supplies'] + 20)
+            else:
+                self.team_supplies['medical_supplies'] = max(0, self.team_supplies['medical_supplies'] - 25)
+        elif mission_type == "stealth":
+            if mission_outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                self.team_supplies['communication_devices'] = min(20, self.team_supplies['communication_devices'] + 3)
+            else:
+                self.team_supplies['communication_devices'] = max(0, self.team_supplies['communication_devices'] - 2)
+        
+        # Update timestamp
+        self.team_supplies['last_updated'] = datetime.now().isoformat()
 
     def view_host_body_complications(self):
         """View host body complications and health status"""
@@ -4246,6 +4857,71 @@ class Game:
             print(f"  • Location: {getattr(host_body, 'location', 'Unknown')}")
         else:
             print("❌ No host body information available")
+        
+        self.print_separator()
+        input("Press Enter to continue...")
+
+    def view_d20_statistics(self):
+        """View D20 roll statistics and character decision history"""
+        self.clear_screen()
+        self.print_header("D20 DECISION SYSTEM STATISTICS")
+        
+        if not hasattr(self, 'd20_system') or not self.d20_system:
+            print("❌ D20 Decision System not available")
+            input("Press Enter to continue...")
+            return
+        
+        print("🎲 D20 ROLL STATISTICS")
+        print("=" * 50)
+        
+        # Get overall statistics
+        stats = self.d20_system.get_roll_statistics()
+        
+        if "message" in stats:
+            print(stats["message"])
+        else:
+            print(f"📊 OVERALL STATISTICS:")
+            print(f"  • Total Rolls: {stats['total_rolls']}")
+            print(f"  • Success Rate: {stats['success_rate']:.1f}%")
+            print(f"  • Critical Successes: {stats['critical_successes']}")
+            print(f"  • Critical Failures: {stats['critical_failures']}")
+            print(f"  • Critical Success Rate: {stats['critical_success_rate']:.1f}%")
+            print(f"  • Critical Failure Rate: {stats['critical_failure_rate']:.1f}%")
+        
+        # Get character decision history
+        print(f"\n👥 CHARACTER DECISION HISTORY:")
+        print("-" * 40)
+        
+        decisions = self.d20_system.get_character_decision_history()
+        if not decisions:
+            print("  No character decisions recorded yet")
+        else:
+            # Show last 10 decisions
+            recent_decisions = decisions[-10:]
+            for decision in recent_decisions:
+                roll = decision["roll_result"]
+                print(f"  • {decision['character']}: {decision['decision']}")
+                print(f"    D20: {roll.roll} - {roll.degree_of_success}")
+                print(f"    Outcome: {roll.outcome_description}")
+                print()
+        
+        # Show difficulty class information
+        print(f"🎯 DIFFICULTY CLASSES:")
+        print("-" * 40)
+        print(f"  • Very Easy: DC 5")
+        print(f"  • Easy: DC 10")
+        print(f"  • Medium: DC 15")
+        print(f"  • Hard: DC 20")
+        print(f"  • Very Hard: DC 25")
+        print(f"  • Nearly Impossible: DC 30")
+        
+        print(f"\n📋 SUCCESS LEVELS:")
+        print("-" * 40)
+        print(f"  • Critical Failure: Natural 1")
+        print(f"  • Failure: Natural 2-9")
+        print(f"  • Partial Success: Natural 10-14")
+        print(f"  • Success: Natural 15-19")
+        print(f"  • Critical Success: Natural 20")
         
         self.print_separator()
         input("Press Enter to continue...")

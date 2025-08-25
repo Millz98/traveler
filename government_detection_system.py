@@ -65,13 +65,16 @@ class GovernmentDetectionSystem:
         self.detection_history = []
         
     def process_turn(self, world_state: Dict, game_state: Dict):
-        """Process one turn of the detection system"""
+        """Process one turn of the detection system with REAL-TIME event generation"""
         self.turn_count += 1
         print(f"\n🔍 GOVERNMENT DETECTION SYSTEM - Turn {self.turn_count}")
         print("=" * 60)
         
         # Update surveillance networks based on world state
         self.update_surveillance_capabilities(world_state)
+        
+        # GENERATE REAL-TIME DETECTION EVENTS based on actual game activities
+        self.generate_real_time_detection_events(world_state, game_state)
         
         # Process all pending detection events
         self.process_detection_events(world_state)
@@ -358,6 +361,137 @@ class GovernmentDetectionSystem:
         investigation.status = "completed"
         self.detection_history.append(investigation)
     
+    def generate_real_time_detection_events(self, world_state: Dict, game_state: Dict):
+        """Generate REAL-TIME detection events based on actual game activities"""
+        print(f"\n🎯 Generating real-time detection events...")
+        
+        # Check for active missions that could be detected
+        active_missions = game_state.get("active_missions", [])
+        if active_missions:
+            for mission in active_missions:
+                if random.random() < 0.3:  # 30% chance of detection event per mission
+                    self.add_detection_event(
+                        event_type="mission_activity",
+                        severity=0.6,
+                        location=mission.get("location", "unknown"),
+                        description=f"Government agencies detect suspicious activity consistent with covert operations at {mission.get('location', 'unknown location')}",
+                        involved_entities=["traveler_team"],
+                        detection_chance=0.7,
+                        risk_multiplier=1.2
+                    )
+                    print(f"    🚨 Mission detection event generated for {mission.get('location', 'unknown')}")
+        
+        # Check for hacking operations that could be detected
+        hacking_operations = game_state.get("hacking_operations", [])
+        if hacking_operations:
+            for op in hacking_operations:
+                if random.random() < 0.4:  # 40% chance of detection event per hacking op
+                    self.add_detection_event(
+                        event_type="cyber_activity",
+                        severity=0.5,
+                        location=op.get("target", "digital_network"),
+                        description=f"Cybersecurity systems detect sophisticated intrusion attempts against {op.get('target', 'digital infrastructure')}",
+                        involved_entities=["faction"],
+                        detection_chance=0.8,
+                        risk_multiplier=1.5
+                    )
+                    print(f"    🚨 Cyber detection event generated for {op.get('target', 'digital infrastructure')}")
+        
+        # Check for faction activities that could be detected
+        faction_activities = world_state.get("faction_activities", [])
+        if faction_activities:
+            for activity in faction_activities:
+                if random.random() < 0.25:  # 25% chance of detection event per faction activity
+                    self.add_detection_event(
+                        event_type="faction_operation",
+                        severity=0.7,
+                        location=activity.get("location", "unknown"),
+                        description=f"Intelligence agencies identify patterns consistent with organized subversive activity in {activity.get('location', 'unknown area')}",
+                        involved_entities=["faction"],
+                        detection_chance=0.6,
+                        risk_multiplier=1.3
+                    )
+                    print(f"    🚨 Faction detection event generated for {activity.get('location', 'unknown area')}")
+        
+        # Check for timeline instability that could attract government attention
+        timeline_stability = world_state.get("timeline_stability", 0.8)
+        if timeline_stability < 0.6:
+            if random.random() < 0.5:  # 50% chance when timeline is unstable
+                self.add_detection_event(
+                    event_type="timeline_anomaly",
+                    severity=0.8,
+                    location="multiple_locations",
+                    description="Government scientific agencies detect unusual quantum fluctuations and temporal anomalies across multiple locations",
+                    involved_entities=["traveler_team", "faction"],
+                    detection_chance=0.9,
+                    risk_multiplier=2.0
+                )
+                print(f"    🚨 Timeline anomaly detection event generated!")
+        
+        # Check for government surveillance level changes
+        surveillance_level = world_state.get("surveillance_level", 0.3)
+        if surveillance_level > 0.5:
+            if random.random() < 0.4:  # 40% chance when surveillance is high
+                self.add_detection_event(
+                    event_type="surveillance_alert",
+                    severity=0.4,
+                    location="surveillance_network",
+                    description="Enhanced surveillance networks detect patterns of coordinated covert activity",
+                    involved_entities=["traveler_team", "faction"],
+                    detection_chance=0.7,
+                    risk_multiplier=1.1
+                )
+                print(f"    🚨 Surveillance alert detection event generated!")
+        
+        # Check for recent world events that could trigger detection
+        recent_events = world_state.get("recent_events", [])
+        if recent_events:
+            for event in recent_events[-3:]:  # Check last 3 events
+                if random.random() < 0.2:  # 20% chance per recent event
+                    self.add_detection_event(
+                        event_type="world_event_analysis",
+                        severity=0.5,
+                        location=event.get("location", "unknown"),
+                        description=f"Government analysts identify suspicious patterns in recent {event.get('type', 'world')} events at {event.get('location', 'unknown location')}",
+                        involved_entities=["traveler_team", "faction"],
+                        detection_chance=0.6,
+                        risk_multiplier=1.2
+                    )
+                    print(f"    🚨 World event detection event generated for {event.get('type', 'world')} events!")
+        
+        # Check for AI traveler team activities
+        ai_teams = world_state.get("ai_traveler_teams", [])
+        if ai_teams:
+            for team in ai_teams:
+                if random.random() < 0.15:  # 15% chance per AI team
+                    self.add_detection_event(
+                        event_type="ai_team_activity",
+                        severity=0.6,
+                        location=team.get("location", "unknown"),
+                        description=f"Surveillance systems detect coordinated activities by unknown operatives in {team.get('location', 'unknown area')}",
+                        involved_entities=["traveler_team"],
+                        detection_chance=0.5,
+                        risk_multiplier=1.1
+                    )
+                    print(f"    🚨 AI team detection event generated for {team.get('location', 'unknown area')}")
+        
+        # Check for faction influence changes
+        faction_influence = world_state.get("faction_influence", 0.2)
+        if faction_influence > 0.4:
+            if random.random() < 0.3:  # 30% chance when faction influence is high
+                self.add_detection_event(
+                    event_type="faction_influence_detection",
+                    severity=0.7,
+                    location="multiple_locations",
+                    description="Intelligence agencies detect signs of growing organized resistance and subversive influence across multiple sectors",
+                    involved_entities=["faction"],
+                    detection_chance=0.7,
+                    risk_multiplier=1.4
+                )
+                print(f"    🚨 Faction influence detection event generated!")
+        
+        print(f"    📊 Generated {len([e for e in self.detection_events if e.status == 'pending'])} new detection events")
+    
     def roll_for_detections(self, world_state: Dict):
         """Roll for new detections based on current exposure levels"""
         print(f"\n🎲 Rolling for new detections based on exposure levels...")
@@ -394,21 +528,52 @@ class GovernmentDetectionSystem:
         self.detection_events.append(event)
     
     def update_surveillance_capabilities(self, world_state: Dict):
-        """Update surveillance network capabilities based on world state"""
+        """Update surveillance network capabilities based on world state with REAL-TIME changes"""
         government_control = world_state.get("government_control", 0.5)
         surveillance_level = world_state.get("surveillance_level", 0.3)
         
-        # Adjust surveillance coverage based on government control and surveillance level
-        self.surveillance_networks["cctv_coverage"] = min(0.8, 0.3 + government_control * 0.3)
-        self.surveillance_networks["digital_monitoring"] = min(0.9, 0.4 + surveillance_level * 0.4)
-        self.surveillance_networks["human_intelligence"] = min(0.6, 0.2 + government_control * 0.3)
-        self.surveillance_networks["satellite_coverage"] = min(0.4, 0.1 + surveillance_level * 0.2)
+        # Add random fluctuations to make surveillance dynamic
+        random_factor = random.uniform(0.95, 1.05)
         
-        print(f"  📡 Surveillance Networks Updated:")
+        # Adjust surveillance coverage based on government control and surveillance level
+        self.surveillance_networks["cctv_coverage"] = min(0.8, 0.3 + government_control * 0.3) * random_factor
+        self.surveillance_networks["digital_monitoring"] = min(0.9, 0.4 + surveillance_level * 0.4) * random_factor
+        self.surveillance_networks["human_intelligence"] = min(0.6, 0.2 + government_control * 0.3) * random_factor
+        self.surveillance_networks["satellite_coverage"] = min(0.4, 0.1 + surveillance_level * 0.2) * random_factor
+        
+        # Add seasonal and time-based variations
+        current_hour = datetime.now().hour
+        if 6 <= current_hour <= 18:  # Daytime
+            self.surveillance_networks["human_intelligence"] *= 1.1  # More human surveillance during day
+        else:  # Nighttime
+            self.surveillance_networks["satellite_coverage"] *= 1.2  # More satellite surveillance at night
+        
+        # Add crisis-based surveillance increases
+        if world_state.get("timeline_stability", 0.8) < 0.6:
+            self.surveillance_networks["cctv_coverage"] *= 1.15
+            self.surveillance_networks["digital_monitoring"] *= 1.2
+        
+        if world_state.get("faction_influence", 0.2) > 0.5:
+            self.surveillance_networks["human_intelligence"] *= 1.25
+            self.surveillance_networks["satellite_coverage"] *= 1.3
+        
+        print(f"  📡 Surveillance Networks Updated (Real-time):")
         print(f"     CCTV Coverage: {self.surveillance_networks['cctv_coverage']:.1%}")
         print(f"     Digital Monitoring: {self.surveillance_networks['digital_monitoring']:.1%}")
         print(f"     Human Intelligence: {self.surveillance_networks['human_intelligence']:.1%}")
         print(f"     Satellite Coverage: {self.surveillance_networks['satellite_coverage']:.1%}")
+        
+        # Show what caused the changes
+        if random_factor != 1.0:
+            print(f"     📊 Random fluctuation: {random_factor:.2f}x")
+        if current_hour < 6 or current_hour > 18:
+            print(f"     🌙 Nighttime mode: Enhanced satellite surveillance")
+        else:
+            print(f"     ☀️  Daytime mode: Enhanced human intelligence")
+        if world_state.get("timeline_stability", 0.8) < 0.6:
+            print(f"     ⚠️  Crisis mode: Increased surveillance due to timeline instability")
+        if world_state.get("faction_influence", 0.2) > 0.5:
+            print(f"     🦹 Threat mode: Maximum surveillance due to high faction influence")
     
     def get_location_surveillance_coverage(self, location: str) -> float:
         """Get surveillance coverage for a specific location"""
@@ -447,11 +612,40 @@ class GovernmentDetectionSystem:
         return random.sample(list(self.government_agencies.keys()), num_agencies)
     
     def calculate_overall_exposure_risk(self):
-        """Calculate overall exposure risk"""
+        """Calculate overall exposure risk with REAL-TIME dynamics"""
+        # Add natural decay to exposure risk over time
+        decay_factor = 0.95  # 5% decay per turn
+        
+        self.exposure_risk["traveler_teams"] *= decay_factor
+        self.exposure_risk["faction"] *= decay_factor
+        
+        # Add random fluctuations to make exposure dynamic
+        traveler_fluctuation = random.uniform(0.98, 1.02)
+        faction_fluctuation = random.uniform(0.98, 1.02)
+        
+        self.exposure_risk["traveler_teams"] *= traveler_fluctuation
+        self.exposure_risk["faction"] *= faction_fluctuation
+        
+        # Ensure exposure doesn't go below minimum levels
+        self.exposure_risk["traveler_teams"] = max(0.05, self.exposure_risk["traveler_teams"])
+        self.exposure_risk["faction"] = max(0.05, self.exposure_risk["faction"])
+        
+        # Calculate overall exposure with weighted average
         self.exposure_risk["overall"] = (
             self.exposure_risk["traveler_teams"] * 0.6 +
             self.exposure_risk["faction"] * 0.4
         )
+        
+        # Add dramatic narrative for high exposure levels
+        if self.exposure_risk["overall"] > 0.8:
+            print(f"    🚨 CRITICAL EXPOSURE LEVEL: {self.exposure_risk['overall']:.1%}")
+            print(f"       💥 The government is closing in! Operational security is compromised!")
+        elif self.exposure_risk["overall"] > 0.6:
+            print(f"    ⚠️  HIGH EXPOSURE LEVEL: {self.exposure_risk['overall']:.1%}")
+            print(f"       ⚡ Government surveillance is intensifying! Caution required!")
+        elif self.exposure_risk["overall"] > 0.4:
+            print(f"    🔍 MODERATE EXPOSURE LEVEL: {self.exposure_risk['overall']:.1%}")
+            print(f"       👁️  Government attention is increasing! Operational security tested!")
     
     def show_detection_summary(self):
         """Show summary of detection system status"""

@@ -17,7 +17,13 @@ class HackingTool:
     def use_tool(self, target_difficulty):
         """Use the hacking tool and return success/failure"""
         if self.cooldown > 0:
-            return {"success": False, "message": f"{self.name} is on cooldown ({self.cooldown} turns)"}
+            return {
+                "success": False, 
+                "detected": False,  # Add missing key to prevent warnings
+                "effectiveness": 0.0,  # Add missing key to prevent warnings
+                "message": f"{self.name} is on cooldown ({self.cooldown} turns)",
+                "cooldown_remaining": self.cooldown
+            }
         
         # Calculate success chance
         base_success = self.effectiveness
@@ -39,12 +45,9 @@ class HackingTool:
             "success": success,
             "detected": detected,
             "effectiveness": self.effectiveness,
-            "message": f"{self.name} {'succeeded' if success else 'failed'}"
+            "message": f"{self.name} {'succeeded' if success else 'failed'}",
+            "cooldown_remaining": 0
         }
-        
-        # Debug logging
-        if not all(key in result for key in ["success", "detected", "effectiveness", "message"]):
-            print(f"⚠️  Warning: Tool {self.name} returning incomplete result: {result}")
         
         return result
 
@@ -383,6 +386,8 @@ class HackingSystem:
         self.active_operations = []
         self.cyber_events = []
         self.global_alert_level = 0.0
+        self.government_investigations = []  # Track active investigations
+        self.cyber_threats = 0.0  # Track cyber threat level
         
     def initialize_hacking_world(self, hackers=None, targets=None, tools_count=None):
         """Initialize the hacking world with hackers and targets"""
@@ -493,6 +498,9 @@ class HackingSystem:
         # Clear any old format breach data first
         self.clear_old_breach_data()
         
+        # Reduce cooldowns for all tools
+        self.reduce_tool_cooldowns()
+        
         # Execute ongoing operations
         for hacker in self.hackers:
             if hacker.current_operation:
@@ -520,6 +528,9 @@ class HackingSystem:
         # Generate cyber events
         self.generate_cyber_events(world_state)
         
+        # Check if we need to create government investigations
+        self.check_for_investigation_triggers(world_state)
+        
         # Capture cyber events in government news system if they're government-related
         if self.cyber_events:
             try:
@@ -537,6 +548,9 @@ class HackingSystem:
         # Show summary
         self.show_hacking_summary()
         
+        # Show tool cooldown status
+        self.show_tool_cooldown_status()
+        
         print("=" * 60)
         print("🖥️  Hacking Turn Complete")
     
@@ -548,20 +562,37 @@ class HackingSystem:
             
         target = random.choice(available_targets)
         
-        if hacker.faction == "traveler":
-            operation_types = ["intelligence_gathering", "system_manipulation", "cover_maintenance"]
-        elif hacker.faction == "government":
-            operation_types = ["surveillance", "counterintelligence", "cyber_defense"]
-        elif hacker.faction == "faction":
-            operation_types = ["sabotage", "recruitment", "timeline_manipulation"]
+        if hacker.faction == "government":
+            # Government hackers only operate when there's a legitimate investigation
+            if not self.should_government_hacker_operate(hacker, world_state):
+                return  # No operation - not investigating anything
+                
+            # Government hackers only target systems relevant to their investigation
+            target = self.select_government_investigation_target(hacker, world_state)
+            if not target:
+                return  # No valid investigation target
+                
+            operation_type = self.select_government_operation_type(hacker, target, world_state)
+            if not operation_type:
+                return  # No valid operation for this investigation
+                
         else:
-            operation_types = ["intelligence_gathering"]
-        
-        operation_type = random.choice(operation_types)
+            # Non-government hackers can operate normally
+            if hacker.faction == "traveler":
+                operation_types = ["intelligence_gathering", "system_manipulation", "cover_maintenance"]
+            elif hacker.faction == "faction":
+                operation_types = ["sabotage", "recruitment", "timeline_manipulation"]
+            else:
+                operation_types = ["intelligence_gathering"]
+            
+            operation_type = random.choice(operation_types)
         success, message = hacker.start_operation(target, operation_type)
         
         if success:
-            print(f"🖥️  {hacker.name} started {operation_type} operation against {target.name}")
+            if hacker.faction == "government":
+                print(f"🖥️  {hacker.name} started {operation_type} operation against {target.name} (INVESTIGATION)")
+            else:
+                print(f"🖥️  {hacker.name} started {operation_type} operation against {target.name}")
     
     def handle_operation_result(self, result, world_state):
         """Handle the result of a hacking operation"""
@@ -621,6 +652,131 @@ class HackingSystem:
                     world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.08)
             else:
                 print(f"    ⚠️  Warning: Hacker object missing faction attribute: {hacker}")
+    
+    def should_government_hacker_operate(self, hacker, world_state):
+        """Determine if a government hacker should operate based on investigation needs"""
+        # Government hackers only operate when there's a legitimate threat or investigation
+        
+        # Check for active cyber threats
+        cyber_threats = world_state.get('cyber_threats', 0)
+        if cyber_threats > 0.3:
+            return True
+            
+        # Check for detected hacking operations
+        if self.global_alert_level > 0.2:
+            return True
+            
+        # Check for timeline instability that might require investigation
+        timeline_stability = world_state.get('timeline_stability', 0.8)
+        if timeline_stability < 0.6:
+            return True
+            
+        # Check for faction activity that might require monitoring
+        faction_influence = world_state.get('faction_influence', 0.2)
+        if faction_influence > 0.4:
+            return True
+            
+        # Check for active investigations
+        if self.government_investigations:
+            return True
+            
+        # Random chance for routine monitoring (much lower than before)
+        if random.random() < 0.05:  # Only 5% chance instead of 30%
+            return True
+            
+        return False
+    
+    def create_government_investigation(self, threat_type, severity, target_systems):
+        """Create a realistic government investigation"""
+        investigation = {
+            "id": f"INV_{len(self.government_investigations) + 1:03d}",
+            "threat_type": threat_type,
+            "severity": severity,  # 0.0 to 1.0
+            "target_systems": target_systems,
+            "start_turn": 0,  # Will be set when investigation starts
+            "status": "active",
+            "evidence_collected": [],
+            "suspects_identified": [],
+            "recommendations": []
+        }
+        
+        self.government_investigations.append(investigation)
+        return investigation
+    
+    def select_government_investigation_target(self, hacker, world_state):
+        """Select a target for government investigation based on current threats"""
+        # Government hackers target systems relevant to their investigation
+        
+        # Check for systems with recent breaches or suspicious activity
+        suspicious_targets = [t for t in self.targets if t.alert_level > 0.1]
+        if suspicious_targets:
+            return random.choice(suspicious_targets)
+        
+        # Check for systems that match the hacker's specialization
+        if hacker.agency == "FBI":
+            # FBI focuses on domestic threats and law enforcement
+            domestic_targets = [t for t in self.targets if t.system_type in ["government", "corporate", "financial"]]
+            if domestic_targets:
+                return random.choice(domestic_targets)
+        elif hacker.agency == "CIA":
+            # CIA focuses on foreign threats and intelligence
+            intelligence_targets = [t for t in self.targets if t.system_type in ["government", "military", "infrastructure"]]
+            if intelligence_targets:
+                return random.choice(intelligence_targets)
+        
+        # If no specific targets, don't operate
+        return None
+    
+    def check_for_investigation_triggers(self, world_state):
+        """Check if current events warrant government investigations"""
+        # Create investigation for detected cyber attacks
+        if self.global_alert_level > 0.3 and not any(inv["threat_type"] == "cyber_attack" for inv in self.government_investigations):
+            self.create_government_investigation(
+                "cyber_attack",
+                0.6,
+                ["government", "infrastructure", "financial"]
+            )
+            print(f"    🕵️  Government investigation created: Cyber Attack Investigation")
+        
+        # Create investigation for timeline instability
+        timeline_stability = world_state.get('timeline_stability', 0.8)
+        if timeline_stability < 0.5 and not any(inv["threat_type"] == "timeline_anomaly" for inv in self.government_investigations):
+            self.create_government_investigation(
+                "timeline_anomaly",
+                0.8,
+                ["government", "infrastructure", "military"]
+            )
+            print(f"    🕵️  Government investigation created: Timeline Anomaly Investigation")
+        
+        # Create investigation for high faction activity
+        faction_influence = world_state.get('faction_influence', 0.2)
+        if faction_influence > 0.5 and not any(inv["threat_type"] == "faction_activity" for inv in self.government_investigations):
+            self.create_government_investigation(
+                "faction_activity",
+                0.7,
+                ["government", "corporate", "financial"]
+            )
+            print(f"    🕵️  Government investigation created: Faction Activity Investigation")
+    
+    def select_government_operation_type(self, hacker, target, world_state):
+        """Select operation type for government investigation"""
+        # Government operations are defensive and investigative, not offensive
+        
+        if target.alert_level > 0.2:
+            # High alert - conduct active investigation
+            if hacker.agency == "FBI":
+                return "counterintelligence"
+            else:  # CIA
+                return "surveillance"
+        elif target.system_type == "government":
+            # Government systems - routine monitoring
+            return "cyber_defense"
+        elif target.system_type == "infrastructure":
+            # Critical infrastructure - surveillance for threats
+            return "surveillance"
+        else:
+            # Other systems - defensive monitoring
+            return "cyber_defense"
     
     def update_target_defenses(self):
         """Update target system defenses"""
@@ -684,6 +840,21 @@ class HackingSystem:
                 breach = target.current_breach
                 print(f"    • Breached by {breach['hacker'].name if hasattr(breach['hacker'], 'name') else breach['hacker']} using {breach['tool']}")
     
+    def show_tool_cooldown_status(self):
+        """Show the cooldown status of all hacking tools"""
+        print(f"\n🔧 TOOL COOLDOWN STATUS:")
+        print("-" * 40)
+        
+        # Group tools by hacker
+        for hacker in self.hackers:
+            if hacker.tools:
+                print(f"\n👤 {hacker.name} ({hacker.faction}):")
+                for tool in hacker.tools:
+                    if tool.cooldown > 0:
+                        print(f"  ⏳ {tool.name}: {tool.cooldown} turns remaining")
+                    else:
+                        print(f"  ✅ {tool.name}: Ready to use")
+    
     def get_hacking_world_state(self):
         """Get current hacking world state"""
         return {
@@ -723,3 +894,10 @@ class HackingSystem:
             print("    ✅ No old format breach records found")
         
         return cleared_count
+    
+    def reduce_tool_cooldowns(self):
+        """Reduce cooldown for all hacking tools by 1 turn"""
+        for hacker in self.hackers:
+            for tool in hacker.tools:
+                if tool.cooldown > 0:
+                    tool.cooldown -= 1
