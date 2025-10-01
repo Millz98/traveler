@@ -1,42 +1,39 @@
 {
   "team_leader": {
-    "name": "Amy",
-    "designation": "6366",
+    "name": "Christopher",
+    "designation": "8727",
     "role": "Team Leader",
-    "occupation": "Leader",
+    "occupation": "Historian",
     "skills": [
-      "Stealth",
-      "Environmental Science",
-      "Chemical Engineering",
-      "Hacking"
+      "Physics",
+      "Cybersecurity",
+      "Veterinary Medicine"
     ],
     "abilities": [
-      "Skilled Thief",
-      "Master of Disguise",
-      "Peak Physical Conditioning",
-      "Skilled Artist"
+      "Exceptional Cartographer",
+      "Skilled Survivalist",
+      "Master Codebreaker"
     ],
-    "mission_count": 0,
+    "mission_count": 2,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Bryson",
-      "designation": "481",
+      "name": "Elijah",
+      "designation": "1325",
       "role": "Historian",
       "occupation": "Tactician",
       "skills": [
-        "Cryptography",
-        "Entrepreneurship",
-        "Politics"
+        "Algorithm Design",
+        "Food Science",
+        "Economics",
+        "Navigation"
       ],
       "abilities": [
-        "Gifted Coach",
-        "Gifted Fisherman",
-        "Exceptional Peacemaker",
-        "Exceptional Persuader"
+        "Skilled Survivalist",
+        "Peak Physical Conditioning"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -44,20 +41,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "Michael",
-      "designation": "8848",
+      "name": "Joseph",
+      "designation": "592",
       "role": "Engineer",
-      "occupation": "Hacker",
+      "occupation": "Medic",
       "skills": [
-        "Mechanical Engineering",
-        "Natural Language Processing",
-        "Meteorology",
-        "Literature",
-        "Nutrition"
+        "Sniping",
+        "Film",
+        "Nutrition",
+        "Volcanology",
+        "Art"
       ],
       "abilities": [
-        "Master of Escape",
-        "Skilled Hacker"
+        "Exceptional Storyteller",
+        "Expert Tactician"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -65,20 +62,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "Lily",
-      "designation": "6154",
+      "name": "Charles",
+      "designation": "1992",
       "role": "Medic",
-      "occupation": "Scientist",
+      "occupation": "Engineer",
       "skills": [
-        "Sword Fighting",
-        "Machine Learning",
-        "Tracking",
-        "Cryptography",
-        "Textile Science"
+        "Data Analysis",
+        "Persuasion",
+        "Forensics"
       ],
       "abilities": [
-        "Master Surgeon",
-        "Skilled Teacher"
+        "Master Entrepreneur",
+        "Gifted Businessperson",
+        "Expert Medic",
+        "Exceptional Cartographer"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -86,19 +83,20 @@
       "timeline_impact": 0
     },
     {
-      "name": "Robert",
-      "designation": "8826",
+      "name": "Julian",
+      "designation": "6199",
       "role": "Tactician",
       "occupation": "Historian",
       "skills": [
-        "Leadership",
-        "Acrobatics",
-        "Human Resources",
-        "Entrepreneurship"
+        "Vulnerability Assessment",
+        "Interior Design",
+        "Algorithm Design",
+        "Data Analysis",
+        "First Aid"
       ],
       "abilities": [
-        "Exceptional Camper",
-        "Expert Medic"
+        "Master Craftsman",
+        "Gifted Singer"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -111,43 +109,34 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.765,
+  "timeline_stability": 1.0,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
-      "change": 0.05,
-      "actual_change": 0.065,
-      "old_stability": 0.85,
-      "new_stability": 0.915,
-      "source": "mission_stealth_preparation_success",
+      "change": -0.02,
+      "actual_change": -0.026000000000000002,
+      "old_stability": 0.9299999999999999,
+      "new_stability": 0.9039999999999999,
+      "source": "mission_intelligence_gathering_partial_success",
       "fragility_impact": 0.3
     },
     {
       "timestamp": "March 16, 2018",
-      "change": -0.2,
-      "actual_change": -0.26,
-      "old_stability": 0.919,
-      "new_stability": 0.659,
-      "source": "mission_intelligence_gathering_critical_failure",
+      "change": 0.1,
+      "actual_change": 0.13,
+      "old_stability": 0.827,
+      "new_stability": 0.957,
+      "source": "mission_stealth_preparation_complete_success",
       "fragility_impact": 0.3
     },
     {
       "timestamp": "March 17, 2018",
-      "change": -0.02,
-      "actual_change": -0.026000000000000002,
-      "old_stability": 0.6940000000000001,
-      "new_stability": 0.668,
-      "source": "mission_stealth_preparation_partial_success",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 18, 2018",
       "change": 0.05,
       "actual_change": 0.065,
-      "old_stability": 0.643,
-      "new_stability": 0.708,
-      "source": "mission_maintenance_operation_success",
+      "old_stability": 1.0,
+      "new_stability": 1.0,
+      "source": "mission_intelligence_gathering_success",
       "fragility_impact": 0.3
     }
   ],
@@ -158,8 +147,8 @@
         "party": "Republican"
       },
       "vice_president": {
-        "name": "William Martinez",
-        "party": "Democratic"
+        "name": "Heather Jones",
+        "party": "Republican"
       }
     },
     "legislative_branch": {
@@ -172,6 +161,6 @@
         "majority_count": 218
       }
     },
-    "turn_count": 4
+    "turn_count": 3
   }
 }
