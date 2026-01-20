@@ -23,10 +23,11 @@ class AIEntity:
 
 class AITravelerTeam(AIEntity):
     """AI-controlled Traveler team that operates independently"""
-    def __init__(self, team_id, members, base_location, mission_priorities, world_generator=None):
+    def __init__(self, team_id, members, base_location, mission_priorities, world_generator=None, preselected_host_npcs=None):
         super().__init__(f"Traveler Team {team_id}", "traveler_team", base_location, mission_priorities)
         # Optional procedural world integration (backward compatible)
         self.world_generator = world_generator
+        self.preselected_host_npcs = preselected_host_npcs or None
         self.team_id = team_id
         self.members = members
         self.active_missions = []
@@ -44,14 +45,17 @@ class AITravelerTeam(AIEntity):
     def generate_host_lives_from_world(self):
         """Generate host lives using procedural NPCs when available (fallbacks to existing generation)."""
         try:
-            potential_hosts = []
-            if self.world_generator and hasattr(self.world_generator, "get_npcs_by_faction"):
-                potential_hosts = self.world_generator.get_npcs_by_faction("civilian") or []
+            selected_hosts = None
+            if self.preselected_host_npcs:
+                selected_hosts = list(self.preselected_host_npcs)
+            else:
+                potential_hosts = []
+                if self.world_generator and hasattr(self.world_generator, "get_npcs_by_faction"):
+                    potential_hosts = self.world_generator.get_npcs_by_faction("civilian") or []
+                if len(potential_hosts) < int(self.members):
+                    return self.generate_host_lives()
+                selected_hosts = random.sample(potential_hosts, int(self.members))
 
-            if len(potential_hosts) < int(self.members):
-                return self.generate_host_lives()
-
-            selected_hosts = random.sample(potential_hosts, int(self.members))
             lives = []
             for npc in selected_hosts:
                 # Map procedural NPC -> host life structure expected by the existing life-management code
@@ -1559,6 +1563,7 @@ class AIWorldController:
             pass
         
         # Create AI Traveler teams
+        used_host_npc_ids = set()
         for i in range(ai_teams):
             base_location = self.generate_base_location()
             try:
@@ -1570,12 +1575,26 @@ class AIWorldController:
             except Exception:
                 pass
 
+            members = random.randint(3, 5)
+            preselected_hosts = None
+            try:
+                if self.world_generator and hasattr(self.world_generator, "get_npcs_by_faction"):
+                    civilians = self.world_generator.get_npcs_by_faction("civilian") or []
+                    available = [npc for npc in civilians if getattr(npc, "id", None) not in used_host_npc_ids]
+                    if len(available) >= members:
+                        preselected_hosts = random.sample(available, members)
+                        for npc in preselected_hosts:
+                            used_host_npc_ids.add(getattr(npc, "id", None))
+            except Exception:
+                preselected_hosts = None
+
             team = AITravelerTeam(
                 team_id=f"AI-{i+1:02d}",
-                members=random.randint(3, 5),
+                members=members,
                 base_location=base_location,
                 mission_priorities=["timeline_stability", "protocol_compliance", "host_integration"],
-                world_generator=self.world_generator
+                world_generator=self.world_generator,
+                preselected_host_npcs=preselected_hosts
             )
             self.ai_teams.append(team)
         

@@ -134,6 +134,8 @@ class TravelersWorldGenerator:
         self.locations = []
         self.npcs = []
         self.world_events = []
+        # Track unique identifiers to avoid repetitive content
+        self._used_npc_names = set()
         
         # World parameters influenced by seed
         self.world_params = self._generate_world_parameters()
@@ -413,17 +415,58 @@ class TravelersWorldGenerator:
     def _create_npc(self, npc_id: int, faction: str, occupations: List[str]) -> TravelersNPC:
         """Create a detailed NPC"""
         # Generate basic info
-        first_names = ["Alex", "Morgan", "Jordan", "Casey", "Taylor", "Jamie", "Riley", "Cameron",
-                      "Sarah", "Michael", "Jennifer", "David", "Lisa", "Christopher", "Maria",
-                      "Robert", "Patricia", "James", "Linda", "William", "Elizabeth", "Richard",
-                      "Jessica", "Daniel", "Susan", "Matthew", "Karen", "Anthony", "Nancy"]
+        # Larger, more varied name pool (still lightweight, fully offline, and deterministic by seed)
+        first_names = [
+            # Common
+            "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
+            "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
+            "Thomas", "Sarah", "Christopher", "Karen", "Charles", "Nancy", "Daniel", "Lisa",
+            "Matthew", "Betty", "Anthony", "Helen", "Mark", "Sandra", "Donald", "Donna",
+            "Steven", "Carol", "Paul", "Ruth", "Andrew", "Sharon", "Joshua", "Michelle",
+            "Kenneth", "Laura", "Kevin", "Emily", "Brian", "Kimberly", "George", "Deborah",
+            "Edward", "Dorothy", "Ronald", "Amy", "Timothy", "Angela", "Jason", "Melissa",
+            "Jeffrey", "Rebecca", "Ryan", "Stephanie", "Jacob", "Nicole", "Gary", "Samantha",
+            "Nicholas", "Hannah", "Eric", "Megan", "Jonathan", "Alyssa", "Stephen", "Abigail",
+            "Larry", "Madison", "Justin", "Olivia", "Scott", "Sophia", "Brandon", "Isabella",
+            "Benjamin", "Natalie", "Samuel", "Charlotte", "Gregory", "Lily", "Alexander", "Zoe",
+            "Patrick", "Avery", "Jack", "Taylor",
+            # Extra variety (short list, high impact)
+            "Amir", "Aisha", "Nadia", "Omar", "Layla", "Hassan", "Yara", "Zain",
+            "Priya", "Arjun", "Ananya", "Ravi", "Meera", "Sanjay", "Ishaan", "Kavya",
+            "Wei", "Mei", "Jia", "Chen", "Xiao", "Ling", "Min", "Hao",
+            "Diego", "Sofia", "Camila", "Mateo", "Lucia", "Valentina", "Andres", "Isabella",
+            "Noah", "Ethan", "Logan", "Mason", "Lucas", "Elijah", "Aiden", "Carter",
+            "Ava", "Mia", "Harper", "Evelyn", "Ella", "Grace", "Chloe", "Scarlett"
+        ]
         
-        last_names = ["Anderson", "Brown", "Davis", "Garcia", "Johnson", "Jones", "Miller",
-                     "Rodriguez", "Smith", "Taylor", "Williams", "Wilson", "Martinez",
-                     "Thompson", "White", "Lopez", "Lee", "Gonzalez", "Harris", "Clark",
-                     "Lewis", "Robinson", "Walker", "Perez", "Hall", "Young", "Allen"]
+        last_names = [
+            "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
+            "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
+            "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson",
+            "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker",
+            "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill",
+            "Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell",
+            "Mitchell", "Carter", "Roberts", "Gomez", "Phillips", "Evans", "Turner",
+            "Diaz", "Parker", "Cruz", "Edwards", "Collins", "Reyes", "Stewart", "Morris",
+            "Morales", "Murphy", "Cook", "Rogers", "Gutierrez", "Ortiz", "Morgan", "Cooper",
+            "Peterson", "Bailey", "Reed", "Kelly", "Howard", "Ramos", "Kim", "Cox",
+            "Ward", "Richardson", "Watson", "Brooks", "Chavez", "Wood", "Bennett",
+            "Gray", "Mendoza", "Ruiz", "Hughes", "Price", "Alvarez", "Castillo", "Sanders"
+        ]
         
-        name = f"{random.choice(first_names)} {random.choice(last_names)}"
+        # Ensure unique names within a generated world (prevents “samey” AI team host names)
+        name = None
+        for _ in range(50):
+            candidate = f"{random.choice(first_names)} {random.choice(last_names)}"
+            if candidate not in self._used_npc_names:
+                name = candidate
+                break
+        if not name:
+            # Extremely unlikely, but keep it deterministic and unique anyway
+            candidate = f"{random.choice(first_names)} {random.choice(last_names)}"
+            suffix = len(self._used_npc_names) + 1
+            name = f"{candidate} {suffix}"
+        self._used_npc_names.add(name)
         age = random.randint(25, 65)
         occupation = random.choice(occupations)
         
