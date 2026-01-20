@@ -5179,29 +5179,43 @@ class Game:
             recommended = base_options[0]  # Always recommend the warehouse for consistency
             print(f"   The Director suggests: {recommended['name']}")
             print(f"   This location offers {recommended['security']} security and {recommended['accessibility']} accessibility.")
-            
-            # Set the base with consistent data
+
+            # Let the player pick (default to the Director recommendation if they just press Enter)
+            selection = None
+            while selection is None:
+                choice = input(f"\nChoose a location (1-{len(base_options)}) or press Enter to accept the recommendation: ").strip()
+                if choice == "":
+                    selection = recommended
+                    break
+                if choice.isdigit():
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(base_options):
+                        selection = base_options[idx]
+                        break
+                print("❌ Invalid selection. Please enter a valid number or press Enter.")
+
+            # Set the base with the chosen data
             self.base_data.update({
                 'established': True,
-                'location': recommended['name'],
-                'security_level': recommended['security'],
-                'accessibility': recommended['accessibility'],
-                'cover_story': recommended['cover'],
+                'location': selection['name'],
+                'security_level': selection['security'],
+                'accessibility': selection['accessibility'],
+                'cover_story': selection['cover'],
                 'establishment_date': datetime.now().isoformat(),
-                'facilities': recommended['facilities'],
-                'defenses': recommended['defenses']
+                'facilities': selection['facilities'],
+                'defenses': selection['defenses']
             })
             
             if hasattr(self, 'team') and self.team:
-                self.team.base_of_operations = recommended['name']
+                self.team.base_of_operations = selection['name']
             
             print(f"\n✅ BASE ESTABLISHED!")
-            print(f"   Location: {recommended['name']}")
-            print(f"   Security Level: {recommended['security']}")
-            print(f"   Accessibility: {recommended['accessibility']}")
-            print(f"   Cover Story: {recommended['cover']}")
-            print(f"   Facilities: {', '.join(recommended['facilities'])}")
-            print(f"   Defenses: {', '.join(recommended['defenses'])}")
+            print(f"   Location: {selection['name']}")
+            print(f"   Security Level: {selection['security']}")
+            print(f"   Accessibility: {selection['accessibility']}")
+            print(f"   Cover Story: {selection['cover']}")
+            print(f"   Facilities: {', '.join(selection['facilities'])}")
+            print(f"   Defenses: {', '.join(selection['defenses'])}")
         
         self.print_separator()
         input("Press Enter to continue...")
