@@ -2303,6 +2303,17 @@ class Game:
             # FINALLY: Advance the world turn and show summary (this will now use the updated real-time values)
         print("\n📅 Generating Daily Summary with real-time world state...")
         turn_summary = self.advance_world_turn()
+
+        # Show any breaking government news (e.g., assassination attempts) that occurred this turn
+        try:
+            from government_news_system import get_breaking_news
+            breaking_news = get_breaking_news()
+            if breaking_news:
+                print("\n📰 GOVERNMENT BREAKING NEWS:")
+                for story in breaking_news[-3:]:
+                    print(f"  • {story['headline']}")
+        except Exception:
+            pass
         
         print(f"\n✅ Turn {self.time_system.current_turn} completed!")
         input("Press Enter to continue...")
