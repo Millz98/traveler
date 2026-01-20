@@ -1602,6 +1602,20 @@ class AIWorldController:
                 severity=0.6,  # Moderate severity
                 location=event.get("location", "unknown location"),
                 description=f"Government response triggered to {event['type']} incident",
+                context_data={
+                    "original_event": event,
+                    "response_actions": [
+                        "Government agencies mobilized",
+                        "Surveillance increased",
+                        "Investigation launched"
+                    ],
+                    "detection_indicators": [
+                        "Crisis response protocols activated",
+                        "Multi-agency coordination",
+                        "Emergency surveillance deployment",
+                        "Intelligence briefing initiated"
+                    ]
+                },
                 involved_entities=["government"],
                 detection_chance=0.9,  # Government knows about their own responses
                 risk_multiplier=0.8   # Lower risk since it's government action

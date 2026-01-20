@@ -18,6 +18,8 @@ class DetectionEvent:
     detection_chance: float  # Base chance of government detection
     risk_multiplier: float  # Multiplier for exposure risk
     status: str  # "pending", "detected", "avoided", "investigation_active"
+    # Enhanced context for dynamic narrative generation
+    context_data: Dict = None  # Detailed information about what was detected
 
 @dataclass
 class Investigation:
@@ -93,7 +95,8 @@ class GovernmentDetectionSystem:
         
     def add_detection_event(self, event_type: str, severity: float, location: str, 
                            description: str, involved_entities: List[str], 
-                           detection_chance: float, risk_multiplier: float = 1.0):
+                           detection_chance: float, risk_multiplier: float = 1.0,
+                           context_data: Dict = None):
         """Add a new detection event that increases exposure risk"""
         event = DetectionEvent(
             timestamp=datetime.now(),
@@ -104,7 +107,8 @@ class GovernmentDetectionSystem:
             involved_entities=involved_entities,
             detection_chance=detection_chance,
             risk_multiplier=risk_multiplier,
-            status="pending"
+            status="pending",
+            context_data=context_data or {}
         )
         
         self.detection_events.append(event)
@@ -377,7 +381,20 @@ class GovernmentDetectionSystem:
                         description=f"Government agencies detect suspicious activity consistent with covert operations at {mission.get('location', 'unknown location')}",
                         involved_entities=["traveler_team"],
                         detection_chance=0.7,
-                        risk_multiplier=1.2
+                        risk_multiplier=1.2,
+                        context_data={
+                            "mission_type": mission.get("type", "unknown"),
+                            "mission_objective": mission.get("objective", "unknown"),
+                            "mission_location": mission.get("location", "unknown"),
+                            "mission_urgency": mission.get("urgency", 0.5),
+                            "team_size": mission.get("team_size", 1),
+                            "detection_indicators": [
+                                "Unusual communication patterns",
+                                "Coordinated movements",
+                                "Electronic surveillance countermeasures",
+                                "Suspicious timing of activities"
+                            ]
+                        }
                     )
                     print(f"    🚨 Mission detection event generated for {mission.get('location', 'unknown')}")
         
@@ -393,7 +410,20 @@ class GovernmentDetectionSystem:
                         description=f"Cybersecurity systems detect sophisticated intrusion attempts against {op.get('target', 'digital infrastructure')}",
                         involved_entities=["faction"],
                         detection_chance=0.8,
-                        risk_multiplier=1.5
+                        risk_multiplier=1.5,
+                        context_data={
+                            "target_system": op.get("target", "unknown"),
+                            "operation_type": op.get("operation", "unknown"),
+                            "hacker_type": op.get("hacker_type", "unknown"),
+                            "alert_level": op.get("alert_level", 0.0),
+                            "detection_indicators": [
+                                "Unusual network traffic patterns",
+                                "Sophisticated encryption methods",
+                                "Bypass of standard security protocols",
+                                "Traces of advanced hacking tools"
+                            ],
+                            "system_type": op.get("system_type", "unknown")
+                        }
                     )
                     print(f"    🚨 Cyber detection event generated for {op.get('target', 'digital infrastructure')}")
         
@@ -409,7 +439,18 @@ class GovernmentDetectionSystem:
                         description=f"Intelligence agencies identify patterns consistent with organized subversive activity in {activity.get('location', 'unknown area')}",
                         involved_entities=["faction"],
                         detection_chance=0.6,
-                        risk_multiplier=1.3
+                        risk_multiplier=1.3,
+                        context_data={
+                            "activity_type": activity.get("type", "unknown"),
+                            "activity_description": activity.get("description", "unknown"),
+                            "faction_influence": world_state.get("faction_influence", 0.2),
+                            "detection_indicators": [
+                                "Coordinated recruitment efforts",
+                                "Timeline manipulation signatures",
+                                "Organized resistance patterns",
+                                "Subversive communication networks"
+                            ]
+                        }
                     )
                     print(f"    🚨 Faction detection event generated for {activity.get('location', 'unknown area')}")
         
@@ -417,6 +458,7 @@ class GovernmentDetectionSystem:
         timeline_stability = world_state.get("timeline_stability", 0.8)
         if timeline_stability < 0.6:
             if random.random() < 0.5:  # 50% chance when timeline is unstable
+                stability_level = world_state.get("timeline_stability", 0.8)
                 self.add_detection_event(
                     event_type="timeline_anomaly",
                     severity=0.8,
@@ -424,7 +466,18 @@ class GovernmentDetectionSystem:
                     description="Government scientific agencies detect unusual quantum fluctuations and temporal anomalies across multiple locations",
                     involved_entities=["traveler_team", "faction"],
                     detection_chance=0.9,
-                    risk_multiplier=2.0
+                    risk_multiplier=2.0,
+                    context_data={
+                        "timeline_stability": stability_level,
+                        "anomaly_magnitude": 1.0 - stability_level,
+                        "detection_indicators": [
+                            "Quantum signature fluctuations",
+                            "Temporal displacement readings",
+                            "Causality violations",
+                            "Reality distortion patterns"
+                        ],
+                        "affected_locations": random.randint(3, 8)
+                    }
                 )
                 print(f"    🚨 Timeline anomaly detection event generated!")
         
@@ -439,7 +492,22 @@ class GovernmentDetectionSystem:
                     description="Enhanced surveillance networks detect patterns of coordinated covert activity",
                     involved_entities=["traveler_team", "faction"],
                     detection_chance=0.7,
-                    risk_multiplier=1.1
+                    risk_multiplier=1.1,
+                    context_data={
+                        "surveillance_level": surveillance_level,
+                        "network_coverage": {
+                            "cctv": self.surveillance_networks.get("cctv_coverage", 0.3),
+                            "digital": self.surveillance_networks.get("digital_monitoring", 0.4),
+                            "human_intel": self.surveillance_networks.get("human_intelligence", 0.2),
+                            "satellite": self.surveillance_networks.get("satellite_coverage", 0.1)
+                        },
+                        "detection_indicators": [
+                            "Pattern recognition algorithms triggered",
+                            "Anomaly detection systems activated",
+                            "Cross-referenced surveillance data",
+                            "Coordinated activity signatures"
+                        ]
+                    }
                 )
                 print(f"    🚨 Surveillance alert detection event generated!")
         
@@ -455,7 +523,18 @@ class GovernmentDetectionSystem:
                         description=f"Government analysts identify suspicious patterns in recent {event.get('type', 'world')} events at {event.get('location', 'unknown location')}",
                         involved_entities=["traveler_team", "faction"],
                         detection_chance=0.6,
-                        risk_multiplier=1.2
+                        risk_multiplier=1.2,
+                        context_data={
+                            "event_type": event.get("type", "unknown"),
+                            "event_description": event.get("description", "unknown"),
+                            "event_location": event.get("location", "unknown"),
+                            "detection_indicators": [
+                                "Pattern analysis reveals anomalies",
+                                "Statistical deviations from normal",
+                                "Correlation with known threat patterns",
+                                "Temporal clustering of incidents"
+                            ]
+                        }
                     )
                     print(f"    🚨 World event detection event generated for {event.get('type', 'world')} events!")
         
@@ -471,7 +550,19 @@ class GovernmentDetectionSystem:
                         description=f"Surveillance systems detect coordinated activities by unknown operatives in {team.get('location', 'unknown area')}",
                         involved_entities=["traveler_team"],
                         detection_chance=0.5,
-                        risk_multiplier=1.1
+                        risk_multiplier=1.1,
+                        context_data={
+                            "team_designation": team.get("designation", "unknown"),
+                            "team_location": team.get("location", "unknown"),
+                            "team_status": team.get("status", "unknown"),
+                            "active_missions": team.get("active_missions", []),
+                            "detection_indicators": [
+                                "Coordinated movements",
+                                "Unusual communication patterns",
+                                "Electronic surveillance countermeasures",
+                                "Suspicious timing of activities"
+                            ]
+                        }
                     )
                     print(f"    🚨 AI team detection event generated for {team.get('location', 'unknown area')}")
         
@@ -486,7 +577,17 @@ class GovernmentDetectionSystem:
                     description="Intelligence agencies detect signs of growing organized resistance and subversive influence across multiple sectors",
                     involved_entities=["faction"],
                     detection_chance=0.7,
-                    risk_multiplier=1.4
+                    risk_multiplier=1.4,
+                    context_data={
+                        "faction_influence": faction_influence,
+                        "affected_sectors": random.randint(3, 7),
+                        "detection_indicators": [
+                            "Growing recruitment networks",
+                            "Expanding operational footprint",
+                            "Increased timeline manipulation attempts",
+                            "Coordinated subversive activities"
+                        ]
+                    }
                 )
                 print(f"    🚨 Faction influence detection event generated!")
         
@@ -679,9 +780,272 @@ class GovernmentDetectionSystem:
                                    success: bool, critical_success: bool, critical_failure: bool,
                                    advantage_used: bool, advantage_count: int, 
                                    monitoring_agencies: List[str], detection_quality: float) -> str:
-        """Generate compelling narrative based on D20 roll results - like D&D storytelling"""
+        """Generate dynamic, meaningful narrative based on what was actually discovered"""
         
-        # Base narrative elements
+        agency_descriptions = {
+            "FBI": "FBI cyber division",
+            "CIA": "CIA intelligence analysts",
+            "NSA": "NSA digital surveillance systems",
+            "DHS": "Department of Homeland Security",
+            "Secret_Service": "Secret Service protective detail",
+            "Local_Police": "local law enforcement"
+        }
+        
+        context = event.context_data or {}
+        agency_names = ', '.join(agency_descriptions.get(agency, agency) for agency in monitoring_agencies)
+        primary_agency = agency_descriptions.get(monitoring_agencies[0], monitoring_agencies[0]) if monitoring_agencies else "Government agencies"
+        
+        # Generate dynamic findings based on event type and context
+        findings = self._generate_dynamic_findings(event, context, success, critical_success, detection_quality)
+        
+        # Build narrative based on roll outcome and actual findings
+        if critical_success:
+            if advantage_used:
+                narrative = f"🎯 CRITICAL SUCCESS! {agency_names} coordinate perfectly, their combined surveillance creating an impenetrable net. {findings['discovery']} {findings['evidence']} {findings['implications']} This is a masterclass in government surveillance - the kind of operation that gets written up in training manuals. The evidence is irrefutable, the patterns unmistakable. This will be the breakthrough case that defines careers."
+            else:
+                narrative = f"🎯 CRITICAL SUCCESS! Against all odds, {primary_agency} achieves the impossible. {findings['discovery']} {findings['evidence']} {findings['implications']} Every digital footprint, every surveillance angle, every piece of evidence falls perfectly into place. This is the kind of detection that makes the difference between victory and defeat in the war for the future."
+        
+        elif success and roll >= dc + 5:
+            if advantage_used:
+                narrative = f"✅ MAJOR SUCCESS! The coordinated effort between {agency_names} pays off spectacularly. {findings['discovery']} {findings['evidence']} {findings['implications']} Multiple angles of surveillance converge to reveal the operation's scope and methodology. This is textbook government counterintelligence work."
+            else:
+                narrative = f"✅ MAJOR SUCCESS! {primary_agency} demonstrates exceptional skill. {findings['discovery']} {findings['evidence']} {findings['implications']} The surveillance systems perform flawlessly, capturing crucial details that will prove invaluable for the investigation. This is the kind of success that justifies the massive investment in government surveillance infrastructure."
+        
+        elif success:
+            if advantage_used:
+                narrative = f"✅ SUCCESS! The combined surveillance of {agency_names} successfully detects the threat. {findings['discovery']} {findings['evidence']} While not perfect, the detection provides enough evidence to warrant further investigation. The agencies work together, each contributing their unique capabilities to build a clearer picture of the threat."
+            else:
+                narrative = f"✅ SUCCESS! {primary_agency} successfully detects the threat. {findings['discovery']} {findings['evidence']} The detection is solid, though not exceptional, providing the foundation for a proper investigation. This is the bread and butter of government surveillance work - reliable, consistent, and effective."
+        
+        elif roll >= dc - 5:
+            if advantage_used:
+                narrative = f"⚠️  NEAR MISS! Despite the coordinated efforts of {agency_names}, the threat narrowly escapes detection. {findings['discovery']} The agencies catch glimpses, fragments of evidence that suggest something happened, but the full picture remains frustratingly elusive. This is the kind of near-miss that keeps intelligence analysts up at night, wondering what they might have missed."
+            else:
+                narrative = f"⚠️  NEAR MISS! {primary_agency} comes agonizingly close to detecting the threat. {findings['discovery']} There are tantalizing hints, suspicious patterns that almost form a complete picture, but the evidence remains just out of reach. This is the thin line between success and failure in the surveillance game."
+        
+        elif critical_failure:
+            if advantage_used:
+                narrative = f"💥 CRITICAL FAILURE! In a stunning display of incompetence, the coordinated surveillance of {agency_names} completely fails. {findings['discovery']} The operation happens right under their noses, and they miss it entirely. This is the kind of failure that leads to congressional hearings, budget cuts, and career-ending consequences. The enemy has scored a major victory in the shadows."
+            else:
+                narrative = f"💥 CRITICAL FAILURE! {primary_agency} suffers a catastrophic failure, completely missing the threat. {findings['discovery']} This is the kind of mistake that gets people fired, that makes the government look weak and vulnerable. In the war for the future, this kind of failure could be the difference between victory and defeat."
+        
+        else:
+            if advantage_used:
+                narrative = f"❌ FAILURE! Despite having multiple agencies monitoring the situation, the coordinated surveillance effort fails to detect the threat. {findings['discovery']} The {agency_names} work at cross-purposes, their combined efforts somehow less effective than individual operations. This is a reminder that more isn't always better in the surveillance game."
+            else:
+                narrative = f"❌ FAILURE! {primary_agency} fails to detect the threat. {findings['discovery']} The surveillance systems miss the crucial moment, the evidence slips through their grasp. This is the reality of the surveillance game - sometimes the enemy is simply better, more careful, or just lucky enough to avoid detection."
+        
+        # Add location-specific details
+        location_desc = self._get_location_description(event.location)
+        narrative += f" The operation occurred at {location_desc}, where surveillance coverage is {self.get_location_surveillance_coverage(event.location):.1%} effective."
+        
+        # Add roll details for transparency
+        narrative += f" (Roll: {roll} vs DC {dc}"
+        if advantage_used:
+            narrative += f", {advantage_count} dice advantage"
+        narrative += ")"
+        
+        return narrative
+    
+    def _generate_dynamic_findings(self, event: DetectionEvent, context: Dict, 
+                                  success: bool, critical_success: bool, 
+                                  detection_quality: float) -> Dict[str, str]:
+        """Generate dynamic findings based on what was actually detected"""
+        
+        findings = {
+            "discovery": "",
+            "evidence": "",
+            "implications": ""
+        }
+        
+        event_type = event.event_type
+        indicators = context.get("detection_indicators", [])
+        
+        if event_type == "mission_activity":
+            mission_type = context.get("mission_type", "covert operation")
+            mission_location = context.get("mission_location", "unknown location")
+            team_size = context.get("team_size", 1)
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Government surveillance has uncovered a {mission_type} operation at {mission_location} involving approximately {team_size} operatives. "
+                    findings["evidence"] = f"Intelligence analysts have identified {random.choice(indicators) if indicators else 'unusual communication patterns'}, {random.choice(indicators) if len(indicators) > 1 else 'coordinated movements'}, and evidence of {random.choice(indicators) if len(indicators) > 2 else 'electronic surveillance countermeasures'}. "
+                    findings["implications"] = f"The operation's objective appears to be {context.get('mission_objective', 'unknown')}, with urgency level {context.get('mission_urgency', 0.5):.1%}. This intelligence provides actionable leads for counter-operations."
+                else:
+                    findings["discovery"] = f"Surveillance systems have detected suspicious activity consistent with a {mission_type} at {mission_location}. "
+                    findings["evidence"] = f"Analysts have identified {random.choice(indicators) if indicators else 'unusual patterns'} and {random.choice(indicators) if len(indicators) > 1 else 'coordinated activities'}. "
+                    findings["implications"] = "While the full scope remains unclear, this warrants further investigation."
+            else:
+                findings["discovery"] = f"Surveillance detected anomalous activity at {mission_location}, but the nature of the operation remains unclear. "
+                findings["evidence"] = f"Fragments of {random.choice(indicators) if indicators else 'unusual patterns'} were observed, but insufficient data was collected. "
+                findings["implications"] = "The operation may have been a false alarm or the operatives successfully evaded detection."
+        
+        elif event_type == "cyber_activity":
+            target_system = context.get("target_system", "digital infrastructure")
+            operation_type = context.get("operation_type", "intrusion attempt")
+            hacker_type = context.get("hacker_type", "unknown")
+            alert_level = context.get("alert_level", 0.0)
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Cybersecurity systems have successfully identified a sophisticated {operation_type} targeting {target_system}. "
+                    findings["evidence"] = f"Forensic analysis reveals {random.choice(indicators) if indicators else 'unusual network traffic patterns'}, {random.choice(indicators) if len(indicators) > 1 else 'sophisticated encryption methods'}, and traces of {random.choice(indicators) if len(indicators) > 2 else 'advanced hacking tools'}. "
+                    findings["implications"] = f"The attack originated from {hacker_type} operatives, with alert level at {alert_level:.1%}. The system's security protocols were tested, and countermeasures have been deployed."
+                else:
+                    findings["discovery"] = f"Intrusion detection systems have flagged suspicious activity against {target_system}. "
+                    findings["evidence"] = f"Analysis indicates {random.choice(indicators) if indicators else 'unusual network patterns'} consistent with {operation_type}. "
+                    findings["implications"] = "The attack was detected before significant damage could occur, but the perpetrators' identity remains unknown."
+            else:
+                findings["discovery"] = f"Network monitoring detected anomalies in {target_system}, but the nature of the activity is unclear. "
+                findings["evidence"] = f"Fragments of {random.choice(indicators) if indicators else 'suspicious traffic'} were observed but could not be definitively classified. "
+                findings["implications"] = "The incident may have been a false positive or the attackers successfully evaded detection."
+        
+        elif event_type == "faction_operation":
+            activity_type = context.get("activity_type", "subversive activity")
+            faction_influence = context.get("faction_influence", 0.2)
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Intelligence agencies have uncovered a major {activity_type} operation by organized resistance forces. "
+                    findings["evidence"] = f"Analysis reveals {random.choice(indicators) if indicators else 'coordinated recruitment efforts'}, {random.choice(indicators) if len(indicators) > 1 else 'timeline manipulation signatures'}, and evidence of {random.choice(indicators) if len(indicators) > 2 else 'subversive communication networks'}. "
+                    findings["implications"] = f"Faction influence is currently at {faction_influence:.1%}, indicating a growing threat. This intelligence provides critical insights into their operational methods and strategic objectives."
+                else:
+                    findings["discovery"] = f"Surveillance has detected patterns consistent with {activity_type} by organized groups. "
+                    findings["evidence"] = f"Intelligence indicates {random.choice(indicators) if indicators else 'coordinated activities'} and {random.choice(indicators) if len(indicators) > 1 else 'subversive patterns'}. "
+                    findings["implications"] = "While the full scope remains unclear, this warrants increased monitoring and investigation."
+            else:
+                findings["discovery"] = f"Surveillance detected suspicious patterns, but the nature of the activity is unclear. "
+                findings["evidence"] = f"Fragments of {random.choice(indicators) if indicators else 'unusual activity'} were observed but could not be definitively linked to organized resistance. "
+                findings["implications"] = "The incident may have been a false alarm or the operatives successfully evaded detection."
+        
+        elif event_type == "timeline_anomaly":
+            stability = context.get("timeline_stability", 0.8)
+            anomaly_magnitude = context.get("anomaly_magnitude", 0.2)
+            affected_locations = context.get("affected_locations", 3)
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Scientific agencies have detected massive quantum fluctuations and temporal anomalies across {affected_locations} locations. "
+                    findings["evidence"] = f"Analysis reveals {random.choice(indicators) if indicators else 'quantum signature fluctuations'}, {random.choice(indicators) if len(indicators) > 1 else 'temporal displacement readings'}, and evidence of {random.choice(indicators) if len(indicators) > 2 else 'causality violations'}. "
+                    findings["implications"] = f"Timeline stability is at {stability:.1%}, with anomaly magnitude of {anomaly_magnitude:.1%}. This represents a critical threat to reality itself and requires immediate scientific and intelligence response."
+                else:
+                    findings["discovery"] = f"Quantum monitoring systems have detected unusual temporal anomalies across multiple locations. "
+                    findings["evidence"] = f"Analysis indicates {random.choice(indicators) if indicators else 'quantum fluctuations'} and {random.choice(indicators) if len(indicators) > 1 else 'temporal signatures'}. "
+                    findings["implications"] = f"Timeline stability is at {stability:.1%}, indicating potential manipulation of temporal reality."
+            else:
+                findings["discovery"] = f"Quantum sensors detected anomalies, but the nature of the fluctuations is unclear. "
+                findings["evidence"] = f"Fragments of {random.choice(indicators) if indicators else 'quantum signatures'} were observed but could not be definitively classified. "
+                findings["implications"] = "The readings may have been natural quantum fluctuations or the temporal manipulation successfully evaded detection."
+        
+        elif event_type == "government_response_triggered":
+            # This is the one the user mentioned - need to make it dynamic
+            event_description = context.get("original_event", {})
+            event_type_name = event_description.get("type", "incident")
+            event_location = event_description.get("location", "unknown location")
+            response_actions = context.get("response_actions", [])
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Government response protocols have been successfully activated in response to {event_type_name} at {event_location}. "
+                    findings["evidence"] = f"Intelligence coordination between agencies has identified the scope and severity of the incident. {', '.join(response_actions[:2]) if response_actions else 'Response teams have been mobilized'}. "
+                    findings["implications"] = f"The government's rapid response to this {event_type_name} demonstrates effective crisis management, but also indicates the severity of the threat. Multiple agencies are now coordinating to address the situation."
+                else:
+                    findings["discovery"] = f"Government agencies have responded to {event_type_name} at {event_location}. "
+                    findings["evidence"] = f"Standard response protocols have been activated, with {response_actions[0] if response_actions else 'surveillance and investigation measures'} implemented. "
+                    findings["implications"] = "The response is proceeding according to established procedures."
+            else:
+                findings["discovery"] = f"Government response to {event_type_name} was attempted, but coordination issues may have delayed effective action. "
+                findings["evidence"] = f"Some response protocols were activated, but full coordination between agencies was not achieved. "
+                findings["implications"] = "The incident may require additional resources or alternative response strategies."
+        
+        elif event_type == "world_event_analysis":
+            event_type_name = context.get("event_type", "world event")
+            event_location = context.get("event_location", "unknown location")
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Intelligence analysts have identified suspicious patterns in recent {event_type_name} events at {event_location}. "
+                    findings["evidence"] = f"Pattern analysis reveals {random.choice(indicators) if indicators else 'statistical anomalies'}, {random.choice(indicators) if len(indicators) > 1 else 'correlation with known threats'}, and evidence of {random.choice(indicators) if len(indicators) > 2 else 'coordinated activity'}. "
+                    findings["implications"] = f"The analysis of {event_type_name} events indicates potential coordinated operations that warrant immediate investigation and counter-measures."
+                else:
+                    findings["discovery"] = f"Analysts have detected anomalies in {event_type_name} events at {event_location}. "
+                    findings["evidence"] = f"Pattern recognition algorithms have flagged {random.choice(indicators) if indicators else 'unusual patterns'} that deviate from normal statistical distributions. "
+                    findings["implications"] = "While the patterns are suspicious, further analysis is needed to determine if they represent a genuine threat."
+            else:
+                findings["discovery"] = f"Analysis of {event_type_name} events detected minor anomalies, but the significance is unclear. "
+                findings["evidence"] = f"Some {random.choice(indicators) if indicators else 'statistical deviations'} were observed, but they could be natural variations. "
+                findings["implications"] = "The anomalies may have been false positives or require additional data to confirm."
+        
+        elif event_type == "ai_team_activity":
+            team_designation = context.get("team_designation", "unknown team")
+            team_location = context.get("team_location", "unknown location")
+            active_missions = context.get("active_missions", [])
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Surveillance systems have identified coordinated activities by {team_designation} operatives in {team_location}. "
+                    findings["evidence"] = f"Analysis reveals {random.choice(indicators) if indicators else 'coordinated movements'}, {random.choice(indicators) if len(indicators) > 1 else 'unusual communication patterns'}, and evidence of {len(active_missions)} active operations. "
+                    findings["implications"] = f"The team's operational footprint has been mapped, revealing their current mission objectives and operational methods. This intelligence provides actionable leads for counter-operations."
+                else:
+                    findings["discovery"] = f"Surveillance has detected suspicious coordinated activities in {team_location}. "
+                    findings["evidence"] = f"Intelligence indicates {random.choice(indicators) if indicators else 'coordinated movements'} consistent with organized operatives. "
+                    findings["implications"] = "While the team's identity remains unclear, their activities warrant increased monitoring and investigation."
+            else:
+                findings["discovery"] = f"Surveillance detected anomalies in {team_location}, but the nature of the activity is unclear. "
+                findings["evidence"] = f"Fragments of {random.choice(indicators) if indicators else 'suspicious activity'} were observed but could not be definitively linked to organized operations. "
+                findings["implications"] = "The incident may have been a false alarm or the operatives successfully evaded detection."
+        
+        elif event_type == "faction_influence_detection":
+            faction_influence = context.get("faction_influence", 0.2)
+            affected_sectors = context.get("affected_sectors", 3)
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Intelligence agencies have uncovered a major expansion of organized resistance influence across {affected_sectors} sectors. "
+                    findings["evidence"] = f"Analysis reveals {random.choice(indicators) if indicators else 'growing recruitment networks'}, {random.choice(indicators) if len(indicators) > 1 else 'expanding operational footprint'}, and evidence of {random.choice(indicators) if len(indicators) > 2 else 'coordinated subversive activities'}. "
+                    findings["implications"] = f"Faction influence is currently at {faction_influence:.1%}, indicating a rapidly growing threat. This intelligence provides critical insights into their expansion strategy and operational methods."
+                else:
+                    findings["discovery"] = f"Surveillance has detected signs of growing organized resistance influence. "
+                    findings["evidence"] = f"Intelligence indicates {random.choice(indicators) if indicators else 'expanding networks'} and {random.choice(indicators) if len(indicators) > 1 else 'increased activity'}. "
+                    findings["implications"] = f"Faction influence is at {faction_influence:.1%}, warranting increased monitoring and counter-intelligence operations."
+            else:
+                findings["discovery"] = f"Surveillance detected patterns suggesting organized resistance activity, but the scope is unclear. "
+                findings["evidence"] = f"Fragments of {random.choice(indicators) if indicators else 'suspicious patterns'} were observed but could not be definitively linked to organized resistance. "
+                findings["implications"] = "The patterns may have been false positives or require additional intelligence to confirm."
+        
+        elif event_type == "surveillance_alert":
+            surveillance_level = context.get("surveillance_level", 0.3)
+            network_coverage = context.get("network_coverage", {})
+            
+            if success:
+                if critical_success:
+                    findings["discovery"] = f"Enhanced surveillance networks operating at {surveillance_level:.1%} capacity have detected patterns of coordinated covert activity. "
+                    findings["evidence"] = f"Analysis across {network_coverage.get('cctv', 0):.1%} CCTV coverage, {network_coverage.get('digital', 0):.1%} digital monitoring, and {network_coverage.get('satellite', 0):.1%} satellite surveillance reveals {random.choice(indicators) if indicators else 'pattern recognition triggers'}, {random.choice(indicators) if len(indicators) > 1 else 'anomaly detection activations'}, and evidence of {random.choice(indicators) if len(indicators) > 2 else 'coordinated activity signatures'}. "
+                    findings["implications"] = "The coordinated nature of the detected activities suggests organized operations that require immediate counter-intelligence response."
+                else:
+                    findings["discovery"] = f"Surveillance networks have flagged patterns of coordinated activity. "
+                    findings["evidence"] = f"Pattern recognition algorithms have identified {random.choice(indicators) if indicators else 'anomalies'} consistent with covert operations. "
+                    findings["implications"] = "While the patterns are suspicious, further analysis is needed to determine the threat level."
+            else:
+                findings["discovery"] = f"Surveillance networks detected minor anomalies, but the significance is unclear. "
+                findings["evidence"] = f"Some {random.choice(indicators) if indicators else 'pattern triggers'} were observed, but they could be false positives. "
+                findings["implications"] = "The anomalies may require additional monitoring to confirm if they represent a genuine threat."
+        
+        else:
+            # Generic fallback
+            if success:
+                findings["discovery"] = f"Government surveillance has detected {event.event_type} activity. "
+                findings["evidence"] = f"Analysis indicates suspicious patterns consistent with covert operations. "
+                findings["implications"] = "This warrants further investigation and monitoring."
+            else:
+                findings["discovery"] = f"Surveillance detected anomalies, but the nature of the activity is unclear. "
+                findings["evidence"] = f"Insufficient data was collected to make definitive conclusions. "
+                findings["implications"] = "The incident may have been a false alarm or the operatives successfully evaded detection."
+        
+        return findings
+    
+    def _get_location_description(self, location: str) -> str:
+        """Get descriptive text for a location"""
         location_descriptions = {
             "federal_facility": "the heavily fortified federal facility",
             "government_building": "the government building under constant surveillance",
@@ -693,64 +1057,7 @@ class GovernmentDetectionSystem:
             "washington_dc": "the heart of government power in Washington D.C.",
             "unknown": "an unknown location in the surveillance network"
         }
-        
-        agency_descriptions = {
-            "FBI": "FBI cyber division",
-            "CIA": "CIA intelligence analysts",
-            "NSA": "NSA digital surveillance systems",
-            "DHS": "Department of Homeland Security",
-            "Secret_Service": "Secret Service protective detail",
-            "Local_Police": "local law enforcement"
-        }
-        
-        # Generate narrative based on roll outcome
-        if critical_success:
-            if advantage_used:
-                narrative = f"🎯 CRITICAL SUCCESS! The {', '.join(agency_descriptions.get(agency, agency) for agency in monitoring_agencies)} coordinate perfectly, their combined surveillance creating an impenetrable net. Every detail of the {event.description.lower()} is captured with crystal clarity. This is a masterclass in government surveillance - the kind of operation that gets written up in training manuals. The evidence is irrefutable, the patterns unmistakable. This will be the breakthrough case that defines careers."
-            else:
-                narrative = f"🎯 CRITICAL SUCCESS! Against all odds, {agency_descriptions.get(monitoring_agencies[0], monitoring_agencies[0])} achieves the impossible. The {event.description.lower()} is detected with such precision that it's as if the perpetrators were working under a spotlight. Every digital footprint, every surveillance angle, every piece of evidence falls perfectly into place. This is the kind of detection that makes the difference between victory and defeat in the war for the future."
-        
-        elif success and roll >= dc + 5:
-            if advantage_used:
-                narrative = f"✅ MAJOR SUCCESS! The coordinated effort between {', '.join(agency_descriptions.get(agency, agency) for agency in monitoring_agencies)} pays off spectacularly. The {event.description.lower()} is detected with remarkable efficiency, their combined resources creating a comprehensive picture of the threat. Multiple angles of surveillance converge to reveal the operation's scope and methodology. This is textbook government counterintelligence work."
-            else:
-                narrative = f"✅ MAJOR SUCCESS! {agency_descriptions.get(monitoring_agencies[0], monitoring_agencies[0])} demonstrates exceptional skill, detecting the {event.description.lower()} with impressive precision. The surveillance systems perform flawlessly, capturing crucial details that will prove invaluable for the investigation. This is the kind of success that justifies the massive investment in government surveillance infrastructure."
-        
-        elif success:
-            if advantage_used:
-                narrative = f"✅ SUCCESS! The combined surveillance of {', '.join(agency_descriptions.get(agency, agency) for agency in monitoring_agencies)} successfully detects the {event.description.lower()}. While not perfect, the detection provides enough evidence to warrant further investigation. The agencies work together, each contributing their unique capabilities to build a clearer picture of the threat."
-            else:
-                narrative = f"✅ SUCCESS! {agency_descriptions.get(monitoring_agencies[0], monitoring_agencies[0])} successfully detects the {event.description.lower()}. The detection is solid, though not exceptional, providing the foundation for a proper investigation. This is the bread and butter of government surveillance work - reliable, consistent, and effective."
-        
-        elif roll >= dc - 5:
-            if advantage_used:
-                narrative = f"⚠️  NEAR MISS! Despite the coordinated efforts of {', '.join(agency_descriptions.get(agency, agency) for agency in monitoring_agencies)}, the {event.description.lower()} narrowly escapes detection. The agencies catch glimpses, fragments of evidence that suggest something happened, but the full picture remains frustratingly elusive. This is the kind of near-miss that keeps intelligence analysts up at night, wondering what they might have missed."
-            else:
-                narrative = f"⚠️  NEAR MISS! {agency_descriptions.get(monitoring_agencies[0], monitoring_agencies[0])} comes agonizingly close to detecting the {event.description.lower()}. There are tantalizing hints, suspicious patterns that almost form a complete picture, but the evidence remains just out of reach. This is the thin line between success and failure in the surveillance game."
-        
-        elif critical_failure:
-            if advantage_used:
-                narrative = f"💥 CRITICAL FAILURE! In a stunning display of incompetence, the coordinated surveillance of {', '.join(agency_descriptions.get(agency, agency) for agency in monitoring_agencies)} completely fails. The {event.description.lower()} happens right under their noses, and they miss it entirely. This is the kind of failure that leads to congressional hearings, budget cuts, and career-ending consequences. The enemy has scored a major victory in the shadows."
-            else:
-                narrative = f"💥 CRITICAL FAILURE! {agency_descriptions.get(monitoring_agencies[0], monitoring_agencies[0])} suffers a catastrophic failure, completely missing the {event.description.lower()}. This is the kind of mistake that gets people fired, that makes the government look weak and vulnerable. In the war for the future, this kind of failure could be the difference between victory and defeat."
-        
-        else:
-            if advantage_used:
-                narrative = f"❌ FAILURE! Despite having multiple agencies monitoring the situation, the coordinated surveillance effort fails to detect the {event.description.lower()}. The {', '.join(agency_descriptions.get(agency, agency) for agency in monitoring_agencies)} work at cross-purposes, their combined efforts somehow less effective than individual operations. This is a reminder that more isn't always better in the surveillance game."
-            else:
-                narrative = f"❌ FAILURE! {agency_descriptions.get(monitoring_agencies[0], monitoring_agencies[0])} fails to detect the {event.description.lower()}. The surveillance systems miss the crucial moment, the evidence slips through their grasp. This is the reality of the surveillance game - sometimes the enemy is simply better, more careful, or just lucky enough to avoid detection."
-        
-        # Add location-specific details
-        location_desc = location_descriptions.get(event.location.lower(), f"the {event.location}")
-        narrative += f" The operation occurred at {location_desc}, where surveillance coverage is {self.get_location_surveillance_coverage(event.location):.1%} effective."
-        
-        # Add roll details for transparency
-        narrative += f" (Roll: {roll} vs DC {dc}"
-        if advantage_used:
-            narrative += f", {advantage_count} dice advantage"
-        narrative += ")"
-        
-        return narrative
+        return location_descriptions.get(location.lower(), f"the {location}")
     
     def generate_investigation_narrative(self, investigation: Investigation) -> str:
         """Generate dramatic narrative for investigation completion - war for the future theme"""
@@ -839,11 +1146,12 @@ government_detection = GovernmentDetectionSystem()
 # Helper functions for integration
 def add_detection_event(event_type: str, severity: float, location: str, 
                        description: str, involved_entities: List[str], 
-                       detection_chance: float, risk_multiplier: float = 1.0):
+                       detection_chance: float, risk_multiplier: float = 1.0,
+                       context_data: Dict = None):
     """Add a detection event to the global system"""
     government_detection.add_detection_event(
         event_type, severity, location, description, 
-        involved_entities, detection_chance, risk_multiplier
+        involved_entities, detection_chance, risk_multiplier, context_data
     )
 
 def get_detection_status():
