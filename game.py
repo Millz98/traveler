@@ -4712,7 +4712,9 @@ class Game:
             print(f"  • Successful: {successful}")
             print(f"  • Failed: {failed}")
             print(f"  • Partial Success: {partial}")
-            print(f"  • Success Rate: {(successful/total_missions*100):1f}%")
+            # Count Partial Success as half-credit so the success rate matches player expectations.
+            effective_success = successful + (partial * 0.5)
+            print(f"  • Success Rate: {(effective_success/total_missions*100):.1f}%")
         else:
             print(f"  • No mission data available")
         
