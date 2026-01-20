@@ -35,6 +35,8 @@ class GovernmentNewsSystem:
         
         if event_type == "presidential_assassination":
             story = self._create_presidential_assassination_story(event_data, timestamp)
+        elif event_type == "political_assassination":
+            story = self._create_political_assassination_story(event_data, timestamp)
         elif event_type == "government_response":
             story = self._create_government_response_story(event_data, timestamp)
         elif event_type == "national_security":
@@ -51,6 +53,69 @@ class GovernmentNewsSystem:
         story["story_id"] = f"NEWS_{len(self.news_stories):06d}"
         
         self.news_stories.append(story)
+        return story
+
+    def _create_political_assassination_story(self, event_data: Dict, timestamp: datetime) -> Dict:
+        """Create news story for non-presidential political assassination incidents."""
+        target_name = event_data.get("target_name", "a U.S. Senator")
+        office = event_data.get("office", "U.S. Senator")
+        location = event_data.get("location", "an undisclosed location")
+        survived = bool(event_data.get("survived", False))
+        method = event_data.get("method", "unknown")
+
+        if survived:
+            headlines = [
+                f"BREAKING: Attempted Assassination of {office} {target_name} Thwarted",
+                f"{office} {target_name} Survives Assassination Attempt",
+                f"Suspect Sought After Attempt on {office} {target_name}",
+            ]
+            category = "BREAKING_NEWS"
+            priority = "HIGH"
+            content = (
+                f"{location} - Authorities confirm an attempted assassination targeting {office} {target_name} "
+                f"occurred at approximately {timestamp.strftime('%I:%M %p')}. The target is reported safe. "
+                f"Officials are investigating the incident and urging the public to avoid speculation."
+            )
+            details = [
+                "Law enforcement has launched a multi-agency investigation",
+                "Security has been increased for public officials",
+                "Witnesses are being interviewed and surveillance footage is under review",
+            ]
+        else:
+            headlines = [
+                f"BREAKING: {office} {target_name} Killed in Assassination",
+                f"{office} {target_name} Dead After Attack, Investigation Underway",
+                f"Assassination of {office} {target_name} Sparks National Alarm",
+            ]
+            category = "BREAKING_NEWS"
+            priority = "CRITICAL"
+            content = (
+                f"{location} - In a developing story, {office} {target_name} has been killed in an apparent assassination "
+                f"at approximately {timestamp.strftime('%I:%M %p')}. Authorities have not released full details and "
+                f"are urging calm as an intensive manhunt and investigation begins."
+            )
+            details = [
+                "Federal and local agencies are coordinating the investigation",
+                "Security posture elevated for elected officials",
+                "Officials are asking for public tips and video submissions",
+            ]
+
+        story = {
+            "headline": random.choice(headlines),
+            "category": category,
+            "priority": priority,
+            "content": content,
+            "details": details + [
+                f"Reported method: {method}",
+            ],
+            "government_response": [
+                "FBI coordination initiated",
+                "Protective details reassessed",
+                "Emergency response protocols reviewed",
+            ],
+            "impact_level": "NATIONAL_SECURITY" if not survived else "SECURITY_OPERATIONS",
+            "requires_immediate_action": not survived,
+        }
         return story
     
     def _create_presidential_assassination_story(self, event_data: Dict, timestamp: datetime) -> Dict:
@@ -346,6 +411,19 @@ def report_presidential_assassination(location: str, method: str, casualties: in
     
     story = government_news.generate_news_story("presidential_assassination", event_data)
     return story
+
+def report_political_assassination(target_name: str, office: str, location: str, survived: bool, method: str = "unknown"):
+    """Report a non-presidential political assassination (or attempt) to government news system."""
+    event_data = {
+        "target_name": target_name,
+        "office": office,
+        "location": location,
+        "survived": survived,
+        "method": method,
+        "timestamp": datetime.now(),
+        "investigation_status": "active",
+    }
+    return government_news.generate_news_story("political_assassination", event_data)
 
 def get_government_news(limit: int = 10):
     """Get current government news"""

@@ -120,6 +120,8 @@ class Game:
         self.active_missions = []
         # Mission history (used by "View Mission History")
         self.completed_missions = []
+        # Track NPC alive/dead state for world NPCs used in missions
+        self.npc_status = {}
         
         # Timeline stability system - now managed by GlobalWorldStateTracker
         self.timeline_fragility = 0.3  # How easily timeline can be disrupted
@@ -964,6 +966,12 @@ class Game:
             
             # Apply mission consequences
             self.apply_mission_consequences(mission, final_outcome)
+
+            # Apply mission-specific entity consequences (e.g., assassination targets)
+            try:
+                self._apply_mission_entity_consequences(mission, final_outcome)
+            except Exception:
+                pass
             
             # Show detailed world consequences
             mission_exec_data = {
@@ -1020,6 +1028,161 @@ class Game:
             record["phase_results"] = phase_results
 
         self.completed_missions.append(record)
+
+    def _apply_mission_entity_consequences(self, mission: dict, final_outcome: str):
+        """Apply consequences that affect concrete entities (NPC death, etc.)."""
+        # Assassination missions: if mission fails, target rolls a D20 to survive (50% chance).
+        target_id = mission.get("assassination_target_npc_id")
+        target_name = mission.get("assassination_target_name")
+        if not target_id:
+            return
+
+        # Only apply on failure outcomes (per user spec)
+        if final_outcome not in ("FAILURE", "CRITICAL_FAILURE"):
+            return
+
+        # If already dead, do nothing
+        if self.npc_status.get(target_id) is False:
+            return
+
+        roll = random.randint(1, 20)
+        survived = roll > 10  # 11-20 survive (50%), 1-10 die (50%)
+
+        # Update state
+        self.npc_status[target_id] = survived
+
+        # Best-effort: also mark inside procedural world NPC background for display/debug
+        try:
+            if getattr(self, "world", None):
+                npc = self.world.get_npc_by_id(target_id)
+                if npc:
+                    npc.background["alive"] = survived
+        except Exception:
+            pass
+
+        # Generate government news report
+        try:
+            from government_news_system import report_political_assassination
+            location = mission.get("location", "Unknown Location")
+            report_political_assassination(
+                target_name=target_name or "Unknown",
+                office=mission.get("assassination_target_office", "Public Official"),
+                location=location,
+                survived=survived,
+                method=mission.get("assassination_method", "unknown"),
+            )
+        except Exception:
+            pass
+
+        # Immediate player-facing feedback
+        print("\n🗞️  INCIDENT UPDATE:")
+        if survived:
+            print(f"✅ {target_name or 'Target'} survived the assassination attempt. (Target D20: {roll})")
+        else:
+            print(f"💀 {target_name or 'Target'} was killed in the assassination attempt. (Target D20: {roll})")
+
+    def queue_messenger_mission(self, messenger):
+        """Convert a messenger directive into an active mission (non-interactive)."""
+        # Base mission structure (compatible with existing mission UI + execution)
+        mission = {
+            "type": "intelligence_gathering",
+            "location": getattr(messenger, "location", "Unknown"),
+            "npc": "Director Liaison",
+            "resource": "Intelligence Data",
+            "challenge": "High-risk - Heavy security, multiple threats",
+            "description": f"MESSENGER DIRECTIVE: {getattr(messenger, 'message_content', '')}",
+            "objectives": ["Respond immediately", "Maintain cover", "Minimize timeline disruption"],
+            "time_limit": "Immediate - Must be completed within hours",
+            "consequences": [],
+            "source": "messenger",
+            "messenger_name": getattr(messenger, "name", "Unknown"),
+            "messenger_message_type": getattr(messenger, "message_type", "Unknown"),
+        }
+
+        content = (getattr(messenger, "message_content", "") or "").lower()
+
+        # Assassination mission parsing (minimal but effective for current content)
+        if "assassination" in content and "senator" in content:
+            mission["type"] = "prevent_historical_disaster"
+            mission["objectives"] = ["Locate the target", "Intercept the threat", "Prevent assassination", "Avoid exposure"]
+            mission["npc"] = "Protective Detail Liaison"
+            mission["assassination_target_office"] = "U.S. Senator"
+            mission["assassination_method"] = "unknown"
+
+            # Ensure target is a real NPC in the procedural world (or create a lightweight one)
+            target_name = "Senator Johnson"
+            mission["assassination_target_name"] = target_name
+
+            target_id = None
+            try:
+                if getattr(self, "world", None):
+                    # Try to find an existing NPC with that name
+                    for npc in (self.world.npcs or []):
+                        if getattr(npc, "name", "").lower() == target_name.lower():
+                            target_id = npc.id
+                            break
+
+                    if not target_id:
+                        # Create a new government NPC record using the existing dataclass
+                        from world_generation import TravelersNPC
+                        new_id = f"NPC_{len(self.world.npcs) + 1:03d}"
+                        new_npc = TravelersNPC(
+                            id=new_id,
+                            name=target_name,
+                            age=random.randint(45, 75),
+                            occupation="Senator",
+                            faction="government",
+                            background={
+                                "education": "Law",
+                                "years_experience": random.randint(10, 35),
+                                "previous_roles": random.randint(1, 4),
+                                "family_status": random.choice(["Married", "Married with children", "Divorced"]),
+                                "financial_status": random.choice(["Comfortable", "Wealthy"]),
+                                "political_views": random.choice(["Liberal", "Conservative", "Moderate"]),
+                                "personal_interests": ["Public service", "Policy", "Community events"],
+                                "alive": True,
+                            },
+                            education="Law",
+                            work_location="State Capitol",
+                            home_address=f"{random.randint(100, 9999)} {random.choice(['Oak St', 'Pine Ave', 'Cedar Ln', 'Maple Dr'])}, {getattr(self.world, 'region', 'Unknown')}",
+                            personality_traits=["Cautious", "Public-facing"],
+                            paranoia_level=random.uniform(0.2, 0.6),
+                            observation_skills=random.uniform(0.3, 0.8),
+                            cooperation_level=random.uniform(0.2, 0.7),
+                            security_clearance=random.randint(1, 3),
+                            contacts=[],
+                            secrets=["Recent threats reported to staff"],
+                            valuable_information=["Legislative schedule", "Security routines"],
+                            daily_routine={"weekday": ["Meetings", "Committee hearings", "Staff briefings"], "weekend": ["Events", "Travel", "Family time"]},
+                            schedule_reliability=random.uniform(0.6, 0.9),
+                            social_habits=["Public appearances", "Fundraisers"],
+                            threat_to_travelers=random.uniform(0.2, 0.5),
+                            usefulness_to_travelers=random.uniform(0.2, 0.5),
+                            current_awareness=random.uniform(0.1, 0.3),
+                        )
+                        self.world.npcs.append(new_npc)
+                        target_id = new_id
+            except Exception:
+                target_id = None
+
+            mission["assassination_target_npc_id"] = target_id
+            # Track alive state (default alive)
+            if target_id and target_id not in self.npc_status:
+                self.npc_status[target_id] = True
+
+        # Queue mission without requiring interactive input (unlike accept_mission)
+        mission_execution = {
+            "mission": dict(mission),
+            "status": "In Progress",
+            "phase": "Planning",
+            "progress": 0,
+            "team_performance": [],
+            "challenges_encountered": [],
+            "timeline_effects": [],
+        }
+        self.active_missions.append(mission_execution)
+        self.mission_status = f"Active Missions: {len(self.active_missions)}"
+        return mission
 
     def execute_mission_phases(self, mission):
         """Execute mission phases and return results"""

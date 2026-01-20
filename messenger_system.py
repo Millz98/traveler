@@ -414,7 +414,11 @@ class MessengerSystem:
         return False
 
     def execute_immediate_mission(self, messenger, game_ref):
-        """Execute an immediate mission based on the messenger's message"""
+        """Queue an immediate mission based on the messenger's message.
+
+        This previously auto-simulated outcomes here. We now route messenger orders into the
+        normal mission execution pipeline (D20 phases + world consequences) inside `game.py`.
+        """
         print(f"\n{'='*60}")
         print(f"    🚨 IMMEDIATE MISSION ACTIVATED 🚨")
         print(f"{'='*60}")
@@ -422,22 +426,23 @@ class MessengerSystem:
         print(f"Your team must respond immediately!")
         print(f"{'='*60}")
         
-        # Create mission based on message content
+        # Queue mission in the game so the player can execute it like any other mission.
+        try:
+            if hasattr(game_ref, "queue_messenger_mission"):
+                mission = game_ref.queue_messenger_mission(messenger)
+                if mission:
+                    print(f"\n✅ Urgent mission added to Active Missions.")
+                    print(f"   • Type: {mission.get('type', 'Unknown')}")
+                    print(f"   • Location: {mission.get('location', 'Unknown')}")
+                    return {"queued": True, "mission": mission}
+        except Exception as e:
+            print(f"⚠️  Could not queue messenger mission: {e}")
+        
+        # Fallback: keep prior behavior if game can't accept queued missions (should be rare)
+        print("\n⚠️  Falling back to legacy instant simulation (game does not support queued messenger missions).")
         mission_data = self.create_messenger_mission(messenger)
-        
-        # Execute the mission automatically
-        print(f"\n⚡ EXECUTING URGENT MISSION...")
-        if hasattr(game_ref, 'team') and game_ref.team and hasattr(game_ref.team, 'leader') and game_ref.team.leader:
-            print(f"Team Leader {game_ref.team.leader.designation} taking point.")
-        else:
-            print("Team Leader taking point (team details not yet available).")
-        
-        # Simulate mission execution
         success, total_progress, phase_results = self.simulate_messenger_mission(messenger, game_ref)
-        
-        # Apply results
         self.apply_messenger_mission_results(success, messenger, mission_data, game_ref, total_progress, phase_results)
-        
         return {"success": success, "mission": mission_data}
 
     def create_messenger_mission(self, messenger):
