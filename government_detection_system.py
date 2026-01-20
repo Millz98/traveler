@@ -135,19 +135,18 @@ class GovernmentDetectionSystem:
                 
                 # Display the compelling narrative based on D20 results
                 print(f"\n🎲 D20 DETECTION ROLL:")
-                print(f"    Event: {event.description}")
                 print(f"    Roll: {detection_result['roll']} vs DC {detection_result['dc']}")
                 if detection_result['advantage_used']:
                     print(f"    Advantage: {detection_result['advantage_count']} dice")
-                print(f"    Result: {detection_result['narrative']}")
+                print(f"\n    {detection_result['narrative']}")
                 
                 if detection_result["detected"]:
                     event.status = "detected"
                     self.handle_detection(event, detection_result, world_state)
-                    print(f"    🚨 DETECTED: {event.description}")
+                    print(f"\n    🚨 DETECTED: Government agencies have successfully identified the threat.")
                 else:
                     event.status = "avoided"
-                    print(f"    ✅ AVOIDED: {event.description}")
+                    print(f"\n    ✅ AVOIDED: The threat successfully evaded government detection.")
                 
                 # Move to history
                 self.detection_history.append(event)

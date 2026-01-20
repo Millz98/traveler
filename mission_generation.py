@@ -190,7 +190,31 @@ class MissionGenerator:
                                                    min(2, len(mission_data["consequences"])))
 
     def generate_location(self):
-        """Generate a realistic mission location"""
+        """Generate a realistic mission location from rich world data"""
+        # Try to use rich world data if available
+        if hasattr(self.world, 'get_locations_by_type'):
+            from world_generation import LocationType
+            # Get appropriate locations based on mission type
+            location_types = [
+                LocationType.GOVERNMENT_FACILITY,
+                LocationType.RESEARCH_LAB,
+                LocationType.CORPORATE_HQ,
+                LocationType.SAFE_HOUSE,
+                LocationType.MEDICAL_FACILITY,
+                LocationType.INDUSTRIAL_SITE
+            ]
+            
+            # Collect all locations
+            all_locations = []
+            for loc_type in location_types:
+                locations = self.world.get_locations_by_type(loc_type)
+                all_locations.extend(locations)
+            
+            if all_locations:
+                loc = random.choice(all_locations)
+                return f"{loc.name} - {loc.address}"
+        
+        # Fallback to hardcoded list if world data not available
         locations = [
             "New York City, NY - Financial District",
             "Los Angeles, CA - Downtown",
@@ -211,7 +235,31 @@ class MissionGenerator:
         return random.choice(locations)
 
     def generate_npc(self):
-        """Generate a mission-related NPC"""
+        """Generate a mission-related NPC from rich world data"""
+        # Try to use rich world data if available
+        if hasattr(self.world, 'get_npcs_by_faction'):
+            # Get NPCs from different factions
+            all_npcs = []
+            
+            # Government NPCs (most common for missions)
+            gov_npcs = self.world.get_npcs_by_faction('government')
+            if gov_npcs:
+                npc = random.choice(gov_npcs)
+                return f"{npc.name} - {npc.occupation} at {npc.work_location} (Security Clearance: Level {npc.security_clearance})"
+            
+            # Faction NPCs
+            faction_npcs = self.world.get_npcs_by_faction('faction')
+            if faction_npcs:
+                npc = random.choice(faction_npcs)
+                return f"{npc.name} - {npc.occupation} (Faction Operative)"
+            
+            # Civilian NPCs
+            civilian_npcs = self.world.get_npcs_by_faction('civilian')
+            if civilian_npcs:
+                npc = random.choice(civilian_npcs)
+                return f"{npc.name} - {npc.occupation} at {npc.work_location}"
+        
+        # Fallback to hardcoded list if world data not available
         npcs = [
             "The Director - Quantum AI from 2045",
             "Agent Grant MacLaren (3468) - FBI Special Agent / Team Leader",

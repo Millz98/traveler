@@ -593,10 +593,12 @@ class Game:
                     elif choice == "28":
                         self.view_d20_statistics()
                     elif choice == "29":
-                        self.end_turn()
+                        self.view_rich_world_data()
                     elif choice == "30":
-                        self.save_game()
+                        self.end_turn()
                     elif choice == "31":
+                        self.save_game()
+                    elif choice == "32":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
@@ -657,9 +659,10 @@ class Game:
         print("26. View Dynamic Traveler Systems Status")
         print("27. View Dynamic Mission System Status")
         print("28. View D20 Decision System Statistics")
-        print("29. End Turn")
-        print("30. Save Game")
-        print("31. Quit Game")
+        print("29. View Rich World Data (NPCs & Locations)")
+        print("30. End Turn")
+        print("31. Save Game")
+        print("32. Quit Game")
         
         self.print_separator()
         
@@ -677,7 +680,7 @@ class Game:
         if not self.team_formed:
             choice = input(f"\nEnter your choice (1-6): ")
         else:
-            choice = input(f"\nEnter your choice (1-31): ")
+            choice = input(f"\nEnter your choice (1-32): ")
         
         return choice
 
@@ -1740,6 +1743,267 @@ class Game:
         
         self.print_separator()
         input("Press Enter to continue...")
+
+    def view_rich_world_data(self):
+        """View rich world data: detailed NPCs and locations"""
+        self.clear_screen()
+        self.print_header("RICH WORLD DATA")
+        
+        if not hasattr(self, 'director_ai') or not hasattr(self.director_ai, 'world'):
+            print("⚠️  World data not available")
+            input("Press Enter to continue...")
+            return
+        
+        world = self.director_ai.world
+        
+        # Verify world has data
+        if not hasattr(world, 'locations') or not world.locations:
+            print("⚠️  World locations not generated. Regenerating...")
+            world._generate_locations()
+        
+        if not hasattr(world, 'npcs') or not world.npcs:
+            print("⚠️  World NPCs not generated. Regenerating...")
+            world._generate_npcs()
+        
+        print(f"\n✅ World Data Loaded:")
+        print(f"   • {len(world.locations)} Locations")
+        print(f"   • {len(world.npcs)} NPCs")
+        print()
+        
+        # Show menu for what to view
+        print("\n📊 What would you like to view?")
+        print("1. Government Agents & Personnel")
+        print("2. Faction Operatives")
+        print("3. Civilian NPCs")
+        print("4. Government Facilities")
+        print("5. Safe Houses")
+        print("6. Research Labs")
+        print("7. All Locations")
+        print("8. World Summary")
+        print("0. Back to Main Menu")
+        
+        choice = input("\nEnter your choice: ")
+        
+        if choice == "1":
+            self._display_government_npcs(world)
+        elif choice == "2":
+            self._display_faction_npcs(world)
+        elif choice == "3":
+            self._display_civilian_npcs(world)
+        elif choice == "4":
+            self._display_government_facilities(world)
+        elif choice == "5":
+            self._display_safe_houses(world)
+        elif choice == "6":
+            self._display_research_labs(world)
+        elif choice == "7":
+            self._display_all_locations(world)
+        elif choice == "8":
+            self._display_world_summary(world)
+        else:
+            return
+        
+        input("\nPress Enter to continue...")
+    
+    def _display_government_npcs(self, world):
+        """Display detailed government NPCs"""
+        from world_generation import LocationType
+        gov_npcs = world.get_npcs_by_faction('government')
+        
+        print("\n" + "=" * 80)
+        print("🏛️  GOVERNMENT AGENTS & PERSONNEL")
+        print("=" * 80)
+        
+        if not gov_npcs:
+            print("No government personnel found.")
+            return
+        
+        for npc in gov_npcs[:10]:  # Show first 10
+            print(f"\n👤 {npc.name}, Age {npc.age}")
+            print(f"   Occupation: {npc.occupation}")
+            print(f"   Work Location: {npc.work_location}")
+            print(f"   Education: {npc.education}")
+            print(f"   Experience: {npc.background.get('years_experience', 'Unknown')} years")
+            print(f"   Security Clearance: Level {npc.security_clearance}")
+            print(f"   Personality: {', '.join(npc.personality_traits)}")
+            print(f"   Paranoia Level: {npc.paranoia_level:.1%}")
+            print(f"   Threat to Travelers: {npc.threat_to_travelers:.1%}")
+            print(f"   Usefulness to Travelers: {npc.usefulness_to_travelers:.1%}")
+            if npc.secrets:
+                print(f"   Secrets: {', '.join(npc.secrets[:2])}")
+            if npc.valuable_information:
+                print(f"   Valuable Info: {', '.join(npc.valuable_information[:2])}")
+        
+        if len(gov_npcs) > 10:
+            print(f"\n... and {len(gov_npcs) - 10} more government personnel")
+    
+    def _display_faction_npcs(self, world):
+        """Display detailed faction NPCs"""
+        faction_npcs = world.get_npcs_by_faction('faction')
+        
+        print("\n" + "=" * 80)
+        print("🦹 FACTION OPERATIVES")
+        print("=" * 80)
+        
+        if not faction_npcs:
+            print("No faction operatives found.")
+            return
+        
+        for npc in faction_npcs:
+            print(f"\n👤 {npc.name}, Age {npc.age}")
+            print(f"   Occupation: {npc.occupation}")
+            print(f"   Work Location: {npc.work_location}")
+            print(f"   Personality: {', '.join(npc.personality_traits)}")
+            print(f"   Threat to Travelers: {npc.threat_to_travelers:.1%}")
+            if npc.secrets:
+                print(f"   Secrets: {', '.join(npc.secrets)}")
+            if npc.valuable_information:
+                print(f"   Valuable Info: {', '.join(npc.valuable_information)}")
+    
+    def _display_civilian_npcs(self, world):
+        """Display detailed civilian NPCs"""
+        civilian_npcs = world.get_npcs_by_faction('civilian')
+        
+        print("\n" + "=" * 80)
+        print("👥 CIVILIAN NPCs")
+        print("=" * 80)
+        
+        if not civilian_npcs:
+            print("No civilian NPCs found.")
+            return
+        
+        for npc in civilian_npcs[:10]:  # Show first 10
+            print(f"\n👤 {npc.name}, Age {npc.age}")
+            print(f"   Occupation: {npc.occupation}")
+            print(f"   Work Location: {npc.work_location}")
+            print(f"   Personality: {', '.join(npc.personality_traits)}")
+            print(f"   Usefulness to Travelers: {npc.usefulness_to_travelers:.1%}")
+            if npc.secrets:
+                print(f"   Secrets: {', '.join(npc.secrets[:1])}")
+        
+        if len(civilian_npcs) > 10:
+            print(f"\n... and {len(civilian_npcs) - 10} more civilians")
+    
+    def _display_government_facilities(self, world):
+        """Display detailed government facilities"""
+        from world_generation import LocationType
+        facilities = world.get_locations_by_type(LocationType.GOVERNMENT_FACILITY)
+        
+        print("\n" + "=" * 80)
+        print("🏛️  GOVERNMENT FACILITIES")
+        print("=" * 80)
+        
+        if not facilities:
+            print("No government facilities found.")
+            return
+        
+        for loc in facilities:
+            print(f"\n📍 {loc.name}")
+            print(f"   Address: {loc.address}")
+            print(f"   Security Level: {loc.security_level.value.upper()}")
+            print(f"   Surveillance Cameras: {loc.surveillance_cameras}")
+            print(f"   Access Control: {loc.access_control}")
+            print(f"   Guard Presence: {'Yes' if loc.guard_presence else 'No'}")
+            print(f"   Operating Hours: {loc.operating_hours}")
+            print(f"   Peak Hours: {', '.join(loc.peak_hours)}")
+            print(f"   Staff Count: {loc.staff_count}")
+            print(f"   Government Priority: {loc.government_priority:.1%}")
+            print(f"   Faction Interest: {loc.faction_interest:.1%}")
+            print(f"   Escape Routes: {loc.escape_routes}")
+    
+    def _display_safe_houses(self, world):
+        """Display detailed safe houses"""
+        from world_generation import LocationType
+        safe_houses = world.get_locations_by_type(LocationType.SAFE_HOUSE)
+        
+        print("\n" + "=" * 80)
+        print("🏠 SAFE HOUSES")
+        print("=" * 80)
+        
+        if not safe_houses:
+            print("No safe houses found.")
+            return
+        
+        for loc in safe_houses:
+            print(f"\n📍 {loc.name}")
+            print(f"   Address: {loc.address}")
+            print(f"   Security Level: {loc.security_level.value.upper()}")
+            print(f"   Surveillance Cameras: {loc.surveillance_cameras}")
+            print(f"   Access Control: {loc.access_control}")
+            print(f"   Operating Hours: {loc.operating_hours}")
+            print(f"   Cover Quality: {loc.cover_quality:.1%}")
+            print(f"   Government Priority: {loc.government_priority:.1%}")
+            print(f"   Escape Routes: {loc.escape_routes}")
+    
+    def _display_research_labs(self, world):
+        """Display detailed research labs"""
+        from world_generation import LocationType
+        labs = world.get_locations_by_type(LocationType.RESEARCH_LAB)
+        
+        print("\n" + "=" * 80)
+        print("🔬 RESEARCH LABS")
+        print("=" * 80)
+        
+        if not labs:
+            print("No research labs found.")
+            return
+        
+        for loc in labs:
+            print(f"\n📍 {loc.name}")
+            print(f"   Address: {loc.address}")
+            print(f"   Security Level: {loc.security_level.value.upper()}")
+            print(f"   Surveillance Cameras: {loc.surveillance_cameras}")
+            print(f"   Access Control: {loc.access_control}")
+            print(f"   Operating Hours: {loc.operating_hours}")
+            print(f"   Peak Hours: {', '.join(loc.peak_hours)}")
+            print(f"   Staff Count: {loc.staff_count}")
+            print(f"   Government Priority: {loc.government_priority:.1%}")
+            print(f"   Faction Interest: {loc.faction_interest:.1%}")
+    
+    def _display_all_locations(self, world):
+        """Display all locations by type"""
+        from world_generation import LocationType
+        
+        print("\n" + "=" * 80)
+        print("📍 ALL LOCATIONS")
+        print("=" * 80)
+        
+        for loc_type in LocationType:
+            locations = world.get_locations_by_type(loc_type)
+            if locations:
+                print(f"\n{loc_type.value.replace('_', ' ').title()} ({len(locations)}):")
+                for loc in locations[:5]:  # Show first 5 of each type
+                    print(f"  • {loc.name} - {loc.address}")
+                    print(f"    Security: {loc.security_level.value}, Cameras: {loc.surveillance_cameras}, "
+                          f"Priority: {loc.government_priority:.1%}")
+                if len(locations) > 5:
+                    print(f"  ... and {len(locations) - 5} more")
+    
+    def _display_world_summary(self, world):
+        """Display world summary"""
+        summary = world.get_world_summary()
+        
+        print("\n" + "=" * 80)
+        print("🌍 WORLD SUMMARY")
+        print("=" * 80)
+        
+        print(f"\nRegion: {summary['region']}")
+        print(f"Seed: {summary['seed']}")
+        print(f"Total Locations: {summary['total_locations']}")
+        print(f"Total NPCs: {summary['total_npcs']}")
+        
+        print("\nWorld Parameters:")
+        for param, value in summary['world_parameters'].items():
+            print(f"  • {param.replace('_', ' ').title()}: {value:.2f}")
+        
+        print("\nLocation Breakdown:")
+        for loc_type, count in summary['location_breakdown'].items():
+            if count > 0:
+                print(f"  • {loc_type.replace('_', ' ').title()}: {count}")
+        
+        print("\nFaction Breakdown:")
+        for faction, count in summary['faction_breakdown'].items():
+            print(f"  • {faction.title()}: {count}")
 
     def end_turn(self):
         """End the current turn and advance the world"""
