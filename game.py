@@ -4425,8 +4425,9 @@ class Game:
         
         if self.player_character and self.player_character.host_body:
             host = self.player_character.host_body
-            print(f"👤 Host: {self.player_character.name}")
-            print(f"📊 Age: {self.player_character.age}")
+            # Always display the actual host body identity (matches complications screen)
+            print(f"👤 Host: {getattr(host, 'name', 'Unknown')}")
+            print(f"📊 Age: {getattr(host, 'age', 'Unknown')}")
             print(f"💼 Occupation: {host.occupation}")
             print(f"🏠 Location: {host.location}")
             print(f"📱 Cover Status: Maintaining host identity")
@@ -4441,7 +4442,7 @@ class Game:
             print(f"   • {host.medical_condition}")
             
             print(f"\n💰 FINANCIAL SITUATION:")
-            print(f"   • {host.medical_condition}")
+            print(f"   • {getattr(host, 'financial_status', 'Unknown')}")
             
             print(f"\n🤝 SOCIAL NETWORK:")
             print(f"   • {host.social_connections}")
