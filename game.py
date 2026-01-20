@@ -1078,12 +1078,74 @@ class Game:
         except Exception:
             pass
 
+        # Real-time government reaction: agencies mobilize, surveillance increases, investigations spin up
+        try:
+            self._trigger_real_time_government_response_to_attack(
+                target_name=target_name or "Unknown",
+                target_role=target_role,
+                location=mission.get("location", "Unknown Location"),
+                survived=survived,
+            )
+        except Exception:
+            pass
+
         # Immediate player-facing feedback
         print("\n🗞️  INCIDENT UPDATE:")
         if survived:
             print(f"✅ {target_name or 'Target'} survived the assassination attempt. (Target D20: {roll})")
         else:
             print(f"💀 {target_name or 'Target'} was killed in the assassination attempt. (Target D20: {roll})")
+
+    def _trigger_real_time_government_response_to_attack(self, target_name: str, target_role: str, location: str, survived: bool):
+        """Simulate real-time US response: media + agencies + investigations."""
+        # World state effects (so other systems react this turn)
+        try:
+            from messenger_system import global_world_tracker
+            # Attempt always increases awareness and surveillance
+            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "public_awareness", "value": 0.06, "operation": "add"})
+            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "surveillance_level", "value": 0.08, "operation": "add"})
+            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "government_control", "value": 0.04, "operation": "add"})
+            # If target died, destabilize more
+            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "timeline_stability", "value": (-0.06 if not survived else -0.01), "operation": "add"})
+        except Exception:
+            pass
+
+        # Government detection system: start an investigation pulse around the incident
+        try:
+            if getattr(self, "government_detection_system", None):
+                context = {
+                    "event": "political_assassination",
+                    "target_name": target_name,
+                    "target_role": target_role,
+                    "survived": survived,
+                    "location": location,
+                }
+                self.government_detection_system.add_detection_event(
+                    event_type="political_assassination",
+                    severity=0.9 if not survived else 0.6,
+                    location=location,
+                    evidence_level=0.7 if not survived else 0.5,
+                    agencies=["FBI", "Secret Service", "DHS"],
+                    context_data=context,
+                )
+        except Exception:
+            pass
+
+        # Hacking system: create an investigative thread (signals government cyber/intel work)
+        try:
+            if getattr(self, "hacking_system", None):
+                # Increase alert level to ensure gov hackers start operating
+                try:
+                    self.hacking_system.global_alert_level = min(1.0, getattr(self.hacking_system, "global_alert_level", 0.0) + (0.4 if not survived else 0.25))
+                except Exception:
+                    pass
+                self.hacking_system.create_government_investigation(
+                    threat_type="political_assassination",
+                    severity=0.9 if not survived else 0.6,
+                    target_systems=["government", "infrastructure", "communications"],
+                )
+        except Exception:
+            pass
 
     def queue_messenger_mission(self, messenger):
         """Convert a messenger directive into an active mission (non-interactive)."""

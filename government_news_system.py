@@ -63,6 +63,43 @@ class GovernmentNewsSystem:
         survived = bool(event_data.get("survived", False))
         method = event_data.get("method", "unknown")
 
+        # Real-time government reaction (US-style): agencies mobilize and alert levels change,
+        # regardless of whether the target lived or died.
+        try:
+            self._trigger_government_crisis_response("political_assassination", event_data)
+        except Exception:
+            pass
+
+        # Escalate national emergency level + agency alert posture
+        if survived:
+            self.national_emergency_level = max(self.national_emergency_level, "elevated", key=lambda x: ["normal","elevated","high","critical"].index(x) if x in ["normal","elevated","high","critical"] else 0)
+        else:
+            self.national_emergency_level = max(self.national_emergency_level, "high", key=lambda x: ["normal","elevated","high","critical"].index(x) if x in ["normal","elevated","high","critical"] else 0)
+
+        for agency_name in ["FBI", "Department of Homeland Security", "Secret Service", "National Security Council"]:
+            agency = self.government_agencies.get(agency_name)
+            if agency:
+                agency["status"] = "active_response"
+                agency["alert_level"] = "high" if survived else "critical"
+
+        # Create a visible government operation entry (feeds both status + news)
+        try:
+            self.add_government_operation({
+                "operation_type": "protective_detail_response",
+                "public_visibility": True,
+                "response_details": [
+                    f"Multi-agency response to attempted assassination targeting {office} {target_name}",
+                    f"Incident location: {location}",
+                ],
+                "actions": [
+                    "FBI Joint Terrorism Task Force activated",
+                    "Secret Service protective posture elevated",
+                    "DHS coordination with state/local authorities",
+                ],
+            })
+        except Exception:
+            pass
+
         if survived:
             headlines = [
                 f"BREAKING: Attempted Assassination of {office} {target_name} Thwarted",
@@ -330,6 +367,31 @@ class GovernmentNewsSystem:
             for agency in self.government_agencies.values():
                 agency["alert_level"] = "critical"
                 agency["status"] = "crisis_response"
+
+        elif crisis_type == "political_assassination":
+            # Response scaled below presidential assassination, but still a major national-security incident
+            target_name = crisis_data.get("target_name", "a public official")
+            office = crisis_data.get("office", "Public Official")
+            survived = bool(crisis_data.get("survived", False))
+
+            immediate_actions = [
+                f"Activate FBI-led investigation into attack on {office} {target_name}",
+                "Coordinate federal/state/local law enforcement response",
+                "Increase protective detail resources for public officials",
+                "Review intelligence for copycat or coordinated threats",
+            ]
+            if not survived:
+                immediate_actions += [
+                    "Convene emergency National Security Council briefing",
+                    "Issue public safety bulletin and tip line",
+                ]
+
+            # Update key agency statuses
+            for name in ["FBI", "Department of Homeland Security", "Secret Service", "National Security Council"]:
+                agency = self.government_agencies.get(name)
+                if agency:
+                    agency["alert_level"] = "high" if survived else "critical"
+                    agency["status"] = "crisis_response"
         
         # Record government actions
         for action in immediate_actions:
@@ -428,6 +490,13 @@ def report_political_assassination(target_name: str, office: str, location: str,
 def get_government_news(limit: int = 10):
     """Get current government news"""
     return government_news.get_current_news(limit)
+
+def get_breaking_news(limit: int = 10):
+    """Get breaking news stories (optionally limited)."""
+    stories = government_news.get_breaking_news()
+    if limit is None:
+        return stories
+    return stories[-limit:]
 
 def get_government_status():
     """Get current government operational status"""
