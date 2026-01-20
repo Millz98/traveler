@@ -118,6 +118,8 @@ class Game:
         self.game_running = True
         self.save_file = "travelers_save.json"
         self.active_missions = []
+        # Mission history (used by "View Mission History")
+        self.completed_missions = []
         
         # Timeline stability system - now managed by GlobalWorldStateTracker
         self.timeline_fragility = 0.3  # How easily timeline can be disrupted
@@ -289,6 +291,7 @@ class Game:
                 "timeline_stability": global_world_tracker.world_state_cache.get("timeline_stability", 0.85),
                 "timeline_fragility": self.timeline_fragility,
                 "timeline_events": self.timeline_events,
+                "completed_missions": getattr(self, "completed_missions", []),
                 "us_political_system": self._save_us_political_system_state() if hasattr(self, 'us_political_system') and self.us_political_system else None
             }
             
@@ -473,6 +476,7 @@ class Game:
             self.mission_status = save_data["mission_status"]
             self.current_mission = save_data["current_mission"]
             self.active_missions = save_data.get("active_missions", [])
+            self.completed_missions = save_data.get("completed_missions", [])
             self.team.team_cohesion = save_data["team_cohesion"]
             self.team.communication_level = save_data["communication_level"]
             
@@ -971,9 +975,51 @@ class Game:
             
             # Remove completed mission
             self.active_missions.remove(mission_execution)
+
+            # Record completed mission for mission history UI (regardless of outcome)
+            try:
+                self._record_completed_mission(mission, final_outcome, phase_results)
+            except Exception:
+                # Never block gameplay due to history tracking issues
+                pass
             
             print(f"\n✅ Mission {mission['type']} completed with outcome: {final_outcome}")
             input("Press Enter to continue...")
+
+    def _record_completed_mission(self, mission: dict, final_outcome: str, phase_results=None):
+        """Record a completed mission in `self.completed_missions` for the Mission History menu."""
+        if not hasattr(self, "completed_missions") or self.completed_missions is None:
+            self.completed_missions = []
+
+        # Normalize outcome into the labels expected by `show_mission_history`
+        outcome_label = "Unknown"
+        if final_outcome in ("COMPLETE_SUCCESS", "SUCCESS"):
+            outcome_label = "Success"
+        elif final_outcome in ("FAILURE", "CRITICAL_FAILURE"):
+            outcome_label = "Failure"
+        elif final_outcome in ("PARTIAL_SUCCESS",):
+            outcome_label = "Partial Success"
+
+        # Best-effort timestamp
+        try:
+            date_str = self.time_system.get_current_date_string() if hasattr(self, "time_system") and self.time_system else datetime.now().strftime("%Y-%m-%d")
+        except Exception:
+            date_str = datetime.now().strftime("%Y-%m-%d")
+
+        record = {
+            "type": mission.get("type", "Unknown"),
+            "location": mission.get("location", "Unknown"),
+            "npc": mission.get("npc", mission.get("npc_contact", "Unknown")),
+            "outcome": outcome_label,
+            "outcome_raw": final_outcome,
+            "date": date_str,
+        }
+
+        # Optional extra details (kept lightweight)
+        if isinstance(phase_results, list):
+            record["phase_results"] = phase_results
+
+        self.completed_missions.append(record)
 
     def execute_mission_phases(self, mission):
         """Execute mission phases and return results"""
