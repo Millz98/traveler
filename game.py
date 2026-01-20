@@ -2525,20 +2525,134 @@ class Game:
             if self.update_system.has_pending_updates():
                 update = self.update_system.generate_update()
                 response = self.update_system.present_update(update)
+
+                # Turn Director updates into real missions that can be executed with the normal D20 pipeline.
+                # This makes "INTELLIGENCE_BRIEFING" and other updates actually affect the world.
+                try:
+                    acknowledged = bool(response and (response.get("acknowledged") or response.get("response") == 1))
+                    # For CRITICAL/HIGH response-required updates, we *only* queue a mission (no instant simulation),
+                    # so outcomes come from the same D20 mission flow as regular missions.
+                    if acknowledged:
+                        mission = self._create_mission_from_director_update(update)
+                        if mission:
+                            self.current_mission = mission
+                            self.accept_mission()  # queues into active_missions + clears current_mission
+                except Exception:
+                    pass
                 
-                # Handle critical updates with immediate mission execution
-                if update.priority in ["CRITICAL", "HIGH"] and update.requires_response:
-                    if response and response.get("response") == 1:  # Acknowledged and comply
-                        mission_result = self.update_system.execute_critical_mission(update)
-                        if mission_result:
-                            print(f"\n✅ Emergency mission completed.")
-                            print(f"Results: {'Success' if mission_result['success'] else 'Failure'}")
+                # NOTE: Previously, CRITICAL/HIGH updates used `execute_critical_mission()` for instant simulation.
+                # We now intentionally rely on the normal mission execution pipeline so D20 outcomes impact the world consistently.
             else:
                 print("📡 No pending Director updates.")
         else:
             print("📡 Update system not initialized.")
         
         input("Press Enter to continue...")
+
+    def _create_mission_from_director_update(self, update):
+        """Convert a Director update into a normal mission dict compatible with mission execution."""
+        # Start from the standard mission template so keys are consistent across the UI.
+        try:
+            if hasattr(self, "mission_generation") and self.mission_generation:
+                self.mission_generation.generate_mission()
+                mission = dict(self.mission_generation.mission)
+            else:
+                mission = {
+                    "type": "",
+                    "location": "",
+                    "npc": "",
+                    "resource": "",
+                    "challenge": "",
+                    "description": "",
+                    "objectives": [],
+                    "time_limit": "",
+                    "consequences": []
+                }
+        except Exception:
+            mission = {
+                "type": "",
+                "location": "",
+                "npc": "",
+                "resource": "",
+                "challenge": "",
+                "description": "",
+                "objectives": [],
+                "time_limit": "",
+                "consequences": []
+            }
+
+        update_type = getattr(update, "update_type", "DIRECTOR_UPDATE")
+        message = getattr(update, "message", "")
+        priority = getattr(update, "priority", "MEDIUM")
+
+        # Map updates → mission type (kept aligned with existing mission themes)
+        mission_type_map = {
+            "INTELLIGENCE_BRIEFING": "intelligence_gathering",
+            "MISSION_UPDATE": "protocol_violation_cleanup",
+            "FACTION_ALERT": "faction_interference",
+            "EMERGENCY_ALERT": "prevent_historical_disaster",
+            "PERSONAL_MESSAGE": "host_body_crisis",
+            "PROTOCOL_REMINDER": "protocol_violation_cleanup",
+        }
+        mission["type"] = mission_type_map.get(update_type, "intelligence_gathering")
+
+        # Prefer rich world data for location if available
+        try:
+            if getattr(self, "world", None):
+                from world_generation import LocationType
+                candidates = []
+                if update_type in ("INTELLIGENCE_BRIEFING", "FACTION_ALERT"):
+                    candidates = [loc for loc in (self.world.locations or []) if float(getattr(loc, "faction_interest", 0.0) or 0.0) > 0.5]
+                elif update_type in ("MISSION_UPDATE", "PROTOCOL_REMINDER"):
+                    candidates = self.world.get_locations_by_type(LocationType.GOVERNMENT_FACILITY)
+                elif update_type == "PERSONAL_MESSAGE":
+                    candidates = self.world.get_locations_by_type(LocationType.RESIDENTIAL_AREA)
+                elif update_type == "EMERGENCY_ALERT":
+                    candidates = self.world.get_locations_by_type(LocationType.TRANSPORTATION_HUB) or self.world.get_locations_by_type(LocationType.MEDICAL_FACILITY)
+
+                if not candidates:
+                    candidates = list(self.world.locations or [])
+                if candidates:
+                    mission["location"] = random.choice(candidates).name
+        except Exception:
+            pass
+
+        # Ensure mission has a contact name (best-effort)
+        if not mission.get("npc"):
+            mission["npc"] = "Director Liaison"
+
+        # Director message becomes the mission description anchor
+        mission["description"] = f"DIRECTOR DIRECTIVE ({update_type}, {priority}): {message}"
+
+        # Add a couple lightweight objectives tailored to the update type
+        base_objectives = {
+            "INTELLIGENCE_BRIEFING": ["Investigate the anomaly", "Report findings to the Director", "Avoid exposure while gathering intel"],
+            "FACTION_ALERT": ["Confirm Faction presence", "Identify operatives", "Prevent interference without exposure"],
+            "MISSION_UPDATE": ["Adjust plan to new parameters", "Maintain protocol compliance", "Stabilize timeline impact"],
+            "PROTOCOL_REMINDER": ["Re-align with Protocols", "Reduce behavioral anomalies", "Maintain cover integrity"],
+            "PERSONAL_MESSAGE": ["Address host body life complication", "Preserve cover story", "Prevent collateral timeline effects"],
+            "EMERGENCY_ALERT": ["Respond immediately", "Mitigate mass-casualty outcome", "Contain evidence and stabilize timeline"],
+        }
+        mission["objectives"] = base_objectives.get(update_type, ["Investigate and report", "Maintain cover", "Minimize timeline disruption"])
+
+        # Make risk reflect priority so it feels different
+        if priority == "CRITICAL":
+            mission["challenge"] = "Extreme-risk - Maximum security, multiple high-level threats"
+            mission["time_limit"] = "Immediate - Must be completed within hours"
+        elif priority == "HIGH":
+            mission["challenge"] = "High-risk - Heavy security, multiple threats"
+            mission["time_limit"] = "24 hours - One day to complete mission"
+        elif priority == "MEDIUM":
+            mission["challenge"] = mission.get("challenge") or "Medium-risk - Moderate security, limited threats"
+            mission["time_limit"] = mission.get("time_limit") or "48 hours - Two days for mission completion"
+        else:
+            mission["challenge"] = mission.get("challenge") or "Low-risk - Minimal security, few threats"
+            mission["time_limit"] = mission.get("time_limit") or "72 hours - Three days to finish operation"
+
+        # Tag as director-issued so we can identify it later if needed
+        mission["source"] = "director_update"
+        mission["director_update_type"] = update_type
+        return mission
 
     def check_messenger_events(self):
         """Check for messenger events"""
