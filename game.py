@@ -1031,10 +1031,14 @@ class Game:
 
     def _apply_mission_entity_consequences(self, mission: dict, final_outcome: str):
         """Apply consequences that affect concrete entities (NPC death, etc.)."""
-        # Assassination missions: if mission fails, target rolls a D20 to survive (50% chance).
-        target_id = mission.get("assassination_target_npc_id")
-        target_name = mission.get("assassination_target_name")
-        if not target_id:
+        # Any "protect a target" mission: if mission fails, target rolls a D20 to survive (50% chance).
+        # We support both legacy assassination_* keys and generalized target_* keys.
+        target_id = mission.get("target_npc_id") or mission.get("assassination_target_npc_id")
+        target_name = mission.get("target_npc_name") or mission.get("assassination_target_name")
+        target_role = mission.get("target_npc_role") or mission.get("assassination_target_office") or "Public Official"
+        target_can_die = mission.get("target_can_die", True)
+
+        if not target_id or not target_can_die:
             return
 
         # Only apply on failure outcomes (per user spec)
@@ -1066,10 +1070,10 @@ class Game:
             location = mission.get("location", "Unknown Location")
             report_political_assassination(
                 target_name=target_name or "Unknown",
-                office=mission.get("assassination_target_office", "Public Official"),
+                office=target_role,
                 location=location,
                 survived=survived,
-                method=mission.get("assassination_method", "unknown"),
+                method=mission.get("assassination_method", mission.get("target_threat_method", "unknown")),
             )
         except Exception:
             pass
@@ -1112,12 +1116,24 @@ class Game:
             # Ensure target is a real NPC in the procedural world (or create a lightweight one)
             target_name = "Senator Johnson"
             mission["assassination_target_name"] = target_name
+            # Generalized target fields (used for any protectable NPC)
+            mission["target_npc_name"] = target_name
+            mission["target_npc_role"] = "U.S. Senator"
+            mission["target_can_die"] = True
 
             target_id = None
             try:
                 if getattr(self, "world", None):
                     # Try to find an existing NPC with that name
                     for npc in (self.world.npcs or []):
+                        # Skip dead NPCs
+                        npc_alive = True
+                        try:
+                            npc_alive = bool(npc.background.get("alive", True))
+                        except Exception:
+                            npc_alive = True
+                        if not npc_alive:
+                            continue
                         if getattr(npc, "name", "").lower() == target_name.lower():
                             target_id = npc.id
                             break
@@ -1166,6 +1182,7 @@ class Game:
                 target_id = None
 
             mission["assassination_target_npc_id"] = target_id
+            mission["target_npc_id"] = target_id
             # Track alive state (default alive)
             if target_id and target_id not in self.npc_status:
                 self.npc_status[target_id] = True
@@ -2815,6 +2832,94 @@ class Game:
         # Tag as director-issued so we can identify it later if needed
         mission["source"] = "director_update"
         mission["director_update_type"] = update_type
+
+        # If the Director update names a person to protect (very common), bind it to a real NPC.
+        try:
+            lower_msg = (message or "").lower()
+            protect_keywords = ["protect", "save", "prevent", "intercept", "stop"]
+            assassination_keywords = ["assassination", "assassinate", "kill", "murder", "eliminate"]
+            looks_like_protection = any(k in lower_msg for k in protect_keywords) and any(k in lower_msg for k in assassination_keywords)
+
+            if looks_like_protection and getattr(self, "world", None):
+                # Best-effort extraction: use a simple heuristic for a titled target
+                # Example: "Assassination attempt on Senator Johnson..."
+                target_name = None
+                target_role = "Public Official"
+                if "senator" in lower_msg:
+                    target_role = "U.S. Senator"
+                    # naive parse: pick the word after "senator"
+                    parts = message.split("Senator", 1)
+                    if len(parts) == 2:
+                        candidate = parts[1].strip().split(" ")[0:2]
+                        if candidate:
+                            target_name = ("Senator " + " ".join(candidate)).strip()
+
+                if not target_name:
+                    # fallback: we can still assign a random government NPC as a named protect target
+                    gov = self.world.get_npcs_by_faction("government")
+                    if gov:
+                        npc = random.choice(gov)
+                        target_name = npc.name
+                        target_role = npc.occupation
+
+                # Resolve/create NPC id
+                target_id = None
+                for npc in (self.world.npcs or []):
+                    # Skip dead NPCs
+                    npc_alive = True
+                    try:
+                        npc_alive = bool(npc.background.get("alive", True))
+                    except Exception:
+                        npc_alive = True
+                    if not npc_alive:
+                        continue
+                    if getattr(npc, "name", "").lower() == (target_name or "").lower():
+                        target_id = npc.id
+                        break
+                if not target_id and target_name:
+                    from world_generation import TravelersNPC
+                    new_id = f"NPC_{len(self.world.npcs) + 1:03d}"
+                    new_npc = TravelersNPC(
+                        id=new_id,
+                        name=target_name,
+                        age=random.randint(35, 75),
+                        occupation=target_role,
+                        faction="government",
+                        background={"education": "Unknown", "years_experience": random.randint(5, 30), "previous_roles": random.randint(1, 4), "alive": True},
+                        education="Unknown",
+                        work_location="Public Office",
+                        home_address=f"{random.randint(100, 9999)} {random.choice(['Oak St', 'Pine Ave', 'Cedar Ln', 'Maple Dr'])}, {getattr(self.world, 'region', 'Unknown')}",
+                        personality_traits=["Cautious"],
+                        paranoia_level=random.uniform(0.2, 0.6),
+                        observation_skills=random.uniform(0.2, 0.8),
+                        cooperation_level=random.uniform(0.2, 0.7),
+                        security_clearance=random.randint(1, 3),
+                        contacts=[],
+                        secrets=["Threat assessment pending"],
+                        valuable_information=["Schedule", "Security routines"],
+                        daily_routine={"weekday": ["Meetings", "Briefings"], "weekend": ["Events", "Family time"]},
+                        schedule_reliability=random.uniform(0.6, 0.9),
+                        social_habits=["Public appearances"],
+                        threat_to_travelers=random.uniform(0.2, 0.5),
+                        usefulness_to_travelers=random.uniform(0.2, 0.5),
+                        current_awareness=random.uniform(0.1, 0.3),
+                    )
+                    self.world.npcs.append(new_npc)
+                    target_id = new_id
+
+                if target_id:
+                    mission["target_npc_id"] = target_id
+                    mission["target_npc_name"] = target_name
+                    mission["target_npc_role"] = target_role
+                    mission["target_can_die"] = True
+                    # Keep legacy keys if it looks like an assassination prevention scenario
+                    mission["assassination_target_npc_id"] = target_id
+                    mission["assassination_target_name"] = target_name
+                    mission["assassination_target_office"] = target_role
+                    if target_id not in self.npc_status:
+                        self.npc_status[target_id] = True
+        except Exception:
+            pass
         return mission
 
     def check_messenger_events(self):

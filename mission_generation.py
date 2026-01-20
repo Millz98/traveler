@@ -178,7 +178,10 @@ class MissionGenerator:
         # Generate mission details
         self.mission["type"] = mission_type
         self.mission["location"] = self.generate_location()
-        self.mission["npc"] = self.generate_npc()
+        npc_display, npc_id = self.generate_npc()
+        self.mission["npc"] = npc_display
+        # Optional: used when missions need to reference a concrete NPC entity
+        self.mission["npc_id"] = npc_id
         self.mission["resource"] = self.generate_resource()
         self.mission["challenge"] = self.generate_challenge()
         base_description = random.choice(mission_data["descriptions"])
@@ -235,7 +238,10 @@ class MissionGenerator:
         return random.choice(locations)
 
     def generate_npc(self):
-        """Generate a mission-related NPC from rich world data"""
+        """Generate a mission-related NPC from rich world data.
+
+        Returns: (display_string, npc_id)
+        """
         # Try to use rich world data if available
         if hasattr(self.world, 'get_npcs_by_faction'):
             # Get NPCs from different factions
@@ -245,19 +251,22 @@ class MissionGenerator:
             gov_npcs = self.world.get_npcs_by_faction('government')
             if gov_npcs:
                 npc = random.choice(gov_npcs)
-                return f"{npc.name} - {npc.occupation} at {npc.work_location} (Security Clearance: Level {npc.security_clearance})"
+                return (
+                    f"{npc.name} - {npc.occupation} at {npc.work_location} (Security Clearance: Level {npc.security_clearance})",
+                    getattr(npc, "id", None)
+                )
             
             # Faction NPCs
             faction_npcs = self.world.get_npcs_by_faction('faction')
             if faction_npcs:
                 npc = random.choice(faction_npcs)
-                return f"{npc.name} - {npc.occupation} (Faction Operative)"
+                return (f"{npc.name} - {npc.occupation} (Faction Operative)", getattr(npc, "id", None))
             
             # Civilian NPCs
             civilian_npcs = self.world.get_npcs_by_faction('civilian')
             if civilian_npcs:
                 npc = random.choice(civilian_npcs)
-                return f"{npc.name} - {npc.occupation} at {npc.work_location}"
+                return (f"{npc.name} - {npc.occupation} at {npc.work_location}", getattr(npc, "id", None))
         
         # Fallback to hardcoded list if world data not available
         npcs = [
@@ -276,7 +285,7 @@ class MissionGenerator:
             "Dr. Delaney - Quantum Frame Technology Developer",
             "Yates - FBI Section Chief investigating Travelers"
         ]
-        return random.choice(npcs)
+        return (random.choice(npcs), None)
     
     def get_time_appropriate_description(self, mission_type, base_description):
         """Generate time-appropriate mission descriptions based on current date"""
