@@ -23,8 +23,10 @@ class AIEntity:
 
 class AITravelerTeam(AIEntity):
     """AI-controlled Traveler team that operates independently"""
-    def __init__(self, team_id, members, base_location, mission_priorities):
+    def __init__(self, team_id, members, base_location, mission_priorities, world_generator=None):
         super().__init__(f"Traveler Team {team_id}", "traveler_team", base_location, mission_priorities)
+        # Optional procedural world integration (backward compatible)
+        self.world_generator = world_generator
         self.team_id = team_id
         self.members = members
         self.active_missions = []
@@ -33,11 +35,61 @@ class AITravelerTeam(AIEntity):
         self.consciousness_stability = 1.0
         
         # Enhanced host body life management
-        self.host_lives = self.generate_host_lives()
+        self.host_lives = self.generate_host_lives_from_world() if self.world_generator else self.generate_host_lives()
         self.daily_schedules = self.generate_daily_schedules()
         self.relationship_status = self.generate_relationship_status()
         self.personal_events = []
         self.life_balance_score = 1.0  # 1.0 = perfect balance, 0.0 = complete failure
+
+    def generate_host_lives_from_world(self):
+        """Generate host lives using procedural NPCs when available (fallbacks to existing generation)."""
+        try:
+            potential_hosts = []
+            if self.world_generator and hasattr(self.world_generator, "get_npcs_by_faction"):
+                potential_hosts = self.world_generator.get_npcs_by_faction("civilian") or []
+
+            if len(potential_hosts) < int(self.members):
+                return self.generate_host_lives()
+
+            selected_hosts = random.sample(potential_hosts, int(self.members))
+            lives = []
+            for npc in selected_hosts:
+                # Map procedural NPC -> host life structure expected by the existing life-management code
+                family_status = random.choice([
+                    "Married with children", "Single parent", "Married no children",
+                    "Single", "Divorced", "Widowed"
+                ])
+
+                relationships = self.generate_relationships()
+                # Use procedural social graph as a hint for friend count (and stabilize ranges)
+                try:
+                    relationships["social"]["friends"] = max(0, min(12, len(getattr(npc, "contacts", []) or [])))
+                except Exception:
+                    pass
+
+                life = {
+                    "npc_id": getattr(npc, "id", None),
+                    "name": getattr(npc, "name", f"Host-{self.team_id}"),
+                    "age": getattr(npc, "age", random.randint(25, 55)),
+                    "occupation": getattr(npc, "occupation", "Unknown"),
+                    "work_location": getattr(npc, "work_location", "Unknown"),
+                    "family_status": family_status,
+                    "daily_routine": getattr(npc, "daily_routine", self.generate_daily_routine()),
+                    "relationships": relationships,
+                    "personal_challenges": [],
+                    "life_goals": self.generate_life_goals(),
+                    "stress_level": random.uniform(0.1, 0.5),
+                    "happiness": random.uniform(0.5, 0.9),
+                    # Optional rich fields (not required by existing logic)
+                    "personality_traits": getattr(npc, "personality_traits", []),
+                    "contacts": getattr(npc, "contacts", []),
+                    "npc_relationships": {cid: random.uniform(0.5, 0.9) for cid in (getattr(npc, "contacts", []) or [])},
+                }
+                lives.append(life)
+            return lives
+        except Exception:
+            # If anything goes wrong, stay playable
+            return self.generate_host_lives()
         
     def generate_host_lives(self):
         """Generate detailed host body lives for each team member"""
@@ -671,9 +723,51 @@ class AITravelerTeam(AIEntity):
         ]
         
         mission_type = random.choice(mission_types)
+
+        # Prefer procedural locations when available; fallback to legacy generator
+        location_name = None
+        location_id = None
+        security_level = None
+        surveillance_cameras = None
+        try:
+            if self.world_generator and hasattr(self.world_generator, "locations"):
+                from world_generation import LocationType
+                candidates = []
+
+                if mission_type == "timeline_correction":
+                    candidates = [
+                        loc for loc in (self.world_generator.locations or [])
+                        if getattr(loc, "location_type", None) in (LocationType.GOVERNMENT_FACILITY, LocationType.RESEARCH_LAB)
+                    ]
+                elif mission_type == "faction_surveillance":
+                    candidates = [
+                        loc for loc in (self.world_generator.locations or [])
+                        if float(getattr(loc, "faction_interest", 0.0) or 0.0) > 0.5
+                    ]
+                elif mission_type == "intelligence_gathering":
+                    candidates = self.world_generator.get_locations_by_type(LocationType.MEETING_POINT)
+
+                if not candidates:
+                    candidates = list(self.world_generator.locations or [])
+
+                if candidates:
+                    target = random.choice(candidates)
+                    location_name = getattr(target, "name", None)
+                    location_id = getattr(target, "id", None)
+                    security_level = getattr(getattr(target, "security_level", None), "value", None)
+                    surveillance_cameras = getattr(target, "surveillance_cameras", None)
+        except Exception:
+            pass
+
+        if not location_name:
+            location_name = self.generate_mission_location()
+
         mission = {
             "type": mission_type,
-            "location": self.generate_mission_location(),
+            "location": location_name,
+            "location_id": location_id,
+            "security_level": security_level,
+            "surveillance_cameras": surveillance_cameras,
             "priority": random.choice(["LOW", "MEDIUM", "HIGH"]),
             "description": f"AI Team {self.team_id} executing {mission_type}",
             "progress": 0,
@@ -688,6 +782,8 @@ class AITravelerTeam(AIEntity):
         
         self.active_missions.append(mission)
         print(f"    📋 New mission: {mission_type} at {mission['location']}")
+        if mission.get("security_level") or mission.get("surveillance_cameras") is not None:
+            print(f"       Security: {mission.get('security_level') or 'unknown'}, Cameras: {mission.get('surveillance_cameras') or 'unknown'}")
     
     def execute_ai_mission(self, mission, world_state):
         """Execute an AI team mission (only if life allows)"""
@@ -1015,8 +1111,10 @@ class AIFactionOperative(AIEntity):
 
 class AIGovernmentAgent(AIEntity):
     """AI-controlled US government agent (FBI/CIA)"""
-    def __init__(self, agent_id, agency, specialization, base_location, clearance_level):
+    def __init__(self, agent_id, agency, specialization, base_location, clearance_level, world_generator=None):
         super().__init__(f"{agency} Agent {agent_id}", "government_agent", base_location, ["investigation", "national_security", "law_enforcement"])
+        # Optional procedural world integration (backward compatible)
+        self.world_generator = world_generator
         self.agent_id = agent_id
         self.agency = agency  # "FBI" or "CIA"
         self.specialization = specialization
@@ -1105,6 +1203,21 @@ class AIGovernmentAgent(AIEntity):
     
     def generate_investigation_location(self):
         """Generate a location for investigation"""
+        try:
+            if self.world_generator and hasattr(self.world_generator, "locations") and self.world_generator.locations:
+                # Prefer places the government cares about (or that look "hot")
+                candidates = [
+                    loc for loc in (self.world_generator.locations or [])
+                    if float(getattr(loc, "government_priority", 0.0) or 0.0) > 0.5
+                    or float(getattr(loc, "current_threat_level", 0.0) or 0.0) > 0.6
+                ]
+                if not candidates:
+                    candidates = list(self.world_generator.locations or [])
+                target = random.choice(candidates)
+                return getattr(target, "name", "Unknown Location")
+        except Exception:
+            pass
+
         locations = [
             "Downtown Seattle", "University District", "Industrial Zone", "Residential Area",
             "Government Building", "Hospital", "Research Facility", "Transportation Hub",
@@ -1146,7 +1259,38 @@ class AIGovernmentAgent(AIEntity):
     
     def start_investigation(self, world_state):
         """Start a new investigation"""
+        # If we have no reports, optionally bootstrap an investigation from procedural hotspots
         if not self.suspicious_activity_reports:
+            try:
+                if self.world_generator and hasattr(self.world_generator, "locations") and self.world_generator.locations:
+                    high_threat_locations = [
+                        loc for loc in (self.world_generator.locations or [])
+                        if float(getattr(loc, "current_threat_level", 0.0) or 0.0) > 0.7
+                        or float(getattr(loc, "faction_interest", 0.0) or 0.0) > 0.7
+                    ]
+                    if high_threat_locations:
+                        target = random.choice(high_threat_locations)
+                        self.current_investigation = {
+                            "type": f"Investigation at {getattr(target, 'name', 'Unknown Location')}",
+                            "location": getattr(target, "name", "Unknown Location"),
+                            "location_id": getattr(target, "id", None),
+                            "security_level": getattr(getattr(target, "security_level", None), "value", None),
+                            "surveillance_cameras": getattr(target, "surveillance_cameras", None),
+                            "progress": 0,
+                            "evidence": [],
+                            "suspects": [],
+                            "methods": self.generate_investigation_methods(),
+                            "threat_level": "HIGH",
+                            "credibility": 0.8,
+                            "urgency": 0.7,
+                            "timestamp": "current",
+                        }
+                        print(f"    🕵️  Starting investigation at {self.current_investigation['location']}")
+                        if self.current_investigation.get("security_level") or self.current_investigation.get("surveillance_cameras") is not None:
+                            print(f"       Security: {self.current_investigation.get('security_level') or 'unknown'}, Cameras: {self.current_investigation.get('surveillance_cameras') or 'unknown'}")
+                        return
+            except Exception:
+                pass
             return
             
         # Select highest priority report
@@ -1378,7 +1522,17 @@ class AIGovernmentAgent(AIEntity):
 
 class AIWorldController:
     """Main AI controller that manages all AI entities in the world"""
-    def __init__(self):
+    def __init__(self, world_generator=None):
+        # Optional procedural world integration (backward compatible)
+        if world_generator is None:
+            try:
+                from world_generation import World
+                self.world_generator = World()
+            except Exception:
+                self.world_generator = None
+        else:
+            self.world_generator = world_generator
+
         self.ai_teams = []
         self.faction_operatives = []
         self.government_agents = []  # New: FBI and CIA agents
@@ -1393,14 +1547,35 @@ class AIWorldController:
         ai_teams = ai_teams or 3
         faction_ops = faction_ops or 5
         gov_agents = gov_agents or 7
+
+        # Optional visibility into procedural world wiring
+        try:
+            if self.world_generator and hasattr(self.world_generator, "seed"):
+                print(f"\n🌍 Initializing AI World with Procedural Integration")
+                print(f"   World Seed: {self.world_generator.seed}")
+                print(f"   Total Locations: {len(getattr(self.world_generator, 'locations', []) or [])}")
+                print(f"   Total NPCs: {len(getattr(self.world_generator, 'npcs', []) or [])}")
+        except Exception:
+            pass
         
         # Create AI Traveler teams
         for i in range(ai_teams):
+            base_location = self.generate_base_location()
+            try:
+                if self.world_generator:
+                    from world_generation import LocationType
+                    safe_houses = self.world_generator.get_locations_by_type(LocationType.SAFE_HOUSE)
+                    if safe_houses:
+                        base_location = random.choice(safe_houses).name
+            except Exception:
+                pass
+
             team = AITravelerTeam(
                 team_id=f"AI-{i+1:02d}",
                 members=random.randint(3, 5),
-                base_location=self.generate_base_location(),
-                mission_priorities=["timeline_stability", "protocol_compliance", "host_integration"]
+                base_location=base_location,
+                mission_priorities=["timeline_stability", "protocol_compliance", "host_integration"],
+                world_generator=self.world_generator
             )
             self.ai_teams.append(team)
         
@@ -1425,7 +1600,8 @@ class AIWorldController:
                     "White-collar crime", "Civil rights", "Public corruption", "Violent crime"
                 ]),
                 base_location=self.generate_base_location(),
-                clearance_level=random.randint(2, 5)
+                clearance_level=random.randint(2, 5),
+                world_generator=self.world_generator
             )
             self.government_agents.append(agent)
         
@@ -1439,7 +1615,8 @@ class AIWorldController:
                     "Analysis", "Technical collection", "Human intelligence", "Special activities"
                 ]),
                 base_location=self.generate_base_location(),
-                clearance_level=random.randint(3, 5)  # CIA agents have higher clearance
+                clearance_level=random.randint(3, 5),  # CIA agents have higher clearance
+                world_generator=self.world_generator
             )
             self.government_agents.append(agent)
         
@@ -1708,6 +1885,13 @@ class AIWorldController:
     
     def generate_base_location(self):
         """Generate a base location for AI entities"""
+        try:
+            if self.world_generator and hasattr(self.world_generator, "locations") and self.world_generator.locations:
+                target = random.choice(self.world_generator.locations)
+                return getattr(target, "name", "Unknown Location")
+        except Exception:
+            pass
+
         locations = [
             "Downtown Seattle", "University District", "Industrial Zone",
             "Residential Area", "Government Building", "Hospital",

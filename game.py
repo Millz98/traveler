@@ -22,9 +22,17 @@ import random
 from datetime import datetime
 from typing import Dict
 from d20_decision_system import CharacterDecision
+from world_generation import World
 
 class Game:
-    def __init__(self):
+    def __init__(self, seed=None):
+        # Generate procedural world first (shared across systems that support it)
+        try:
+            self.world = World(seed=seed)
+            print(f"🌍 Procedural world initialized (seed: {self.world.seed})")
+        except Exception:
+            self.world = None
+
         self.messenger = Messenger()
         self.director_ai = director_ai.Director()
         self.traveler_character = traveler_character
@@ -39,7 +47,7 @@ class Game:
         self.living_world = living_world.LivingWorld()
         self.time_system = time_system.TimeSystem()
         self.tribunal_system = tribunal_system.TribunalSystem()
-        self.ai_world_controller = ai_world_controller.AIWorldController()
+        self.ai_world_controller = ai_world_controller.AIWorldController(world_generator=self.world)
         self.dialogue_manager = dialogue_system.DialogueManager()
         self.hacking_system = hacking_system.HackingSystem()
         
