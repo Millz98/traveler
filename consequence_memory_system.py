@@ -20,11 +20,14 @@ class WorldMemory:
         
         # DYNAMIC HEAT CALCULATION based on mission outcome
         base_heat = 0.0
+        success = bool(mission.get('success', False))
         
         # 1. Success/Failure impact
-        if mission.get('success', False):
-            base_heat = 0.15  # Even success leaves some trace
-            print(f"  ✅ Mission succeeded - minimal heat")
+        if success:
+            # Default: clean success should not automatically increase long-term heat.
+            # We'll only bump heat later if there were messy factors (evidence, casualties, bad phases).
+            base_heat = 0.0
+            print(f"  ✅ Mission succeeded - baseline heat unchanged")
         else:
             base_heat = 0.45  # Failure is HOT
             print(f"  ❌ Mission failed - significant heat")
@@ -74,8 +77,9 @@ class WorldMemory:
             'critical': 1.6  # Critical = massive attention
         }
         security_level = mission.get('security_level', 'medium')
-        base_heat *= security_multipliers.get(security_level, 1.0)
-        print(f"  🔒 Security level: {security_level} - heat x{security_multipliers.get(security_level, 1.0)}")
+        security_mult = security_multipliers.get(security_level, 1.0)
+        base_heat *= security_mult
+        print(f"  🔒 Security level: {security_level} - heat x{security_mult}")
         
         # Initialize location tracking
         if location not in self.hot_locations:
@@ -86,14 +90,14 @@ class WorldMemory:
                 'worst_incident': 'none'
             }
         
-        # Apply heat (cumulative)
+        # Apply heat (cumulative). Positive values increase heat; negative values cool the area.
         previous_heat = self.hot_locations[location]['heat_level']
-        self.hot_locations[location]['heat_level'] = min(1.0, 
-            self.hot_locations[location]['heat_level'] + base_heat)
+        self.hot_locations[location]['heat_level'] = max(0.0, min(1.0,
+            self.hot_locations[location]['heat_level'] + base_heat))
         self.hot_locations[location]['incident_count'] += 1
         self.hot_locations[location]['last_incident_turn'] = self.turn_count
         
-        # Track worst incident type
+        # Track worst incident type only for positive heat spikes
         if base_heat > 0.6:
             self.hot_locations[location]['worst_incident'] = 'critical'
         elif base_heat > 0.4:
@@ -106,7 +110,9 @@ class WorldMemory:
         print(f"     Total Incidents: {self.hot_locations[location]['incident_count']}")
         
         # Generate DYNAMIC consequences
-        self._generate_dynamic_consequences(mission, base_heat)
+        # Use only the *positive* portion of base_heat for consequence severity; negative (cooling) shouldn't trigger new crackdowns.
+        positive_heat = max(0.0, base_heat)
+        self._generate_dynamic_consequences(mission, positive_heat)
 
     def _generate_dynamic_consequences(self, mission: Dict[str, Any], heat_level: float):
         """Generate consequences that vary based on mission severity"""
@@ -115,8 +121,10 @@ class WorldMemory:
         
         print(f"\n💥 GENERATING DYNAMIC CONSEQUENCES (Heat: {heat_level:.0%}):")
         
-        # 1. IMMEDIATE RESPONSE - always happens on failure
-        if not mission.get('success', False):
+        success = bool(mission.get('success', False))
+
+        # 1. IMMEDIATE RESPONSE - always happens on failure (never on full success)
+        if not success and heat_level > 0.0:
             response_intensity = min(1.0, heat_level * 1.2)
             
             self.scheduled_consequences.append({
@@ -129,8 +137,8 @@ class WorldMemory:
             consequences_generated += 1
             print(f"  ⏰ Turn +1: {'URGENT' if response_intensity > 0.7 else 'Standard'} federal response (intensity: {response_intensity:.0%})")
         
-        # 2. FORENSICS - only if evidence left or critical failure
-        if mission.get('evidence_left', False) or heat_level > 0.6:
+        # 2. FORENSICS - only if evidence left or critical failure / high heat
+        if (mission.get('evidence_left', False) or heat_level > 0.6) and not success:
             forensic_depth = 'full' if heat_level > 0.7 else 'standard'
             turns_until = 2 if heat_level > 0.7 else 3
             
@@ -145,8 +153,8 @@ class WorldMemory:
             consequences_generated += 1
             print(f"  ⏰ Turn +{turns_until}: {forensic_depth.title()} forensic analysis")
         
-        # 3. MEDIA COVERAGE - only if heat is very high
-        if heat_level > 0.65:
+        # 3. MEDIA COVERAGE - only if heat is very high AND the operation wasn't a clean success
+        if heat_level > 0.65 and not success:
             media_turns = random.randint(2, 4)
             media_intensity = 'breaking news' if heat_level > 0.8 else 'local coverage'
             
@@ -177,8 +185,8 @@ class WorldMemory:
             consequences_generated += 1
             print(f"  ⏰ Turn +{witness_turns}: {witness_count} witness statement(s)")
         
-        # 5. INCREASED SURVEILLANCE - if location hit multiple times
-        if self.hot_locations[location]['incident_count'] >= 2:
+        # 5. INCREASED SURVEILLANCE - if location hit multiple times AND heat is sustained/high AND not a clean success
+        if self.hot_locations[location]['incident_count'] >= 2 and heat_level > 0.6 and not success:
             surveillance_turns = random.randint(3, 6)
             
             self.scheduled_consequences.append({
@@ -192,8 +200,8 @@ class WorldMemory:
             consequences_generated += 1
             print(f"  ⏰ Turn +{surveillance_turns}: Permanent surveillance installation")
         
-        # 6. TASK FORCE - only if CRITICAL incident
-        if heat_level > 0.85:
+        # 6. TASK FORCE - only if CRITICAL incident and not a clean success
+        if heat_level > 0.85 and not success:
             task_force_turns = random.randint(4, 7)
             
             self.scheduled_consequences.append({

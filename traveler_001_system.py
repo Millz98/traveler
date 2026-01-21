@@ -9,6 +9,13 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
+# D20 Decision System Integration for Traveler 001
+try:
+    from d20_decision_system import d20_system, CharacterDecision
+except ImportError:
+    d20_system = None
+    CharacterDecision = None
+
 @dataclass
 class Traveler001Mission:
     """Represents a mission involving Traveler 001"""
@@ -183,22 +190,67 @@ class Traveler001System:
         for mission in self.active_missions[:]:
             if mission.active:
                 print(f"  🎯 Executing mission: {mission.description}")
-                
-                # Roll for mission success
-                success_roll = random.random()
-                mission_success = success_roll <= mission.success_chance
-                
+
+                mission_success = False
+                used_d20 = False
+
+                # Prefer D20-based resolution when system is available
+                if d20_system and CharacterDecision:
+                    try:
+                        # Map mission type to a decision_type
+                        decision_type_map = {
+                            "faction_recruitment": "social",
+                            "timeline_disruption": "technical",
+                            "device_construction": "technical",
+                        }
+                        decision_type = decision_type_map.get(mission.mission_type, "intelligence")
+
+                        # Derive a DC from the original success_chance (higher chance → lower DC)
+                        # success_chance in [0,1] → DC roughly between 10 and 25
+                        base_chance = max(0.05, min(0.95, float(mission.success_chance or 0.5)))
+                        derived_dc = int(25 - (base_chance * 10))  # invert chance into difficulty
+
+                        decision = CharacterDecision(
+                            character_name="Traveler 001",
+                            character_type="faction",
+                            decision_type=decision_type,
+                            context=mission.description,
+                            difficulty_class=derived_dc,
+                            modifiers={
+                                "threat_level": 3,  # 001 is very capable
+                                "resources": int(self.resources.get("faction_operatives", 10) / 3),
+                            },
+                            consequences={},
+                        )
+
+                        result = d20_system.resolve_character_decision(decision)
+                        roll_result = result["roll_result"]
+
+                        # Show the roll so we can see the drama
+                        print(f"     🎲 D20: [{roll_result.roll}] + {roll_result.modifier} = {roll_result.total} vs DC {roll_result.target_number}")
+                        print(f"        {roll_result.outcome_description}")
+
+                        mission_success = bool(roll_result.success and not roll_result.critical_failure)
+                        used_d20 = True
+                    except Exception:
+                        used_d20 = False
+
+                if not used_d20:
+                    # Fallback to original probability-based resolution
+                    success_roll = random.random()
+                    mission_success = success_roll <= mission.success_chance
+
                 if mission_success:
                     mission.outcome = "SUCCESS"
                     print(f"     ✅ Mission SUCCESS!")
-                    
+
                     # Apply success consequences
                     self.apply_mission_success(mission, world_state, game_state)
-                    
+
                 else:
                     mission.outcome = "FAILURE"
                     print(f"     ❌ Mission FAILURE!")
-                    
+
                     # Apply failure consequences
                     self.apply_mission_failure(mission, world_state, game_state)
                 

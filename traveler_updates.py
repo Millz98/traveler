@@ -2,11 +2,12 @@
 import random
 
 class TravelerUpdate:
-    def __init__(self, update_type, message, priority, requires_response=False):
+    def __init__(self, update_type, message, priority, requires_response=False, context_data=None):
         self.update_type = update_type
         self.message = message
         self.priority = priority  # "LOW", "MEDIUM", "HIGH", "CRITICAL"
         self.requires_response = requires_response
+        self.context_data = context_data or {}
 
 class UpdateSystem:
     def __init__(self):
@@ -17,7 +18,7 @@ class UpdateSystem:
                 "messages": [
                     "Mission parameters have changed. New objective: Prevent the assassination of Dr. Delaney at 14:30 today.",
                     "Timeline deviation detected. Abort current mission and report to safe house immediately.",
-                    "Additional resources being deployed to your location. Traveler 0027 will arrive within the hour.",
+                    "Additional resources being deployed to your location. Grace Day (0027) will arrive within the hour.",
                     "Mission success probability has dropped to 23%. Consider requesting backup or mission abort."
                 ],
                 "priority": "HIGH",
@@ -80,6 +81,63 @@ class UpdateSystem:
             }
         ]
 
+    def _resolve_rogue_traveler_designations(self, count=3):
+        """Pick real, already-active NPC Traveler designations for 'rogue team joined Faction' alerts."""
+        # 1) Prefer DynamicWorldEvents AI Traveler teams (these are explicitly active NPC traveler agents)
+        try:
+            if self.game_ref and hasattr(self.game_ref, "messenger_system"):
+                ms = getattr(self.game_ref, "messenger_system", None)
+                dwe = getattr(ms, "dynamic_world_events", None)
+                if dwe:
+                    if not getattr(dwe, "ai_traveler_teams", None):
+                        try:
+                            dwe.initialize_ai_traveler_teams()
+                        except Exception:
+                            pass
+                    teams = getattr(dwe, "ai_traveler_teams", {}) or {}
+                    active = [t for t in teams.values() if isinstance(t, dict) and t.get("status") in (None, "active", "on_mission", "cooldown")]
+                    if active:
+                        team = random.choice(active)
+                        members = list(team.get("members") or [])
+                        # Pull member designations if present
+                        designations = [m.get("designation") for m in members if isinstance(m, dict) and m.get("designation")]
+                        designations = [d for d in designations if d]
+                        if len(designations) >= count:
+                            return random.sample(designations, count)
+                        if designations:
+                            return designations[:count]
+        except Exception:
+            pass
+
+        # 2) Fallback: any dynamically integrated Travelers in the game state
+        try:
+            if self.game_ref and hasattr(self.game_ref, "get_game_state"):
+                gs = self.game_ref.get_game_state() or {}
+                active_travelers = list(gs.get("active_travelers") or [])
+                player_designations = set()
+                try:
+                    if hasattr(self.game_ref, "team") and self.game_ref.team and hasattr(self.game_ref.team, "members"):
+                        for t in (self.game_ref.team.members or []):
+                            d = getattr(t, "designation", None)
+                            if d:
+                                player_designations.add(str(d))
+                except Exception:
+                    pass
+                pool = []
+                for t in active_travelers:
+                    d = getattr(t, "designation", None)
+                    if d and str(d) not in player_designations:
+                        pool.append(str(d))
+                pool = list(dict.fromkeys(pool))  # de-dupe, preserve order
+                if len(pool) >= count:
+                    return random.sample(pool, count)
+                if pool:
+                    return pool[:count]
+        except Exception:
+            pass
+
+        return []
+
     def generate_update(self):
         """Generate a Traveler update - prioritizing real emergencies over routine updates"""
         # First check for real-time emergencies
@@ -111,12 +169,24 @@ class UpdateSystem:
         non_emergency_updates = [update for update in self.updates if update["type"] != "EMERGENCY_ALERT"]
         update_data = random.choice(non_emergency_updates)
         message = random.choice(update_data["messages"])
+
+        # Replace placeholder rogue-traveler designations with already-active NPC traveler agents
+        context_data = {}
+        if "Former Traveler team has joined Faction" in (message or ""):
+            designations = self._resolve_rogue_traveler_designations(count=3)
+            if designations:
+                context_data["rogue_traveler_designations"] = list(designations)
+                message = "Former Traveler team has joined Faction. Consider them hostile. Designations: " + ", ".join(designations) + "."
+            else:
+                # Worst-case fallback: remove fake placeholders rather than lying
+                message = "Former Traveler team has joined Faction. Consider them hostile. Designations: UNKNOWN (no active NPC traveler agents found)."
         
         return TravelerUpdate(
             update_data["type"],
             message,
             update_data["priority"],
-            update_data["requires_response"]
+            update_data["requires_response"],
+            context_data=context_data
         )
 
     def present_update(self, update):

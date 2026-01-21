@@ -17,7 +17,7 @@ class EventGenerator:
             "traveler_arrival": {
                 "descriptions": [
                     "A new Traveler team has arrived in your operational area - Travelers 4283, 4284, 4285",
-                    "Emergency Traveler 0027 has arrived to assist with a critical mission",
+                    "Grace Day (0027) has arrived to assist with a critical mission (Director's Core Programmer)",
                     "A Faction Traveler has infiltrated your area posing as a legitimate operative",
                     "Multiple Traveler consciousnesses have arrived simultaneously, overwhelming local hosts"
                 ],

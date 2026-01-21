@@ -19,6 +19,7 @@ import time
 import json
 import os
 import random
+import textwrap
 from datetime import datetime
 from typing import Dict
 from d20_decision_system import CharacterDecision
@@ -305,6 +306,8 @@ class Game:
                 "timeline_fragility": self.timeline_fragility,
                 "timeline_events": self.timeline_events,
                 "completed_missions": getattr(self, "completed_missions", []),
+                # Persist Director programmers so special NPCs like Grace Day (0027) stay in the game once introduced
+                "director_programmers": getattr(self, "director_programmers", None),
                 "world_memory": self._serialize_world_memory() if getattr(self, "world_memory", None) else None,
                 "us_political_system": self._save_us_political_system_state() if hasattr(self, 'us_political_system') and self.us_political_system else None
             }
@@ -493,6 +496,16 @@ class Game:
             self.completed_missions = save_data.get("completed_missions", [])
             self.team.team_cohesion = save_data["team_cohesion"]
             self.team.communication_level = save_data["communication_level"]
+
+            # Restore Director programmers so special NPCs persist once introduced (e.g., Grace Day 0027)
+            try:
+                if "director_programmers" in save_data and isinstance(save_data["director_programmers"], dict):
+                    self.director_programmers = save_data["director_programmers"]
+                    # Re-register with Dynamic World Events so they can keep taking missions
+                    if hasattr(self, "messenger_system") and hasattr(self.messenger_system, "dynamic_world_events"):
+                        self.messenger_system.dynamic_world_events.add_game_programmers(self.director_programmers)
+            except Exception:
+                pass
 
             # Restore world memory/consequence state if available
             try:
@@ -1517,13 +1530,21 @@ class Game:
             print("• Team reputation and standing enhanced")
             print("• Host body integration strengthened")
             
-            # Generate positive timeline event
+            # Generate positive timeline event (and make Traveler arrivals REAL)
             try:
                 positive_event = self.event_generation.generate_event()
+                desc = (getattr(positive_event, "description", "") or "")
+                # If this is a traveler arrival, convert it into a real DynamicTravelerSystem event
+                if getattr(positive_event, "event_type", "") == "traveler_arrival":
+                    # Preserve Grace Day as a special-case lore event
+                    if "Grace Day" in desc or "0027" in desc:
+                        self._ensure_grace_day_present(reason="timeline_event")
+                    else:
+                        self._realize_traveler_arrival_timeline_event(positive_event)
                 print(f"\n🔄 NEW TIMELINE EVENT:")
                 print(f"   {positive_event.description}")
                 print(f"   Impact: {positive_event.impact_on_future}")
-            except:
+            except Exception:
                 print(f"\n🔄 NEW TIMELINE EVENT:")
                 print(f"   Society shows signs of recovery and stability")
                 print(f"   Impact: Positive ripple effects throughout the timeline")
@@ -1552,10 +1573,16 @@ class Game:
             # Generate negative timeline event
             try:
                 negative_event = self.event_generation.generate_event()
+                desc = (getattr(negative_event, "description", "") or "")
+                if getattr(negative_event, "event_type", "") == "traveler_arrival":
+                    if "Grace Day" in desc or "0027" in desc:
+                        self._ensure_grace_day_present(reason="timeline_event")
+                    else:
+                        self._realize_traveler_arrival_timeline_event(negative_event)
                 print(f"\n🔄 NEW TIMELINE EVENT:")
                 print(f"   {negative_event.description}")
                 print(f"   Impact: {negative_event.impact_on_past}")
-            except:
+            except Exception:
                 print(f"\n🔄 NEW TIMELINE EVENT:")
                 print(f"   Society shows increased instability and chaos")
                 print(f"   Impact: Negative ripple effects accelerating timeline collapse")
@@ -1572,6 +1599,122 @@ class Game:
         self.show_mission_specific_consequences(mission_exec)
         
         print("=" * 60)
+
+    def _ensure_grace_day_present(self, reason: str = ""):
+        """Ensure Grace Day (Traveler 0027) exists and remains in the game once introduced."""
+        try:
+            # If she's already present, do nothing.
+            if hasattr(self, "director_programmers") and isinstance(self.director_programmers, dict) and "Grace Day" in self.director_programmers:
+                return
+        except Exception:
+            pass
+
+        # Create Grace Day entry using the canonical lore configuration
+        try:
+            if not hasattr(self, "director_programmers") or not isinstance(self.director_programmers, dict):
+                self.director_programmers = {}
+
+            grace = {
+                "designation": "0027",
+                "role": "Core Programmer",
+                "status": "active",
+                "specialty": "Director Core Systems",
+                "loyalty": "Director",
+                "mission": "Maintain Director's core programming",
+                "last_seen": None,
+                "notes": "The Director's 'daughter' - has special access",
+                "current_host": None,
+            }
+
+            # Generate host and pin it so she persists once introduced
+            try:
+                grace["current_host"] = self.generate_programmer_host("Grace Day", grace)
+            except Exception:
+                grace["current_host"] = {
+                    "name": "Host-0027",
+                    "age": random.randint(35, 65),
+                    "occupation": "Computer Scientist",
+                    "location": self.get_random_location() if hasattr(self, "get_random_location") else "Unknown",
+                    "cover_story": "Leading researcher in Director Core Systems",
+                    "access_level": "HIGH",
+                    "current_mission": grace["mission"],
+                }
+
+            self.director_programmers["Grace Day"] = grace
+
+            # Register with Dynamic World Events so she can take missions, show status, etc.
+            try:
+                if hasattr(self, "messenger_system") and hasattr(self.messenger_system, "dynamic_world_events"):
+                    self.messenger_system.dynamic_world_events.add_game_programmers({"Grace Day": grace})
+            except Exception:
+                pass
+
+            # Optional: keep a short audit line so it's visible during play
+            try:
+                if reason:
+                    print(f"   ✅ Grace Day (0027) is now active and will persist (trigger: {reason})")
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _realize_traveler_arrival_timeline_event(self, event_obj):
+        """
+        Turn a generic 'traveler_arrival' timeline event into a REAL arrival
+        by invoking the Dynamic Traveler System and updating the event text
+        to reflect actual Traveler designations.
+        """
+        try:
+            if not hasattr(self, "dynamic_traveler_system") or not self.dynamic_traveler_system:
+                return
+        except Exception:
+            return
+
+        try:
+            dts = self.dynamic_traveler_system
+            world_state = self.get_game_state()
+            game_state = self.get_game_state()
+
+            # Create a small wave of real arrivals for this event
+            from dynamic_traveler_system import TravelerArrival
+            arrivals = dts.generate_arrivals("simultaneous_wave", world_state)
+            if not arrivals:
+                return
+
+            designations = []
+            for arrival in arrivals:
+                # Wire into the Dynamic Traveler System so they become real NPCs
+                dts.new_arrivals.append(arrival)
+                arrival.status = "arriving"
+                dts.integrate_arrival(arrival, world_state, game_state)
+                arrival.status = "integrated"
+                designations.append(arrival.designation)
+
+            # Rewrite event text so it matches the REAL arrivals
+            if designations:
+                event_obj.description = (
+                    "New Traveler arrivals have been deployed to your operational area - "
+                    f"Travelers {', '.join(designations)}"
+                )
+                event_obj.impact_on_future = (
+                    "These Travelers are now active in the world, can join teams, be detected, and "
+                    "participate in future missions and consequences."
+                )
+
+                # Also track this in the game's timeline_events log for consistency
+                try:
+                    if hasattr(self, "timeline_events"):
+                        self.timeline_events.append({
+                            "type": "traveler_arrival",
+                            "designations": designations,
+                            "description": event_obj.description,
+                            "impact": event_obj.impact_on_future,
+                        })
+                except Exception:
+                    pass
+        except Exception:
+            # If anything goes wrong, we leave the original placeholder event in place
+            pass
 
     def show_mission_specific_consequences(self, mission_exec):
         """Show mission-specific world consequences"""
@@ -2576,6 +2719,12 @@ class Game:
         try:
             if getattr(self, "consequence_system", None):
                 self.consequence_system.process_turn_start(self.get_game_state())
+        except Exception:
+            pass
+
+        # Give the player a chance to read the consequence section before the long AI/NPC output
+        try:
+            input("\n(Press Enter to continue to AI/NPC world actions...)")
         except Exception:
             pass
 
@@ -5113,7 +5262,29 @@ class Game:
                     print(f"👨‍💻 {name} (Designation: {data['designation']})")
                     print(f"   Role: {data['role']}")
                     print(f"   Specialty: {data['specialty']}")
-                    print(f"   Mission: {data['mission']}")
+                    # Show the lore/intended mission from the Director's plan
+                    print(f"   Lore Mission: {data['mission']}")
+                    
+                    # Show the *current* runtime mission status from DynamicWorldEvents (if available)
+                    current_mission = None
+                    cooldown = 0
+                    try:
+                        if hasattr(self, "messenger_system") and hasattr(self.messenger_system, "dynamic_world_events"):
+                            dwe = self.messenger_system.dynamic_world_events
+                            npc_sched = getattr(dwe, "npc_schedules", {}).get(name, {})
+                            current_mission = npc_sched.get("current_mission")
+                            cooldown = npc_sched.get("mission_cooldown", 0)
+                    except Exception:
+                        current_mission = None
+                        cooldown = 0
+
+                    if current_mission:
+                        print(f"   Runtime Status: 🔄 On mission '{current_mission}'")
+                    elif cooldown > 0:
+                        print(f"   Runtime Status: ⏳ Cooldown ({cooldown} turn(s) until next mission)")
+                    else:
+                        print(f"   Runtime Status: ⏸️  Idle (available for new mission)")
+
                     if data.get('current_host'):
                         host = data['current_host']
                         print(f"   Host: {host['name']} - {host['occupation']} in {host['location']}")
@@ -5138,7 +5309,28 @@ class Game:
                     print(f"💀 {name} (Designation: {data['designation']})")
                     print(f"   Former Role: {data['role']}")
                     print(f"   Former Specialty: {data['specialty']}")
-                    print(f"   Current Mission: {data['mission']}")
+                    print(f"   Lore Mission: {data['mission']}")
+                    
+                    # Show their current runtime mission status if they are still acting in the world
+                    current_mission = None
+                    cooldown = 0
+                    try:
+                        if hasattr(self, "messenger_system") and hasattr(self.messenger_system, "dynamic_world_events"):
+                            dwe = self.messenger_system.dynamic_world_events
+                            npc_sched = getattr(dwe, "npc_schedules", {}).get(name, {})
+                            current_mission = npc_sched.get("current_mission")
+                            cooldown = npc_sched.get("mission_cooldown", 0)
+                    except Exception:
+                        current_mission = None
+                        cooldown = 0
+
+                    if current_mission:
+                        print(f"   Runtime Status: 🔄 On mission '{current_mission}'")
+                    elif cooldown > 0:
+                        print(f"   Runtime Status: ⏳ Cooldown ({cooldown} turn(s) until next mission)")
+                    else:
+                        print(f"   Runtime Status: ⏸️  Idle (no active mission)")
+
                     if data.get('current_host'):
                         host = data['current_host']
                         print(f"   Host: {host['name']} - {host['occupation']} in {host['location']}")
@@ -5565,9 +5757,23 @@ class Game:
             print(f"\n📈 RECENT TIMELINE EVENTS:")
             recent_events = self.timeline_events[-5:]  # Last 5 events
             for event in recent_events:
-                impact = getattr(event, 'impact', 'Unknown')
-                description = getattr(event, 'description', 'Unknown event')
-                print(f"  • {description} (Impact: {impact})")
+                # Events are stored as dicts from update_timeline_stability; fall back gracefully otherwise
+                if isinstance(event, dict):
+                    src = event.get("source", "Unknown source")
+                    raw_change = event.get("change", 0.0)
+                    actual_change = event.get("actual_change", raw_change)
+                    old_stab = event.get("old_stability")
+                    new_stab = event.get("new_stability")
+                    if old_stab is not None and new_stab is not None:
+                        impact_str = f"stability {old_stab:.0%} → {new_stab:.0%} ({actual_change:+.3f})"
+                    else:
+                        impact_str = f"Δ stability {actual_change:+.3f}"
+                    print(f"  • {src} ({impact_str})")
+                else:
+                    # Legacy/other event types
+                    impact = getattr(event, 'impact', 'Unknown')
+                    description = getattr(event, 'description', 'Unknown event')
+                    print(f"  • {description} (Impact: {impact})")
         else:
             print(f"\n📈 No timeline events recorded yet")
         
@@ -6340,7 +6546,12 @@ class Game:
                     print(f"   Media: {story['media_outlet']}")
                     print(f"   Priority: {story['priority']}")
                     print(f"   Category: {story['category']}")
-                    print(f"   Content: {story['content'][:100]}...")
+                    # Nicely wrapped content for readability
+                    content = story.get('content', '') or ''
+                    if content:
+                        print("   Content:")
+                        for line in textwrap.wrap(content, width=76):
+                            print(f"      {line}")
                     
                     if story.get('details'):
                         print(f"   Key Details:")

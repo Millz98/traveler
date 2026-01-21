@@ -208,12 +208,128 @@ class GovernmentNewsSystem:
             "Government Implements Crisis Response Protocol",
             "Federal Response Teams Deployed Nationwide"
         ]
+
+        # Build a complete, event-specific content body (no placeholders / no truncation)
+        response_details = event_data.get("response_details", []) or []
+        actions = event_data.get("actions", []) or []
+
+        # Try to infer a reason/trigger from common event keys or response detail text
+        crisis_type = (
+            event_data.get("crisis_type")
+            or event_data.get("coordination_type")
+            or event_data.get("trigger")
+            or ""
+        )
+        location = event_data.get("location") or event_data.get("target_location") or ""
+
+        detail_snippets = []
+        for d in response_details[:4]:
+            if isinstance(d, str) and d.strip():
+                detail_snippets.append(d.strip())
+
+        action_snippets = []
+        for a in actions[:5]:
+            if isinstance(a, str) and a.strip():
+                action_snippets.append(a.strip())
+
+        # Classify subtype for more specific, procedural wording
+        subtype = "generic"
+        trigger_text = (detail_snippets[0].lower() if detail_snippets else "")
+        if "executive order" in trigger_text or "executive order" in crisis_type.lower():
+            subtype = "executive_order"
+        elif "election" in trigger_text or "election" in crisis_type.lower():
+            subtype = "election_security"
+        elif "security_breach" in trigger_text or "breach" in crisis_type.lower():
+            subtype = "security_breach"
+        elif "cyber" in trigger_text:
+            subtype = "cyber_event"
+        elif "coordination" in trigger_text:
+            subtype = "inter_agency"
+
+        where = f"{location} - " if location else ""
+        time_str = timestamp.strftime("%I:%M %p")
+
+        # Compose narrative paragraphs with variation based on subtype
+        if subtype == "executive_order":
+            para1 = (
+                f"{where}In a statement released at approximately {time_str}, the White House announced "
+                f"a new Executive Order directing federal agencies to adjust security and response protocols. "
+                f"The order focuses on maintaining continuity of government operations and reinforcing critical safeguards."
+            )
+        elif subtype == "election_security":
+            para1 = (
+                f"{where}Federal officials confirmed at {time_str} that additional measures are being taken to protect "
+                f"ongoing election-related processes. Agencies are coordinating to monitor potential interference and "
+                f"ensure public confidence in the outcome."
+            )
+        elif subtype == "security_breach":
+            para1 = (
+                f"{where}Following reports of a security-related incident, federal authorities announced at {time_str} "
+                f"that response protocols have been activated. Agencies are working to contain the breach, assess impact, "
+                f"and restore normal operations."
+            )
+        elif subtype == "cyber_event":
+            para1 = (
+                f"{where}At approximately {time_str}, the federal government initiated a coordinated response to a "
+                f"suspected cyber-related event. Cybersecurity teams across multiple agencies are analyzing activity "
+                f"and deploying defensive measures."
+            )
+        elif subtype == "inter_agency":
+            para1 = (
+                f"{where}The White House and senior officials highlighted a new round of inter-agency coordination at "
+                f"{time_str}, aimed at streamlining the federal response to recent developments. The effort brings "
+                f"together law enforcement, intelligence, and homeland security components."
+            )
+        else:
+            why = ""
+            if crisis_type:
+                why = f" following {crisis_type.replace('_', ' ')} developments"
+            elif detail_snippets:
+                why = f" in response to {detail_snippets[0].rstrip('.')}"
+            para1 = (
+                f"{where}The federal government announced a coordinated response{why} at approximately {time_str}. "
+                f"Officials emphasized public safety, continuity of operations, and rapid inter-agency communication."
+            )
+
+        para2_bits = []
+        if detail_snippets:
+            # Avoid repeating the exact first detail verbatim
+            if len(detail_snippets) == 1:
+                para2_bits.append(
+                    "Officials described the move as part of a broader effort to maintain stability and address "
+                    "emerging risks."
+                )
+            else:
+                para2_bits.append(
+                    "Key elements of the response include "
+                    + "; ".join(detail_snippets[1:] if subtype != "generic" else detail_snippets)
+                    + "."
+                )
+        if action_snippets:
+            para2_bits.append("Actions underway include " + "; ".join(action_snippets) + ".")
+        if not para2_bits:
+            para2_bits.append(
+                "Multiple agencies are coordinating to adjust posture, deploy resources where needed, "
+                "and maintain national readiness."
+            )
+        para2 = " ".join(para2_bits)
+
+        para3 = random.choice([
+            "Officials indicated that additional updates will be provided as more information becomes available, "
+            "and urged the public to rely on official channels for accurate guidance.",
+            "Authorities emphasized that the situation is being closely monitored and encouraged citizens to report "
+            "relevant information while avoiding speculation and misinformation.",
+            "Spokespersons reiterated that the measures are precautionary and form part of a standing framework for "
+            "responding to complex national events."
+        ])
+
+        content = "\n".join([para1, para2, para3])
         
         story = {
             "headline": random.choice(headlines),
             "category": "GOVERNMENT_ACTION",
             "priority": "HIGH",
-            "content": f"The federal government has implemented comprehensive response measures following recent national security developments. Multiple agencies are coordinating efforts to address the crisis and maintain national stability.",
+            "content": content,
             "details": event_data.get("response_details", [
                 "Multiple federal agencies coordinating response",
                 "Emergency protocols activated",

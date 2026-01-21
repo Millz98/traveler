@@ -10,6 +10,13 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from traveler_character import Traveler, Team
 
+# Optional D20 integration (backward compatible)
+try:
+    from d20_decision_system import d20_system, CharacterDecision
+except Exception:
+    d20_system = None
+    CharacterDecision = None
+
 @dataclass
 class TravelerArrival:
     """Represents a new Traveler consciousness arrival"""
@@ -271,35 +278,295 @@ class DynamicTravelerSystem:
                 # Integrate the arrival
                 self.integrate_arrival(arrival, world_state, game_state)
                 arrival.status = "integrated"
-                
-                # Check if they should form a team
-                if self.should_form_team(arrival, world_state):
-                    self.queue_team_formation(arrival)
+        
+        # After processing all arrivals, check if we can form new teams from pending members
+        try:
+            if hasattr(self, '_pending_team_members') and self._pending_team_members:
+                pending = [a for a in self._pending_team_members if a.status == "integrated" and not a.team_assignment]
+                if len(pending) >= 3:
+                    if self.game_ref and hasattr(self.game_ref, 'messenger_system'):
+                        dwe = self.game_ref.messenger_system.dynamic_world_events
+                        if hasattr(dwe, 'ai_traveler_teams'):
+                            self._create_new_ai_team(pending[:6], dwe)  # Form team with up to 6 members
+        except Exception:
+            pass  # Silently fail if team formation can't happen
     
     def integrate_arrival(self, arrival: TravelerArrival, world_state: Dict, game_state: Dict):
-        """Integrate a new Traveler arrival into the game world"""
+        """Integrate a new Traveler arrival into the game world - either join existing team or form new team"""
         print(f"    🔄 Integrating Traveler {arrival.designation}...")
         
         # Create the Traveler character
         traveler = Traveler()
         traveler.designation = arrival.designation
         traveler.consciousness_stability = arrival.consciousness_stability
+
+        # D20: decide what the new arrival does AFTER arrival (loyal Director team, independent, or Faction-aligned)
+        alignment = "director"
+        try:
+            if d20_system and CharacterDecision:
+                faction_influence = float(world_state.get("faction_influence", 0.3) or 0.3)
+                dc = 14
+                decision = CharacterDecision(
+                    character_name=f"Traveler {arrival.designation}",
+                    character_type="traveler",
+                    decision_type="social",
+                    context="Post-arrival allegiance check (resist Faction recruitment and report to the Director)",
+                    difficulty_class=dc,
+                    modifiers={
+                        "stability_bonus": int((arrival.consciousness_stability - 0.8) * 10),  # ~0..2
+                        "faction_pressure": -int(faction_influence * 4),  # 0..-3
+                        "crisis_context": 1 if arrival.mission_priority == "crisis_response" else 0,
+                    },
+                    consequences={}
+                )
+                result = d20_system.resolve_character_decision(decision)
+                roll = result["roll_result"]
+
+                # Print a compact roll line (so it's visible in end-turn output)
+                print(f"       🎲 Arrival Decision Roll: [{roll.roll}] + {roll.modifier} = {roll.total} vs DC {roll.target_number}")
+
+                # Success = reports in and stays Director-aligned. Failure splits into Faction vs independent based on world pressure.
+                if roll.critical_failure:
+                    alignment = "faction"
+                elif roll.success:
+                    alignment = "director"
+                else:
+                    alignment = "faction" if faction_influence >= 0.55 else "independent"
+        except Exception:
+            # Fallback: keep prior behavior (Director-aligned)
+            alignment = "director"
         
-        # Update world state based on arrival
+        # Update world state based on arrival + alignment
         if arrival.mission_priority == "crisis_response":
-            world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.02)
-            print(f"       ✅ Crisis response arrival - timeline stability improved")
+            if alignment == "director":
+                world_state['timeline_stability'] = min(1.0, world_state.get('timeline_stability', 0.5) + 0.02)
+                print(f"       ✅ Crisis response arrival - timeline stability improved")
+            elif alignment == "faction":
+                # A Faction-aligned arrival during a crisis is bad news (infiltration/sabotage)
+                world_state['timeline_stability'] = max(0.0, world_state.get('timeline_stability', 0.5) - 0.01)
+                world_state['faction_influence'] = min(1.0, world_state.get('faction_influence', 0.3) + 0.01)
+                print(f"       ⚠️  Crisis response arrival compromised - possible Faction infiltration")
+            else:
+                print(f"       ⚪ Crisis response arrival - acting independently")
         
         elif arrival.mission_priority == "faction_counter":
-            world_state['faction_influence'] = max(0.0, world_state.get('faction_influence', 0.3) - 0.01)
-            print(f"       ⚔️  Faction counter arrival - Faction influence reduced")
+            if alignment == "director":
+                world_state['faction_influence'] = max(0.0, world_state.get('faction_influence', 0.3) - 0.01)
+                print(f"       ⚔️  Faction counter arrival - Faction influence reduced")
+            elif alignment == "faction":
+                world_state['faction_influence'] = min(1.0, world_state.get('faction_influence', 0.3) + 0.01)
+                print(f"       ⚠️  Faction counter arrival went rogue - Faction influence increased")
+            else:
+                print(f"       ⚪ Faction counter arrival - acting independently")
         
         # Add to game state
         if 'active_travelers' not in game_state:
             game_state['active_travelers'] = []
         game_state['active_travelers'].append(traveler)
+
+        # Tag the traveler object with alignment (best-effort; some systems may introspect later)
+        try:
+            traveler.alignment = alignment
+        except Exception:
+            pass
+        
+        # If they immediately go Faction-aligned, register them in the dynamic world as a Faction asset
+        if alignment == "faction":
+            try:
+                if self.game_ref and hasattr(self.game_ref, 'messenger_system'):
+                    dwe = self.game_ref.messenger_system.dynamic_world_events
+                    self._integrate_as_faction_asset(arrival, dwe)
+            except Exception:
+                pass
+            print(f"       🧲 Outcome: Traveler {arrival.designation} is now working for The Faction")
+            print(f"       ✅ Traveler {arrival.designation} integrated successfully")
+            return
+        
+        # CRITICAL: Add to active AI Traveler teams system so they become real NPCs (Director/Independent)
+        try:
+            if self.game_ref and hasattr(self.game_ref, 'messenger_system'):
+                dwe = self.game_ref.messenger_system.dynamic_world_events
+                if hasattr(dwe, 'ai_traveler_teams'):
+                    if alignment == "independent":
+                        # Independent arrivals form their own team (or join with other independents if queued)
+                        self._create_new_ai_team([arrival], dwe)
+                        print(f"       🧭 Outcome: formed independent team for Traveler {arrival.designation}")
+                    else:
+                        # Director-aligned: join an existing team unless we have a large wave that should form a fresh team
+                        pending = [a for a in self.new_arrivals if a.status == "integrated" and not a.team_assignment]
+                        pending_count = len(pending) + 1  # include this arrival (status flips after this function)
+                        if pending_count >= 4:
+                            self._create_new_ai_team(pending[:5] + [arrival], dwe)  # up to 6 members
+                        else:
+                            added_to_team = self._add_to_existing_team(arrival, dwe)
+                            if not added_to_team:
+                                self._queue_for_new_team(arrival, dwe)
+        except Exception as e:
+            # Fallback: just log that integration happened
+            print(f"       ⚠️  Could not add to AI teams system: {e}")
         
         print(f"       ✅ Traveler {arrival.designation} integrated successfully")
+
+    def _integrate_as_faction_asset(self, arrival: TravelerArrival, dwe):
+        """Register a newly-arrived Traveler as a Faction asset and surface it in end-turn output."""
+        try:
+            if hasattr(dwe, "defected_travelers"):
+                dwe.defected_travelers[arrival.designation] = {
+                    "defection_turn": getattr(getattr(self.game_ref, "time_system", None), "current_turn", 0),
+                    "from_team": None,
+                    "faction": "The Faction",
+                    "source": "arrival_roll",
+                }
+        except Exception:
+            pass
+        try:
+            if hasattr(dwe, "faction_agendas") and "The Faction" in dwe.faction_agendas:
+                dwe.faction_agendas["The Faction"]["operatives"] = dwe.faction_agendas["The Faction"].get("operatives", 0) + 1
+                dwe.faction_agendas["The Faction"]["influence"] = dwe.faction_agendas["The Faction"].get("influence", 0.0) + 0.02
+        except Exception:
+            pass
+        # Start an immediate faction operation (keeps it feeling real-time)
+        try:
+            if hasattr(dwe, "start_faction_operation"):
+                dwe.start_faction_operation("The Faction", random.choice(["intelligence_gathering", "recruitment", "sabotage"]))
+        except Exception:
+            pass
+        # Highlight for end-turn view (if the highlight system exists)
+        try:
+            if hasattr(dwe, "_record_turn_highlight"):
+                dwe._record_turn_highlight({
+                    "type": "traveler_defection",
+                    "designation": arrival.designation,
+                    "from_team": None,
+                    "faction": "The Faction",
+                    "success": True,
+                    "roll": None,
+                    "dc": None,
+                    "description": f"{arrival.designation} arrived and immediately went Faction-aligned",
+                    "consequences": {"faction_influence": 0.02}
+                })
+        except Exception:
+            pass
+    
+    def _add_to_existing_team(self, arrival: TravelerArrival, dwe) -> bool:
+        """Try to add new arrival to an existing AI Traveler team"""
+        if not hasattr(dwe, 'ai_traveler_teams') or not dwe.ai_traveler_teams:
+            return False
+        
+        # Find teams that could use more members (prefer teams with fewer members or that are active)
+        available_teams = []
+        for team_id, team in dwe.ai_traveler_teams.items():
+            if team.get("status") in ("active", "on_mission") and len(team.get("members", [])) < 8:  # Max 8 per team
+                available_teams.append((team_id, team, len(team.get("members", []))))
+        
+        if not available_teams:
+            return False
+        
+        # Prefer teams with fewer members (they need reinforcements)
+        available_teams.sort(key=lambda x: x[2])
+        selected_team_id, selected_team, _ = available_teams[0]
+        
+        # Create member entry matching the format used by initialize_ai_traveler_teams
+        import random
+        member = {
+            "designation": f"{selected_team['designation']}-{len(selected_team['members']) + 1:02d}",
+            "name": f"Agent {arrival.designation[-1]}",  # Use last digit of designation
+            "role": random.choice(["Historian", "Engineer", "Medic", "Tactician", "Specialist"]),
+            "skills": dwe._generate_team_member_skills() if hasattr(dwe, '_generate_team_member_skills') else ["Investigation", "Analysis"],
+            "success_rate": random.uniform(0.6, 0.9),
+            "mission_count": 0,  # New arrival, no missions yet
+            "consciousness_stability": arrival.consciousness_stability,
+            "host_body_survival": random.uniform(0.8, 1.0),
+            "arrival_designation": arrival.designation,  # Track original designation
+            "arrival_priority": arrival.mission_priority
+        }
+        
+        selected_team["members"].append(member)
+        selected_team["success_rate"] = sum(m["success_rate"] for m in selected_team["members"]) / len(selected_team["members"])
+        selected_team["total_missions"] = sum(m["mission_count"] for m in selected_team["members"])
+        
+        arrival.team_assignment = selected_team_id
+        print(f"       👥 Added to existing team: {selected_team['designation']} (now {len(selected_team['members'])} members)")
+        return True
+    
+    def _queue_for_new_team(self, arrival: TravelerArrival, dwe):
+        """Queue arrival to form a new AI Traveler team (or create immediately if enough arrivals)"""
+        # Check if we have enough recent arrivals to form a team immediately
+        recent_arrivals = [a for a in self.new_arrivals if a.status == "integrated" and not a.team_assignment]
+        
+        if len(recent_arrivals) >= 3:  # Form team with 3+ arrivals
+            self._create_new_ai_team(recent_arrivals, dwe)
+        else:
+            # Queue for later team formation
+            if not hasattr(self, '_pending_team_members'):
+                self._pending_team_members = []
+            self._pending_team_members.append(arrival)
+            print(f"       ⏳ Queued for new team formation ({len(self._pending_team_members)} pending)")
+    
+    def _create_new_ai_team(self, arrivals: List[TravelerArrival], dwe):
+        """Create a new AI Traveler team from recent arrivals"""
+        if not hasattr(dwe, 'ai_traveler_teams'):
+            return
+        
+        import random
+        
+        # Generate new team designation
+        existing_designations = [team.get("designation", "") for team in dwe.ai_traveler_teams.values()]
+        team_num = random.randint(100, 9999)
+        while f"Traveler Team {team_num:04d}" in existing_designations:
+            team_num = random.randint(100, 9999)
+        
+        designation = f"Traveler Team {team_num:04d}"
+        team_id = f"team_{len(dwe.ai_traveler_teams) + 1:03d}"
+        
+        # Generate base location
+        base_locations = [
+            "Seattle Metro", "Columbia District", "Government Quarter", "Industrial Zone",
+            "Residential Sector", "Downtown Core", "Archive Wing", "Research Campus", "Metro Hub"
+        ]
+        location = random.choice(base_locations)
+        
+        # Create members from arrivals
+        members = []
+        for i, arrival in enumerate(arrivals[:6]):  # Max 6 per new team
+            member = {
+                "designation": f"{designation}-{i+1:02d}",
+                "name": f"Agent {arrival.designation[-1]}",
+                "role": random.choice(["Historian", "Engineer", "Medic", "Tactician", "Specialist"]),
+                "skills": dwe._generate_team_member_skills() if hasattr(dwe, '_generate_team_member_skills') else ["Investigation", "Analysis"],
+                "success_rate": random.uniform(0.6, 0.9),
+                "mission_count": 0,
+                "consciousness_stability": arrival.consciousness_stability,
+                "host_body_survival": random.uniform(0.8, 1.0),
+                "arrival_designation": arrival.designation,
+                "arrival_priority": arrival.mission_priority
+            }
+            members.append(member)
+            arrival.team_assignment = team_id
+        
+        # Create the new team
+        dwe.ai_traveler_teams[team_id] = {
+            "designation": designation,
+            "location": location,
+            "members": members,
+            "active_missions": [],
+            "mission_cooldown": 0,
+            "success_rate": sum(m["success_rate"] for m in members) / len(members),
+            "total_missions": sum(m["mission_count"] for m in members),
+            "status": "active",
+            "last_mission": None,
+            "timeline_impact": 0.0,
+            "competition_level": 0.0,
+            "cooperation_level": 0.0
+        }
+        
+        print(f"       🆕 Created new AI Traveler team: {designation} ({len(members)} members)")
+        
+        # Clear pending members if we used them
+        if hasattr(self, '_pending_team_members'):
+            for arr in arrivals:
+                if arr in self._pending_team_members:
+                    self._pending_team_members.remove(arr)
     
     def should_form_team(self, arrival: TravelerArrival, world_state: Dict) -> bool:
         """Determine if a new team should be formed"""

@@ -1,7 +1,14 @@
-# messenger_system.py
+ # messenger_system.py
 import random
 import time
 from datetime import datetime, timedelta
+
+# Optional D20 integration for AI Traveler team decisions (backward compatible)
+try:
+    from d20_decision_system import d20_system, CharacterDecision
+except Exception:
+    d20_system = None
+    CharacterDecision = None
 
 class Messenger:
     def __init__(self, name, age, location, message_type, message_content):
@@ -347,7 +354,7 @@ class MessengerSystem:
             "MISSION_UPDATE": [
                 "Mission parameters have changed. New objective: Prevent assassination of Dr. Delaney.",
                 "Timeline deviation detected. Abort current mission and report to safe house.",
-                "Additional resources being deployed. Traveler 0027 will arrive within the hour.",
+                "Additional resources being deployed. Grace Day (0027) will arrive within the hour.",
                 "Mission success probability has dropped to 23%. Consider requesting backup.",
                 "Target has moved to new location. Intercept before they escape.",
                 "Assassination plot confirmed. Target: Dr. Marcy. Location: University Hospital.",
@@ -383,8 +390,41 @@ class MessengerSystem:
         
         message_type = random.choice(list(message_templates.keys()))
         message_content = random.choice(message_templates[message_type])
+
+        # Replace placeholder rogue-team designations with real, already-active NPC traveler agents
+        if message_type == "FACTION_ALERT" and "Former Traveler team has joined Faction" in (message_content or ""):
+            designations = self._resolve_rogue_traveler_designations(count=3)
+            if designations:
+                message_content = "Former Traveler team has joined Faction. Consider them hostile. Designations: " + ", ".join(designations) + "."
+            else:
+                message_content = "Former Traveler team has joined Faction. Consider them hostile. Designations: UNKNOWN (no active NPC traveler agents found)."
         
         return message_type, message_content
+
+    def _resolve_rogue_traveler_designations(self, count=3):
+        """Pick real, already-active NPC Traveler designations for rogue-team alerts."""
+        try:
+            dwe = getattr(self, "dynamic_world_events", None)
+            if dwe:
+                if not getattr(dwe, "ai_traveler_teams", None):
+                    try:
+                        dwe.initialize_ai_traveler_teams()
+                    except Exception:
+                        pass
+                teams = getattr(dwe, "ai_traveler_teams", {}) or {}
+                active = [t for t in teams.values() if isinstance(t, dict) and t.get("status") in (None, "active", "on_mission", "cooldown")]
+                if active:
+                    team = random.choice(active)
+                    members = list(team.get("members") or [])
+                    designations = [m.get("designation") for m in members if isinstance(m, dict) and m.get("designation")]
+                    designations = [d for d in designations if d]
+                    if len(designations) >= count:
+                        return random.sample(designations, count)
+                    if designations:
+                        return designations[:count]
+        except Exception:
+            pass
+        return []
 
     def should_execute_immediate_mission(self, messenger):
         """Determine if a messenger's message requires immediate mission execution"""
@@ -488,7 +528,7 @@ class MessengerSystem:
                     "location": "Local - Safe House"
                 },
                 "Additional resources being deployed": {
-                    "objective": "Coordinate with incoming Traveler 0027",
+                    "objective": "Coordinate with Grace Day (0027) - Director Core Programmer",
                     "description": "Reinforcements arriving. Prepare for joint operation.",
                     "difficulty": "MEDIUM",
                     "location": "Local - Rendezvous Point"
@@ -2422,6 +2462,10 @@ class DynamicWorldEventsSystem:
         self.mission_timers = {}             # Mission progress timers
         self.consequence_trackers = {}       # Track consequences of ongoing events
         self.event_triggers = {}             # What triggers new events
+
+        # NEW: Track real Traveler-agent defections/recruitments (so end-turn output can show them)
+        self.defected_travelers = {}         # designation -> defection info
+        self.turn_highlights = []            # per-turn highlight events (printed at end of process_world_turn)
         
         # NEW: Director's Core Programmers specific tracking
         self.directors_programmers = {}      # Track all Director's programmers
@@ -2530,18 +2574,8 @@ class DynamicWorldEventsSystem:
                     "intelligence_gathering": {"government_intel": 0.05, "threat_detection": "ENHANCED"}  # NEW: Intel gathering
                 }
             },
-            "Emergency Traveler 0027": {
-                "role": "Emergency Response",
-                "missions": ["crisis_intervention", "host_extraction", "timeline_stabilization"],
-                "current_mission": None,
-                "mission_cooldown": 0,
-                "success_rate": 0.9,
-                "consequences": {
-                    "crisis_intervention": {"crisis_level": -0.2, "emergency_response": "ACTIVE"},
-                    "host_extraction": {"host_safety": 0.15, "extraction_protocol": "SUCCESSFUL"},
-                    "timeline_stabilization": {"timeline_stability": 0.1, "quantum_fluctuation": "REDUCED"}
-                }
-            },
+            # NOTE: Traveler 0027 is Grace Day (Director Core Programmer) and is injected from the game instance
+            # via `add_game_programmers()` so she persists once introduced. Do not create a placeholder "Emergency Traveler 0027" here.
             "Faction Operative": {
                 "role": "Saboteur",
                 "missions": ["infrastructure_sabotage", "intelligence_gathering", "recruitment"],
@@ -3241,6 +3275,12 @@ class DynamicWorldEventsSystem:
         """Process one turn of world events and NPC actions"""
         print(f"🔄 Processing world turn...")
         
+        # Reset per-turn highlights (used to surface important events in end-turn output)
+        try:
+            self.turn_highlights = []
+        except Exception:
+            pass
+        
         # Process existing mission timers
         self.process_mission_timers()
         
@@ -3263,8 +3303,48 @@ class DynamicWorldEventsSystem:
         
         # Update ongoing effects
         self.update_ongoing_effects()
+
+        # Surface important events clearly in end-turn output (so they don't get lost in long logs)
+        try:
+            self._print_turn_highlights()
+        except Exception:
+            pass
         
         print(f"✅ World turn processed")
+
+    def _record_turn_highlight(self, event):
+        """Record a notable event that should be displayed during end-turn output."""
+        try:
+            if not isinstance(event, dict):
+                return
+            self.turn_highlights.append(event)
+        except Exception:
+            pass
+
+    def _print_turn_highlights(self):
+        """Print notable per-turn events (recruitments/defections, major incidents)."""
+        highlights = list(self.turn_highlights or [])
+        if not highlights:
+            return
+
+        recruit_events = [e for e in highlights if e.get("type") in ("traveler_defection", "traveler_recruitment")]
+        if recruit_events:
+            print("\n" + "=" * 60)
+            print(" 🧲 FACTION RECRUITMENT / TRAVELER DEFECTIONS (REAL NPCs)")
+            print("=" * 60)
+            for e in recruit_events:
+                who = e.get("designation") or e.get("target") or "Unknown"
+                from_team = e.get("from_team")
+                faction = e.get("faction", "The Faction")
+                roll = e.get("roll")
+                dc = e.get("dc")
+                outcome = "JOINED" if e.get("success") else "RESISTED"
+                parts = [f"• {who} → {outcome} {faction}"]
+                if from_team:
+                    parts.append(f"(from {from_team})")
+                if roll is not None and dc is not None:
+                    parts.append(f"[Roll {roll} vs DC {dc}]")
+                print("  " + " ".join(parts))
     
     def generate_random_world_events(self):
         """Generate random world events including potential defection triggers"""
@@ -3289,7 +3369,20 @@ class DynamicWorldEventsSystem:
                 self._generate_personal_conflict_event()
     
     def _generate_faction_recruitment_event(self):
-        """Generate a Faction recruitment attempt on a Director's programmer"""
+        """Generate a Faction recruitment attempt.
+
+        Priority: recruit REAL already-active Traveler agents first (AI traveler teams),
+        then fall back to Director's programmers if no eligible traveler agents are found.
+        """
+        # 1) Try to recruit a real, already-active Traveler agent from AI Traveler Teams
+        try:
+            traveler_event = self._generate_traveler_agent_recruitment_event()
+            if traveler_event:
+                return
+        except Exception:
+            pass
+
+        # 2) Fallback: recruit a Director's programmer (legacy behavior)
         loyal_programmers = [
             name for name, data in self.directors_programmers.items()
             if data["loyalty"] == "loyal"
@@ -3350,6 +3443,124 @@ class DynamicWorldEventsSystem:
         if target_programmer in self.defection_status:
             self.defection_status[target_programmer]["recruitment_attempts"] += 1
             self.defection_status[target_programmer]["last_recruitment_turn"] = getattr(global_world_tracker, 'current_turn', 0)
+
+    def _generate_traveler_agent_recruitment_event(self):
+        """Attempt to recruit a real, already-active Traveler agent (from AI traveler teams)."""
+        teams = getattr(self, "ai_traveler_teams", {}) or {}
+        if not teams:
+            try:
+                self.initialize_ai_traveler_teams()
+                teams = getattr(self, "ai_traveler_teams", {}) or {}
+            except Exception:
+                teams = {}
+        if not teams:
+            return None
+
+        # Candidate teams: active/on_mission/cooldown
+        candidate_teams = []
+        for team in teams.values():
+            if not isinstance(team, dict):
+                continue
+            status = team.get("status", "active")
+            if status in ("active", "on_mission", "cooldown"):
+                candidate_teams.append(team)
+        if not candidate_teams:
+            return None
+
+        team = random.choice(candidate_teams)
+        members = [m for m in (team.get("members") or []) if isinstance(m, dict) and m.get("designation")]
+        if not members:
+            return None
+
+        # Avoid recruiting already-defected agents
+        eligible = [
+            m for m in members
+            if m.get("designation") not in (self.defected_travelers or {})
+            and m.get("loyalty") not in ("Faction", "defected")
+        ]
+        if not eligible:
+            return None
+
+        target = random.choice(eligible)
+        designation = target.get("designation")
+        from_team = team.get("designation")
+
+        # D20 roll for recruitment success (tuned to be uncommon but meaningful)
+        recruitment_roll = random.randint(1, 20)
+        success_dc = 18
+
+        # Modifiers: lower success_rate implies more vulnerable agent (approx.)
+        try:
+            sr = float(target.get("success_rate", 0.75) or 0.75)
+            if sr < 0.55:
+                success_dc -= 3
+            elif sr < 0.65:
+                success_dc -= 2
+        except Exception:
+            pass
+
+        success = recruitment_roll >= success_dc
+
+        faction_name = "The Faction"
+        event = {
+            "type": "traveler_defection" if success else "traveler_recruitment",
+            "designation": designation,
+            "from_team": from_team,
+            "faction": faction_name,
+            "success": bool(success),
+            "roll": recruitment_roll,
+            "dc": success_dc,
+            "description": (f"{designation} joined {faction_name}" if success else f"{designation} resisted {faction_name} recruitment"),
+            "consequences": {
+                "faction_influence": 0.05 if success else 0.01,
+                "director_control": -0.03 if success else 0.0
+            }
+        }
+
+        # Apply a simple in-system state change so this is REAL (not just narrative)
+        if success:
+            try:
+                target["loyalty"] = "Faction"
+                target["status"] = "defected"
+            except Exception:
+                pass
+            try:
+                self.defected_travelers[designation] = {
+                    "defection_turn": getattr(global_world_tracker, 'current_turn', 0),
+                    "from_team": from_team,
+                    "faction": faction_name
+                }
+            except Exception:
+                pass
+            try:
+                team["status"] = "compromised"
+                team["compromised_reason"] = f"{designation} defected to {faction_name}"
+            except Exception:
+                pass
+            try:
+                if faction_name in self.faction_agendas:
+                    self.faction_agendas[faction_name]["operatives"] = self.faction_agendas[faction_name].get("operatives", 0) + 1
+                    self.faction_agendas[faction_name]["influence"] = self.faction_agendas[faction_name].get("influence", 0.0) + 0.05
+            except Exception:
+                pass
+
+        # Track & surface
+        try:
+            self.world_events.append(event)
+        except Exception:
+            pass
+        self._record_turn_highlight(event)
+
+        # Concise immediate print (full block prints at end of turn)
+        try:
+            if success:
+                print(f"🧲 Faction recruitment SUCCESS: {designation} defected from {from_team} (Roll {recruitment_roll} vs DC {success_dc})")
+            else:
+                print(f"🧲 Faction recruitment FAILED: {designation} resisted (Roll {recruitment_roll} vs DC {success_dc})")
+        except Exception:
+            pass
+
+        return event
     
     def _generate_system_compromise_event(self):
         """Generate a system compromise event that could affect programmer loyalty"""
@@ -3630,8 +3841,25 @@ class DynamicWorldEventsSystem:
                           if team["status"] == "active" and team["mission_cooldown"] <= 0]
         
         if not available_teams:
-            print(f"   ⚠️  No teams available for emergency deployment")
-            return
+            # CRITICAL RULE: In a true timeline crisis, the Director will ALWAYS find Travelers to deploy.
+            print(f"   ⚠️  No teams available for emergency deployment - overriding cooldowns and reactivating teams")
+
+            # 1) Reactivate teams on cooldown (Director overrides rest periods in emergencies)
+            for team_id, team in self.ai_traveler_teams.items():
+                if team.get("status") in ("active", "cooldown"):
+                    team["mission_cooldown"] = 0
+                    available_teams.append(team_id)
+
+            # 2) If we still somehow have nothing (all compromised, etc.), spin up a fresh emergency team
+            if not available_teams:
+                try:
+                    emergency_team_id = self._create_emergency_reinforcement_team()
+                    if emergency_team_id:
+                        available_teams.append(emergency_team_id)
+                        print(f"   🚀 Director has deployed an emergency reinforcement team: {self.ai_traveler_teams[emergency_team_id]['designation']}")
+                except Exception as e:
+                    print(f"   ⚠️  Could not create emergency reinforcement team: {e}")
+                    return
         
         print(f"   🚨 Deploying {len(available_teams)} teams on emergency missions:")
         
@@ -3640,7 +3868,54 @@ class DynamicWorldEventsSystem:
         
         for team_id in available_teams:
             team = self.ai_traveler_teams[team_id]
-            
+
+            # D20: Each team rolls to see if they can effectively respond to the emergency this turn
+            if d20_system and CharacterDecision:
+                try:
+                    # Use team aggregate stats as rough modifiers
+                    base_dc = 14  # Emergency deployment is hard but not impossible
+                    avg_success = float(team.get("success_rate", 0.75) or 0.75)
+                    members = team.get("members", []) or []
+                    try:
+                        avg_stability = sum(m.get("consciousness_stability", 0.8) for m in members) / max(1, len(members))
+                    except Exception:
+                        avg_stability = 0.8
+
+                    modifiers = {
+                        "experience": int(team.get("total_missions", 0) / 10),             # up to +? for veterans
+                        "cohesion": int((avg_success - 0.6) * 10),                          # + / - based on performance
+                        "stability": int((avg_stability - 0.7) * 10),                       # more stable = better
+                    }
+
+                    decision = CharacterDecision(
+                        character_name=team.get("designation", team_id),
+                        character_type="traveler",
+                        decision_type="survival",
+                        context="Emergency deployment to stabilize critical timeline",
+                        difficulty_class=base_dc,
+                        modifiers=modifiers,
+                        consequences={}
+                    )
+                    result = d20_system.resolve_character_decision(decision)
+                    roll = result["roll_result"]
+
+                    print(f"      🎲 {team.get('designation', team_id)} Emergency Roll: "
+                          f"[{roll.roll}] + {roll.modifier} = {roll.total} vs DC {roll.target_number}")
+
+                    if roll.critical_failure:
+                        # Team is unable to respond and becomes temporarily compromised
+                        team["status"] = "compromised"
+                        team["compromised_reason"] = "Critical failure on emergency deployment roll"
+                        print(f"         💀 {team.get('designation', team_id)} cannot deploy this turn (compromised).")
+                        continue
+                    elif not roll.success:
+                        print(f"         ❌ {team.get('designation', team_id)} unable to coordinate emergency response this turn.")
+                        # They stay available for next turn, but skip this deployment
+                        continue
+                except Exception:
+                    # If anything goes wrong, fall back to always allowing deployment
+                    pass
+
             # Assign emergency mission based on team capabilities
             mission = self._assign_emergency_mission(team, timeline_threats)
             
@@ -3660,6 +3935,56 @@ class DynamicWorldEventsSystem:
                         {"type": "world_event", "target": "ai_team_mission", "value": f"{team['designation']}_{mission['type']}"}
                     ]
                 )
+
+    def _create_emergency_reinforcement_team(self):
+        """Create a one-off emergency reinforcement team when no other Travelers are available."""
+        import random
+
+        # Generate a unique team designation
+        existing_designations = [team.get("designation", "") for team in self.ai_traveler_teams.values()]
+        team_num = random.randint(9000, 9999)
+        while f"Traveler Team {team_num:04d}" in existing_designations:
+            team_num = random.randint(9000, 9999)
+
+        designation = f"Traveler Team {team_num:04d}"
+        team_id = f"team_{len(self.ai_traveler_teams) + 1:03d}"
+
+        base_locations = [
+            "Seattle Metro", "Columbia District", "Government Quarter", "Industrial Zone",
+            "Residential Sector", "Downtown Core", "Archive Wing", "Research Campus", "Metro Hub"
+        ]
+        location = random.choice(base_locations)
+
+        # Build a small but elite team
+        members = []
+        for i in range(4):
+            members.append({
+                "designation": f"{designation}-{i+1:02d}",
+                "name": f"Emergency Agent {chr(65+i)}",
+                "role": random.choice(["Historian", "Engineer", "Medic", "Tactician", "Specialist"]),
+                "skills": self._generate_team_member_skills() if hasattr(self, "_generate_team_member_skills") else ["Investigation", "Analysis"],
+                "success_rate": random.uniform(0.75, 0.95),
+                "mission_count": 0,
+                "consciousness_stability": random.uniform(0.85, 1.0),
+                "host_body_survival": random.uniform(0.85, 1.0)
+            })
+
+        self.ai_traveler_teams[team_id] = {
+            "designation": designation,
+            "location": location,
+            "members": members,
+            "active_missions": [],
+            "mission_cooldown": 0,
+            "success_rate": sum(m["success_rate"] for m in members) / len(members),
+            "total_missions": 0,
+            "status": "active",
+            "last_mission": None,
+            "timeline_impact": 0.0,
+            "competition_level": 0.0,
+            "cooperation_level": 0.0
+        }
+
+        return team_id
     
     def _deploy_multiple_teams_warning(self):
         """Deploy multiple teams on warning-level timeline missions"""
@@ -4521,7 +4846,7 @@ def initialize_dynamic_world():
     """Initialize the dynamic world events system"""
     dynamic_world_events.initialize_npc_mission_system()
     print("🌍 Dynamic World Events System initialized!")
-    print("   NPCs: Dr. Holden, Director's Programmer Alpha/Beta/Gamma, Emergency Traveler 0027, Faction Operative")
+    print("   NPCs: Dr. Holden, Director's Programmer Alpha/Beta/Gamma, Faction Operative")
     print("   Factions: The Faction, Government Agencies, Director's Office")
     print("   Director's Core Programmers: 3 loyal programmers ready for protection missions")
     print("   Timeline events will now happen automatically!")
