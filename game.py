@@ -50,6 +50,16 @@ class Game:
         self.ai_world_controller = ai_world_controller.AIWorldController(world_generator=self.world)
         self.dialogue_manager = dialogue_system.DialogueManager()
         self.hacking_system = hacking_system.HackingSystem()
+
+        # Memory + consequence system (connects world simulation to player actions)
+        try:
+            from consequence_memory_system import WorldMemory, NarrativeFocusSystem
+            self.world_memory = WorldMemory()
+            self.narrative_focus_system = NarrativeFocusSystem()
+            print("✅ World Memory + Consequence System initialized (actions create cascading reactions)")
+        except Exception:
+            self.world_memory = None
+            self.narrative_focus_system = None
         
         # Initialize government detection system
         try:
@@ -294,6 +304,7 @@ class Game:
                 "timeline_fragility": self.timeline_fragility,
                 "timeline_events": self.timeline_events,
                 "completed_missions": getattr(self, "completed_missions", []),
+                "world_memory": self._serialize_world_memory() if getattr(self, "world_memory", None) else None,
                 "us_political_system": self._save_us_political_system_state() if hasattr(self, 'us_political_system') and self.us_political_system else None
             }
             
@@ -481,6 +492,13 @@ class Game:
             self.completed_missions = save_data.get("completed_missions", [])
             self.team.team_cohesion = save_data["team_cohesion"]
             self.team.communication_level = save_data["communication_level"]
+
+            # Restore world memory/consequence state if available
+            try:
+                if save_data.get("world_memory") and getattr(self, "world_memory", None):
+                    self._restore_world_memory(save_data["world_memory"])
+            except Exception:
+                pass
             
             # Restore timeline data
             if "timeline_stability" in save_data:
@@ -511,6 +529,133 @@ class Game:
         except Exception as e:
             print(f"Error loading game: {e}")
             return False
+
+    def _serialize_world_memory(self) -> dict:
+        """Serialize WorldMemory to JSON-safe structures."""
+        try:
+            wm = getattr(self, "world_memory", None)
+            if not wm:
+                return {}
+
+            # Strip non-JSON values (timestamps/enums) best-effort
+            def _clean(obj):
+                if isinstance(obj, dict):
+                    out = {}
+                    for k, v in obj.items():
+                        if k in ("timestamp",):
+                            continue
+                        out[k] = _clean(v)
+                    return out
+                if isinstance(obj, list):
+                    return [_clean(x) for x in obj]
+                # Enums -> their value/name, datetime -> isoformat
+                try:
+                    if hasattr(obj, "value"):
+                        return obj.value
+                except Exception:
+                    pass
+                try:
+                    if hasattr(obj, "isoformat"):
+                        return obj.isoformat()
+                except Exception:
+                    pass
+                return obj
+
+            return {
+                "turn_count": getattr(wm, "turn_count", 0),
+                "player_action_history": _clean(getattr(wm, "player_action_history", [])),
+                "active_consequences": _clean(getattr(wm, "active_consequences", [])),
+                "hot_locations": _clean(getattr(wm, "hot_locations", {})),
+                "suspicious_npcs": _clean(getattr(wm, "suspicious_npcs", {})),
+            }
+        except Exception:
+            return {}
+
+    def _restore_world_memory(self, data: dict):
+        """Restore WorldMemory from serialized state."""
+        wm = getattr(self, "world_memory", None)
+        if not wm or not isinstance(data, dict):
+            return
+
+        try:
+            wm.turn_count = int(data.get("turn_count", 0))
+        except Exception:
+            wm.turn_count = 0
+
+        wm.player_action_history = data.get("player_action_history", []) or []
+        wm.active_consequences = data.get("active_consequences", []) or []
+        wm.hot_locations = data.get("hot_locations", {}) or {}
+        wm.suspicious_npcs = data.get("suspicious_npcs", {}) or {}
+
+    def _apply_world_memory_consequence_effects(self, consequences: list):
+        """Convert triggered consequences into actual world-state changes."""
+        if not consequences:
+            return
+
+        # We apply to both the global tracker cache (via world_state dict) and LivingWorld if present.
+        world_state = self.get_game_state()
+
+        def _bump(key: str, delta: float, floor: float = 0.0, ceil: float = 1.0):
+            try:
+                cur = float(world_state.get(key, 0.0) or 0.0)
+            except Exception:
+                cur = 0.0
+            world_state[key] = max(floor, min(ceil, cur + float(delta)))
+
+            # Mirror into living_world if it has matching attributes
+            try:
+                if hasattr(self, "living_world") and self.living_world and hasattr(self.living_world, key):
+                    setattr(self.living_world, key, world_state[key])
+            except Exception:
+                pass
+
+        for c in consequences:
+            ctype = c.get("type")
+            if ctype in ("government_investigation", "major_incident_response", "location_surveillance"):
+                intensity = float(c.get("investigation_intensity", 0.6) or 0.6)
+                _bump("surveillance_level", 0.08 * intensity)
+                _bump("traveler_exposure_risk", 0.06 * intensity)
+                _bump("public_awareness", 0.04 * intensity)
+            elif ctype == "evidence_discovery":
+                risk = float(c.get("traveler_exposure_risk", 0.6) or 0.6)
+                _bump("traveler_exposure_risk", 0.12 * risk)
+                _bump("surveillance_level", 0.05 * risk)
+            elif ctype == "media_attention":
+                inc = float(c.get("public_awareness_increase", 0.2) or 0.2)
+                _bump("public_awareness", 0.25 * inc)
+            elif ctype == "witness_report":
+                detail = float(c.get("detail_level", 0.5) or 0.5)
+                _bump("traveler_exposure_risk", 0.05 * detail)
+
+    def _show_narrative_highlights_only(self):
+        """Show only important AI/host events (reduce noise)."""
+        if not getattr(self, "narrative_focus_system", None):
+            return
+        if not getattr(self, "ai_world_controller", None):
+            return
+
+        try:
+            teams = getattr(self.ai_world_controller, "ai_teams", []) or []
+            if not teams:
+                return
+            print("\n🎭 NARRATIVE HIGHLIGHTS (Important Events Only):")
+            print("=" * 60)
+            any_output = False
+            for team in teams:
+                filtered = self.narrative_focus_system.filter_ai_team_output({
+                    "team_id": getattr(team, "team_id", "Unknown"),
+                    "life_balance_score": getattr(team, "life_balance_score", 1.0),
+                    "host_lives": getattr(team, "host_lives", []) or [],
+                    "active_missions": getattr(team, "active_missions", []) or [],
+                })
+                out = self.narrative_focus_system.format_important_only(filtered)
+                if out:
+                    any_output = True
+                    print(out)
+            if not any_output:
+                print("  (No critical events detected among AI teams.)")
+        except Exception:
+            pass
 
     def run(self):
         """Main game loop"""
@@ -1028,6 +1173,60 @@ class Game:
             record["phase_results"] = phase_results
 
         self.completed_missions.append(record)
+
+        # Feed the consequence/memory system so the world reacts to what the player just did
+        try:
+            if getattr(self, "world_memory", None):
+                # Infer whether evidence was likely left behind from phase outcomes
+                evidence_left = False
+                try:
+                    if isinstance(phase_results, list) and phase_results:
+                        infil = phase_results[0] if len(phase_results) > 0 else None
+                        extr = phase_results[2] if len(phase_results) > 2 else None
+                        evidence_left = (infil in ("FAILURE", "CRITICAL_FAILURE")) or (extr in ("CRITICAL_FAILURE",))
+                except Exception:
+                    evidence_left = False
+
+                # Convert risk/time pressure into a simple severity bucket
+                severity = "moderate"
+                try:
+                    challenge = (mission.get("challenge") or "").lower()
+                    time_limit = (mission.get("time_limit") or "").lower()
+                    if "extreme" in challenge or "maximum" in challenge or "immediate" in time_limit:
+                        severity = "critical"
+                    elif "high-risk" in challenge or "heavy" in challenge or "24 hours" in time_limit:
+                        severity = "major"
+                    elif "low-risk" in challenge:
+                        severity = "minor"
+                except Exception:
+                    severity = "moderate"
+
+                success_bool = final_outcome in ("COMPLETE_SUCCESS", "SUCCESS")
+
+                action = {
+                    "type": ("mission_success" if success_bool else "mission_failure"),
+                    "location": mission.get("location", "Unknown"),
+                    "mission_type": mission.get("type", "Unknown"),
+                    "severity": severity,
+                    "mission_importance": severity,
+                    "evidence_left": bool(evidence_left),
+                    "witnesses": [],
+                    "description": mission.get("description") or f"Player {mission.get('type', 'mission')} at {mission.get('location', 'Unknown')}",
+                }
+
+                # If evidence was likely left, attach a couple of real civilian witnesses (best-effort)
+                try:
+                    if evidence_left and getattr(self, "world", None) and getattr(self.world, "npcs", None):
+                        civilians = [n for n in (self.world.npcs or []) if getattr(n, "faction", "") == "civilian"]
+                        if civilians:
+                            witnesses = random.sample(civilians, k=min(2, len(civilians)))
+                            action["witnesses"] = [w.id for w in witnesses if getattr(w, "id", None)]
+                except Exception:
+                    pass
+
+                self.world_memory.record_player_action(action)
+        except Exception:
+            pass
 
     def _apply_mission_entity_consequences(self, mission: dict, final_outcome: str):
         """Apply consequences that affect concrete entities (NPC death, etc.)."""
@@ -2497,11 +2696,32 @@ class Game:
         
         print("🔄 Ending current turn and advancing world...")
         print("All AI entities will take their actions...")
+
+        # 0) FIRST: process cascading consequences from prior player actions
+        try:
+            if getattr(self, "world_memory", None):
+                print("\n🎯 PROCESSING PLAYER ACTION CONSEQUENCES:")
+                triggered = self.world_memory.process_turn_consequences()
+                # Apply real world-state effects (surveillance/public awareness/exposure)
+                self._apply_world_memory_consequence_effects(triggered)
+
+                # Quick preview of what locations are hot right now
+                hot = self.world_memory.get_hot_locations_for_government()
+                if hot:
+                    print("\n🔍 Government targeting player-linked hotspots:")
+                    for item in hot[:3]:
+                        print(f"  🔥 {item['location']} (Heat: {item['heat_level']:.0%}, Priority: {item.get('priority','medium')})")
+        except Exception:
+            pass
         
         # FIRST: Execute AI world turn
         if hasattr(self, 'ai_world_controller'):
             print("\n🤖 Processing AI World Controller...")
-            self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system)
+            # Pass world_memory so government agents investigate where the player was
+            try:
+                self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system, world_memory=getattr(self, "world_memory", None))
+            except TypeError:
+                self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system)
             self.ai_world_controller.update_world_state_from_ai_turn(self.get_game_state())
             print("✅ AI World Controller processed!")
         
@@ -2567,6 +2787,12 @@ class Game:
             pass
         
         print(f"\n✅ Turn {self.time_system.current_turn} completed!")
+
+        # End-of-turn narrative highlights (suppresses routine noise by summarizing only important events)
+        try:
+            self._show_narrative_highlights_only()
+        except Exception:
+            pass
         input("Press Enter to continue...")
 
     def _execute_ai_world_turn_with_d20(self):

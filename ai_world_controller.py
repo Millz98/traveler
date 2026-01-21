@@ -1147,7 +1147,7 @@ class AIGovernmentAgent(AIEntity):
             ]
         return random.choice(jurisdictions)
         
-    def take_turn(self, world_state, time_system):
+    def take_turn(self, world_state, time_system, world_memory=None):
         """Government agent takes their turn"""
         print(f"\n🕵️ {self.agency} Agent {self.agent_id} ({self.specialization}) is investigating...")
         
@@ -1156,7 +1156,7 @@ class AIGovernmentAgent(AIEntity):
         
         # 2. Conduct investigations
         if not self.current_investigation:
-            self.start_investigation(world_state)
+            self.start_investigation(world_state, world_memory=world_memory)
         else:
             self.conduct_investigation(world_state)
         
@@ -1261,8 +1261,43 @@ class AIGovernmentAgent(AIEntity):
                 print(f"    ✅ Closing low-priority case: {report['type']}")
                 self.suspicious_activity_reports.remove(report)
     
-    def start_investigation(self, world_state):
-        """Start a new investigation"""
+    def start_investigation(self, world_state, world_memory=None):
+        """Start a new investigation (prefer targeting player activity via world_memory)"""
+        # 0) If we have player-linked hot locations, investigate those FIRST
+        try:
+            if world_memory:
+                hot_locations = world_memory.get_hot_locations_for_government()
+                if hot_locations:
+                    target = hot_locations[0]
+                    target_loc = target.get("location")
+                    heat = float(target.get("heat_level", 0.0) or 0.0)
+                    self.current_investigation = {
+                        "type": f"🎯 FOLLOWING PLAYER TRAIL: Investigating {target_loc}",
+                        "location": target_loc,
+                        "progress": 0,
+                        "evidence": [],
+                        "suspects": [],
+                        "methods": self.generate_investigation_methods(),
+                        "threat_level": "HIGH" if heat > 0.7 else "MEDIUM",
+                        "credibility": min(1.0, 0.6 + heat * 0.4),
+                        "urgency": min(1.0, 0.5 + heat * 0.5),
+                        "timestamp": "current",
+                        "triggered_by_player": True,
+                        "heat_level": heat,
+                    }
+                    # Mark investigation active for that location (best-effort)
+                    try:
+                        if isinstance(getattr(world_memory, "hot_locations", None), dict) and target_loc in world_memory.hot_locations:
+                            world_memory.hot_locations[target_loc]["investigation_active"] = True
+                    except Exception:
+                        pass
+
+                    print(f"    🚨 {self.agency} Agent {self.agent_id} assigned to player hotspot!")
+                    print(f"    📍 Target: {target_loc} (Heat: {heat:.0%})")
+                    return
+        except Exception:
+            pass
+
         # If we have no reports, optionally bootstrap an investigation from procedural hotspots
         if not self.suspicious_activity_reports:
             try:
@@ -1641,7 +1676,7 @@ class AIWorldController:
         
         # Output is now handled by the calling game.py method
     
-    def execute_ai_turn(self, world_state, time_system):
+    def execute_ai_turn(self, world_state, time_system, world_memory=None):
         """Execute AI turn when player ends their turn"""
         print(f"\n🤖 AI WORLD TURN - {time_system.get_current_date_string()}")
         print("=" * 60)
@@ -1666,7 +1701,10 @@ class AIWorldController:
         print(f"\n🏛️  GOVERNMENT AGENCIES:")
         for agent in self.government_agents:
             if agent.status == "active":
-                agent.take_turn(world_state, time_system)
+                try:
+                    agent.take_turn(world_state, time_system, world_memory=world_memory)
+                except TypeError:
+                    agent.take_turn(world_state, time_system)
                 time.sleep(0.5)
         
         # Generate world events
