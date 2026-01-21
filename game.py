@@ -1521,20 +1521,8 @@ class Game:
                 print("   👥 Host families becoming suspicious")
                 
         elif mission_type == "host_body_crisis":
-            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
-                print("   💕 Host body relationships stabilized")
-                print("   🧠 Personality changes explained away")
-                print("   👨‍👩‍👧‍👦 Family concerns resolved")
-                print("   🎭 Cover story maintained successfully")
-            elif outcome == "PARTIAL_SUCCESS":
-                print("   ⚠️  Some family concerns remain")
-                print("   🧠 Personality changes partially explained")
-                print("   👨‍👩‍👧‍👦 Family relationships strained but intact")
-            else:
-                print("   🚨 Host body relationships severely damaged")
-                print("   🧠 Personality changes too obvious to hide")
-                print("   👨‍👩‍👧‍👦 Family relationships broken")
-                print("   🎭 Cover story compromised")
+            # Generate procedurally varied outcomes based on specific host body and issue
+            self._show_host_body_crisis_consequences(mission_exec['mission'], outcome)
                 
         elif mission_type == "timeline_correction":
             if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
@@ -1582,6 +1570,207 @@ class Game:
                 print("   ❌ Mission objectives failed")
                 print("   🌍 Negative impact on world stability")
                 print("   🎯 Strategic goals compromised")
+
+    def _show_host_body_crisis_consequences(self, mission, outcome):
+        """Generate procedurally varied consequences for host body crisis missions"""
+        import random
+        
+        # Check if this is a specific host body mission
+        host_name = mission.get("affected_host_body_name")
+        issue_type = mission.get("host_body_issue_type", "relationship_concerns")
+        family_status = mission.get("affected_host_body_family_status", "Unknown")
+        social_connections = mission.get("affected_host_body_social_connections", "Unknown")
+        medical_condition = mission.get("affected_host_body_medical_condition", "Unknown")
+        traveler_designation = mission.get("affected_traveler_designation", "Unknown")
+        
+        if not host_name:
+            # Fallback to generic consequences if no specific host body data
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                print("   💕 Host body relationships stabilized")
+                print("   🧠 Personality changes explained away")
+                print("   👨‍👩‍👧‍👦 Family concerns resolved")
+                print("   🎭 Cover story maintained successfully")
+            elif outcome == "PARTIAL_SUCCESS":
+                print("   ⚠️  Some family concerns remain")
+                print("   🧠 Personality changes partially explained")
+                print("   👨‍👩‍👧‍👦 Family relationships strained but intact")
+            else:
+                print("   🚨 Host body relationships severely damaged")
+                print("   🧠 Personality changes too obvious to hide")
+                print("   👨‍👩‍👧‍👦 Family relationships broken")
+                print("   🎭 Cover story compromised")
+            return
+        
+        # Generate specific consequences based on issue type and outcome
+        if issue_type == "former_relationships":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                explanations = [
+                    f"   ✅ Successfully convinced {host_name}'s former partner that behavioral changes are due to work stress",
+                    f"   ✅ Redirected suspicion by explaining {host_name} is seeing a therapist for work-related anxiety",
+                    f"   ✅ Maintained distance from former partner while preserving {host_name}'s reputation",
+                    f"   ✅ Used social connections to provide alibi for {host_name}'s changed behavior"
+                ]
+                print(random.choice(explanations))
+                print(f"   💕 {host_name}'s former relationship concerns resolved")
+                print(f"   🎭 Cover story maintained: {host_name} is adapting to life changes")
+                print(f"   👤 Traveler {traveler_designation} can continue operating in {host_name}'s identity")
+            elif outcome == "PARTIAL_SUCCESS":
+                partial_outcomes = [
+                    f"   ⚠️  {host_name}'s former partner remains suspicious but has no evidence",
+                    f"   ⚠️  Managed to delay further investigation, but concerns persist",
+                    f"   ⚠️  Former partner has backed off but may return if behavior continues",
+                    f"   ⚠️  Social connections are aware of changes but accepting explanations"
+                ]
+                print(random.choice(partial_outcomes))
+                print(f"   🧠 Personality changes partially explained to {host_name}'s social circle")
+                print(f"   ⚠️  Ongoing monitoring required to prevent escalation")
+            else:
+                failures = [
+                    f"   🚨 {host_name}'s former partner has contacted authorities about suspicious behavior",
+                    f"   🚨 Former relationship has escalated concerns to {host_name}'s family",
+                    f"   🚨 Social connections are spreading rumors about {host_name}'s changed personality",
+                    f"   🚨 Former partner is considering filing a report with mental health services"
+                ]
+                print(random.choice(failures))
+                print(f"   🚨 {host_name}'s cover story is compromised")
+                print(f"   ⚠️  Traveler {traveler_designation} may need to reduce contact with {host_name}'s social circle")
+                print(f"   🎭 Emergency cover story protocols may be required")
+        
+        elif issue_type == "family_intervention":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                successes = [
+                    f"   ✅ Prevented family intervention by explaining {host_name}'s behavior as work-related stress",
+                    f"   ✅ Convinced family that {host_name} is seeking professional help voluntarily",
+                    f"   ✅ Redirected family concerns by showing {host_name} is maintaining normal routines",
+                    f"   ✅ Used medical records to explain {host_name}'s behavioral changes as medication side effects"
+                ]
+                print(random.choice(successes))
+                print(f"   💕 {host_name}'s family ({family_status}) has accepted explanations")
+                print(f"   🎭 Cover story maintained: {host_name} is managing stress effectively")
+                print(f"   👨‍👩‍👧‍👦 Family relationships preserved")
+            elif outcome == "PARTIAL_SUCCESS":
+                partials = [
+                    f"   ⚠️  Family intervention delayed but not cancelled",
+                    f"   ⚠️  Some family members remain concerned about {host_name}'s behavior",
+                    f"   ⚠️  Family is monitoring {host_name} more closely",
+                    f"   ⚠️  Intervention postponed but may be rescheduled if behavior doesn't improve"
+                ]
+                print(random.choice(partials))
+                print(f"   🧠 Family partially convinced but requires ongoing reassurance")
+                print(f"   ⚠️  {host_name} must maintain consistent behavior patterns")
+            else:
+                failures = [
+                    f"   🚨 Family intervention proceeded despite efforts to prevent it",
+                    f"   🚨 {host_name}'s family has scheduled psychological evaluation",
+                    f"   🚨 Family has contacted medical professionals about {host_name}'s behavior",
+                    f"   🚨 Intervention revealed inconsistencies in {host_name}'s cover story"
+                ]
+                print(random.choice(failures))
+                print(f"   🚨 {host_name}'s family relationships severely damaged")
+                print(f"   🎭 Cover story compromised - family suspects something is wrong")
+                print(f"   ⚠️  Traveler {traveler_designation} may need emergency protocols")
+        
+        elif issue_type == "medical_anomaly":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                successes = [
+                    f"   ✅ Medical anomaly explained as pre-existing condition: {medical_condition}",
+                    f"   ✅ Prevented medical evaluation by showing {host_name} is managing condition",
+                    f"   ✅ Redirected medical concerns to routine checkup rather than emergency evaluation",
+                    f"   ✅ Used {host_name}'s medical history to explain anomalies as expected variations"
+                ]
+                print(random.choice(successes))
+                print(f"   🏥 {host_name}'s medical status stabilized")
+                print(f"   🎭 Cover story maintained: {host_name} is receiving appropriate care")
+                print(f"   ✅ No medical evaluation required")
+            elif outcome == "PARTIAL_SUCCESS":
+                partials = [
+                    f"   ⚠️  Medical evaluation scheduled but can be managed",
+                    f"   ⚠️  Some medical anomalies remain unexplained but not critical",
+                    f"   ⚠️  {host_name} must attend follow-up appointments",
+                    f"   ⚠️  Medical professionals are monitoring {host_name} but not alarmed"
+                ]
+                print(random.choice(partials))
+                print(f"   🏥 Ongoing medical monitoring required")
+                print(f"   ⚠️  Must maintain consistent medical explanations")
+            else:
+                failures = [
+                    f"   🚨 Medical evaluation revealed unexplained anomalies",
+                    f"   🚨 {host_name}'s medical condition doesn't match expected patterns",
+                    f"   🚨 Medical professionals are concerned about {host_name}'s condition",
+                    f"   🚨 Medical evaluation may reveal Traveler presence if not careful"
+                ]
+                print(random.choice(failures))
+                print(f"   🚨 {host_name}'s medical cover story compromised")
+                print(f"   ⚠️  Emergency medical protocols may be required")
+                print(f"   🎭 Traveler {traveler_designation} must be more careful with host body health")
+        
+        elif issue_type == "psychological_evaluation":
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                successes = [
+                    f"   ✅ Psychological evaluation cancelled or postponed indefinitely",
+                    f"   ✅ Convinced evaluators that {host_name} doesn't need psychological assessment",
+                    f"   ✅ Redirected evaluation to routine stress management counseling",
+                    f"   ✅ Used {host_name}'s social connections to provide character references"
+                ]
+                print(random.choice(successes))
+                print(f"   🧠 {host_name}'s psychological evaluation avoided")
+                print(f"   🎭 Cover story maintained: {host_name} is managing stress normally")
+                print(f"   ✅ No risk of Traveler consciousness discovery")
+            elif outcome == "PARTIAL_SUCCESS":
+                partials = [
+                    f"   ⚠️  Psychological evaluation delayed but not cancelled",
+                    f"   ⚠️  Evaluation scheduled but can be managed with prepared responses",
+                    f"   ⚠️  {host_name} must attend evaluation but has cover story prepared",
+                    f"   ⚠️  Evaluator is aware of concerns but not alarmed"
+                ]
+                print(random.choice(partials))
+                print(f"   🧠 Evaluation can be managed with careful responses")
+                print(f"   ⚠️  Must maintain consistent personality during evaluation")
+            else:
+                failures = [
+                    f"   🚨 Psychological evaluation proceeded and revealed inconsistencies",
+                    f"   🚨 Evaluator has concerns about {host_name}'s mental state",
+                    f"   🚨 Evaluation may lead to further investigation of {host_name}",
+                    f"   🚨 Psychological assessment revealed personality changes that can't be explained"
+                ]
+                print(random.choice(failures))
+                print(f"   🚨 {host_name}'s psychological evaluation compromised cover story")
+                print(f"   ⚠️  Risk of Traveler consciousness discovery increased")
+                print(f"   🎭 Emergency protocols may be required")
+        
+        else:  # relationship_concerns (default)
+            if outcome in ["COMPLETE_SUCCESS", "SUCCESS"]:
+                successes = [
+                    f"   ✅ Successfully addressed relationship concerns for {host_name}",
+                    f"   ✅ Explained behavioral changes to {host_name}'s social circle",
+                    f"   ✅ Maintained {host_name}'s relationships while preserving cover",
+                    f"   ✅ Used {social_connections} to provide context for personality changes"
+                ]
+                print(random.choice(successes))
+                print(f"   💕 {host_name}'s relationships ({family_status}) stabilized")
+                print(f"   🎭 Cover story maintained: {host_name} is adapting to life changes")
+                print(f"   👤 Traveler {traveler_designation} can continue operating normally")
+            elif outcome == "PARTIAL_SUCCESS":
+                partials = [
+                    f"   ⚠️  Some relationship concerns remain for {host_name}",
+                    f"   ⚠️  {host_name}'s social circle is partially convinced but monitoring",
+                    f"   ⚠️  Family relationships strained but intact",
+                    f"   ⚠️  Ongoing reassurance required to maintain relationships"
+                ]
+                print(random.choice(partials))
+                print(f"   🧠 Personality changes partially explained")
+                print(f"   ⚠️  Must maintain consistent behavior to prevent escalation")
+            else:
+                failures = [
+                    f"   🚨 Relationship concerns escalated for {host_name}",
+                    f"   🚨 {host_name}'s social connections are spreading concerns",
+                    f"   🚨 Family relationships ({family_status}) are breaking down",
+                    f"   🚨 {host_name}'s cover story is compromised by relationship issues"
+                ]
+                print(random.choice(failures))
+                print(f"   🚨 {host_name}'s relationships severely damaged")
+                print(f"   🎭 Cover story compromised - social standing at risk")
+                print(f"   ⚠️  Traveler {traveler_designation} may need to reduce social interactions")
 
     def calculate_timeline_changes(self, mission_exec):
         """Calculate specific timeline changes based on mission outcome"""
@@ -2874,19 +3063,23 @@ class Game:
         if not mission.get("npc"):
             mission["npc"] = "Director Liaison"
 
-        # Director message becomes the mission description anchor
-        mission["description"] = f"DIRECTOR DIRECTIVE ({update_type}, {priority}): {message}"
+        # For PERSONAL_MESSAGE updates, make them specific to an actual host body
+        if update_type == "PERSONAL_MESSAGE":
+            mission = self._create_host_body_specific_mission(mission, update, message, priority)
+        else:
+            # Director message becomes the mission description anchor
+            mission["description"] = f"DIRECTOR DIRECTIVE ({update_type}, {priority}): {message}"
 
-        # Add a couple lightweight objectives tailored to the update type
-        base_objectives = {
-            "INTELLIGENCE_BRIEFING": ["Investigate the anomaly", "Report findings to the Director", "Avoid exposure while gathering intel"],
-            "FACTION_ALERT": ["Confirm Faction presence", "Identify operatives", "Prevent interference without exposure"],
-            "MISSION_UPDATE": ["Adjust plan to new parameters", "Maintain protocol compliance", "Stabilize timeline impact"],
-            "PROTOCOL_REMINDER": ["Re-align with Protocols", "Reduce behavioral anomalies", "Maintain cover integrity"],
-            "PERSONAL_MESSAGE": ["Address host body life complication", "Preserve cover story", "Prevent collateral timeline effects"],
-            "EMERGENCY_ALERT": ["Respond immediately", "Mitigate mass-casualty outcome", "Contain evidence and stabilize timeline"],
-        }
-        mission["objectives"] = base_objectives.get(update_type, ["Investigate and report", "Maintain cover", "Minimize timeline disruption"])
+            # Add a couple lightweight objectives tailored to the update type
+            base_objectives = {
+                "INTELLIGENCE_BRIEFING": ["Investigate the anomaly", "Report findings to the Director", "Avoid exposure while gathering intel"],
+                "FACTION_ALERT": ["Confirm Faction presence", "Identify operatives", "Prevent interference without exposure"],
+                "MISSION_UPDATE": ["Adjust plan to new parameters", "Maintain protocol compliance", "Stabilize timeline impact"],
+                "PROTOCOL_REMINDER": ["Re-align with Protocols", "Reduce behavioral anomalies", "Maintain cover integrity"],
+                "PERSONAL_MESSAGE": ["Address host body life complication", "Preserve cover story", "Prevent collateral timeline effects"],
+                "EMERGENCY_ALERT": ["Respond immediately", "Mitigate mass-casualty outcome", "Contain evidence and stabilize timeline"],
+            }
+            mission["objectives"] = base_objectives.get(update_type, ["Investigate and report", "Maintain cover", "Minimize timeline disruption"])
 
         # Make risk reflect priority so it feels different
         if priority == "CRITICAL":
@@ -2993,6 +3186,154 @@ class Game:
                         self.npc_status[target_id] = True
         except Exception:
             pass
+        return mission
+
+    def _create_host_body_specific_mission(self, mission, update, message, priority):
+        """Create a PERSONAL_MESSAGE mission specific to an actual host body with real issues"""
+        import random
+        
+        # Select a team member with a host body
+        travelers_with_hosts = []
+        if hasattr(self, 'team') and self.team and hasattr(self.team, 'members'):
+            for traveler in self.team.members:
+                if hasattr(traveler, 'host_body') and traveler.host_body:
+                    travelers_with_hosts.append(traveler)
+        
+        if not travelers_with_hosts:
+            # Fallback: generic mission if no host bodies available
+            mission["description"] = f"DIRECTOR DIRECTIVE (PERSONAL_MESSAGE, {priority}): {message}"
+            mission["objectives"] = ["Address host body life complication", "Preserve cover story", "Prevent collateral timeline effects"]
+            return mission
+        
+        # Select a random traveler's host body
+        affected_traveler = random.choice(travelers_with_hosts)
+        host_body = affected_traveler.host_body
+        
+        # Determine the specific issue based on the message
+        issue_type = None
+        if "former relationships" in message.lower() or "suspicious interest" in message.lower():
+            issue_type = "former_relationships"
+        elif "family" in message.lower() or "intervention" in message.lower():
+            issue_type = "family_intervention"
+        elif "medical" in message.lower() or "anomaly" in message.lower():
+            issue_type = "medical_anomaly"
+        elif "psychological" in message.lower() or "evaluation" in message.lower():
+            issue_type = "psychological_evaluation"
+        else:
+            # Default to relationship issues
+            issue_type = "relationship_concerns"
+        
+        # Extract specific relationship details from host body
+        family_status = getattr(host_body, 'family_status', 'Unknown family situation')
+        social_connections = getattr(host_body, 'social_connections', 'Unknown social connections')
+        
+        # Generate specific mission description
+        if issue_type == "former_relationships":
+            # Extract relationship details from family_status or social_connections
+            relationship_context = ""
+            if "divorced" in family_status.lower() or "ex" in family_status.lower():
+                relationship_context = "Former spouse"
+            elif "widowed" in family_status.lower():
+                relationship_context = "Former partner's family"
+            else:
+                relationship_context = "Former romantic partner"
+            
+            mission["description"] = (
+                f"Host body crisis for {host_body.name} (Age {host_body.age}, {host_body.occupation}): "
+                f"{relationship_context} showing suspicious interest in behavioral changes. "
+                f"Location: {host_body.location}. "
+                f"Family status: {family_status}. "
+                f"Social connections: {social_connections}."
+            )
+            mission["objectives"] = [
+                f"Address {relationship_context.lower()}'s concerns about {host_body.name}'s behavior",
+                "Maintain cover story and explain personality changes",
+                "Prevent relationship from escalating to authorities",
+                "Preserve host body's social standing"
+            ]
+        elif issue_type == "family_intervention":
+            mission["description"] = (
+                f"Host body crisis for {host_body.name} (Age {host_body.age}, {host_body.occupation}): "
+                f"Family is planning an intervention due to behavioral changes. "
+                f"Location: {host_body.location}. "
+                f"Family status: {family_status}. "
+                f"Immediate action required to prevent exposure."
+            )
+            mission["objectives"] = [
+                f"Prevent family intervention for {host_body.name}",
+                "Explain behavioral changes with plausible cover story",
+                "Maintain family relationships while preserving cover",
+                "Avoid medical or psychological evaluation"
+            ]
+        elif issue_type == "medical_anomaly":
+            medical_condition = getattr(host_body, 'medical_condition', 'Unknown condition')
+            mission["description"] = (
+                f"Host body crisis for {host_body.name} (Age {host_body.age}, {host_body.occupation}): "
+                f"Medical anomaly detected requiring evaluation. "
+                f"Location: {host_body.location}. "
+                f"Current medical status: {medical_condition}. "
+                f"Must address without revealing Traveler nature."
+            )
+            mission["objectives"] = [
+                f"Address medical concerns for {host_body.name}",
+                "Prevent medical evaluation from revealing Traveler presence",
+                "Maintain host body health and cover story",
+                "Coordinate with medical facilities if necessary"
+            ]
+        elif issue_type == "psychological_evaluation":
+            mission["description"] = (
+                f"Host body crisis for {host_body.name} (Age {host_body.age}, {host_body.occupation}): "
+                f"Psychological evaluation scheduled due to behavioral changes. "
+                f"Location: {host_body.location}. "
+                f"Family status: {family_status}. "
+                f"Must prevent evaluation or ensure it doesn't reveal Traveler nature."
+            )
+            mission["objectives"] = [
+                f"Prevent or manage psychological evaluation for {host_body.name}",
+                "Provide plausible explanations for behavioral changes",
+                "Maintain cover story during evaluation if unavoidable",
+                "Prevent discovery of Traveler consciousness"
+            ]
+        else:  # relationship_concerns
+            mission["description"] = (
+                f"Host body crisis for {host_body.name} (Age {host_body.age}, {host_body.occupation}): "
+                f"Relationship concerns and behavioral changes detected. "
+                f"Location: {host_body.location}. "
+                f"Family status: {family_status}. "
+                f"Social connections: {social_connections}."
+            )
+            mission["objectives"] = [
+                f"Address relationship concerns for {host_body.name}",
+                "Maintain cover story and explain personality changes",
+                "Preserve host body's relationships and social standing",
+                "Prevent collateral timeline effects"
+            ]
+        
+        # Store host body reference for procedural outcome generation
+        mission["affected_host_body_name"] = host_body.name
+        mission["affected_host_body_age"] = host_body.age
+        mission["affected_host_body_occupation"] = host_body.occupation
+        mission["affected_host_body_location"] = host_body.location
+        mission["affected_host_body_family_status"] = family_status
+        mission["affected_host_body_social_connections"] = social_connections
+        mission["affected_host_body_medical_condition"] = getattr(host_body, 'medical_condition', 'Unknown')
+        mission["affected_traveler_designation"] = affected_traveler.designation
+        mission["host_body_issue_type"] = issue_type
+        
+        # Set location to host body's location or nearby residential area
+        try:
+            if getattr(self, "world", None):
+                from world_generation import LocationType
+                candidates = self.world.get_locations_by_type(LocationType.RESIDENTIAL_AREA)
+                if candidates:
+                    mission["location"] = random.choice(candidates).name
+                else:
+                    mission["location"] = host_body.location
+            else:
+                mission["location"] = host_body.location
+        except Exception:
+            mission["location"] = host_body.location
+        
         return mission
 
     def check_messenger_events(self):
