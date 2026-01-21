@@ -3,6 +3,38 @@ import random
 import time
 from datetime import datetime, timedelta
 
+# D20 Decision System Integration
+try:
+    from d20_decision_system import d20_system, CharacterDecision
+    d20 = d20_system
+except ImportError:
+    d20_system = None
+    CharacterDecision = None
+    d20 = None
+
+def print_d20_roll_header(actor, action, roll_result):
+    """Print a dramatic D20 roll header"""
+    
+    # Create visual die representation
+    die_art = {
+        1:  "⚀", 2:  "⚁", 3:  "⚂", 4:  "⚃", 5:  "⚄", 6:  "⚅",
+        7:  "7", 8:  "8", 9:  "9", 10: "10",
+        11: "11", 12: "12", 13: "13", 14: "14", 15: "15",
+        16: "16", 17: "17", 18: "18", 19: "19", 20: "★"
+    }
+    
+    die = die_art.get(roll_result.roll, str(roll_result.roll))
+    
+    if roll_result.critical_success:
+        print(f"\n    🎲✨ {actor}: {action}")
+        print(f"       ★ NATURAL 20! ★")
+    elif roll_result.critical_failure:
+        print(f"\n    🎲💀 {actor}: {action}")
+        print(f"       ⚀ NATURAL 1! ⚀")
+    else:
+        print(f"\n    🎲 {actor}: {action}")
+        print(f"       Die: {die} + {roll_result.modifier} = {roll_result.total} vs DC {roll_result.target_number}")
+
 class AIEntity:
     """Base class for AI-controlled entities in the world"""
     def __init__(self, name, entity_type, location, objectives):
@@ -218,40 +250,55 @@ class AITravelerTeam(AIEntity):
         }
         
     def take_turn(self, world_state, time_system):
-        """AI Traveler team takes its turn with full host body life management"""
-        print(f"\n🕵️  AI Traveler Team {self.team_id} is managing their lives...")
+        """AI Traveler team takes turn (reduced noise; only prints important events)."""
+        show_output = (self.life_balance_score < 0.5) or bool(self.active_missions)
+        if show_output:
+            print(f"\n🕵️ Team {self.team_id}:")
+            print("  🏠 Managing host lives...")
         
-        # 1. Manage host body daily lives
+        # Do all the work (mostly silently)
         self.manage_host_lives(time_system)
-        
-        # 2. Handle personal life events
         self.handle_personal_events(time_system)
-        
-        # 3. Manage relationships and social interactions
         self.manage_relationships()
-        
-        # 4. Handle work and career responsibilities
         self.manage_work_responsibilities()
         
-        # 5. Check for new missions (only if life is stable)
+        # Check for new missions (only if life is stable)
         if self.life_balance_score > 0.4:
             if random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance of new mission)
                 self.generate_ai_mission(world_state)
         
-        # 6. Execute active missions (if life allows)
+        # Only show missions
+        if self.active_missions and show_output:
+            print(f"  📋 Active missions: {len(self.active_missions)}")
+            for mission in self.active_missions:
+                try:
+                    print(f"    • {mission.get('type','Unknown')} at {mission.get('location','Unknown')} - {mission.get('progress',0)}%")
+                except Exception:
+                    pass
+        
+        # Execute active missions (if life allows)
         if self.life_balance_score > 0.3:
             for mission in self.active_missions[:]:
                 if self.execute_ai_mission(mission, world_state):
                     self.active_missions.remove(mission)
         
-        # 7. Handle host body complications
+        # Only show critical problems
+        try:
+            critical_hosts = [h for h in (self.host_lives or []) if float(h.get('stress_level', 0.0) or 0.0) > 0.8]
+        except Exception:
+            critical_hosts = []
+        if critical_hosts:
+            for host in critical_hosts:
+                try:
+                    print(f"  ⚠️ {host.get('name','Unknown')} in crisis (stress: {float(host.get('stress_level',0.0) or 0.0):.0%})")
+                except Exception:
+                    pass
+        
+        # Handle host body complications (noisy only if already showing output)
         if random.randint(1, 20) <= 5:  # D20 roll: 1-5 (25% chance of complication)
             self.handle_host_complication(world_state)
         
-        # 8. Update life balance score
         self.update_life_balance()
-        
-        # 9. Update world state based on actions
         self.update_world_state(world_state)
         
     def manage_host_lives(self, time_system):
@@ -282,7 +329,27 @@ class AITravelerTeam(AIEntity):
             self.update_host_emotional_state(host_life)
     
     def execute_daily_routine(self, host_life, member_index, time_system):
-        """Execute the daily routine for a host body"""
+        """Execute the daily routine for a host body with D20 rolls"""
+        if not d20_system or not CharacterDecision:
+            # Fallback to old system
+            schedule = self.daily_schedules[member_index]
+            current_hour = time_system.get_current_hour()
+            if 6 <= current_hour < 12:
+                activities = schedule["morning"]
+            elif 12 <= current_hour < 18:
+                activities = schedule["afternoon"]
+            else:
+                activities = schedule["evening"]
+            for activity in activities:
+                success = random.randint(1, 20) <= 16
+                if success:
+                    print(f"    ✅ {host_life['name']} completed {activity} successfully")
+                    host_life['happiness'] = min(1.0, host_life.get('happiness', 0.5) + 0.05)
+                else:
+                    print(f"    ⚠️  {host_life['name']} struggled with {activity}")
+                    host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.1)
+            return
+        
         schedule = self.daily_schedules[member_index]
         current_hour = time_system.get_current_hour()
         
@@ -296,16 +363,49 @@ class AITravelerTeam(AIEntity):
             activities = schedule["evening"]
             time_period = "evening"
         
-        # Execute activities
-        for activity in activities:
-            success = random.randint(1, 20) <= 16  # D20 roll: 1-16 (80% success rate for routine activities)
+        # Select 2 random activities for D20 rolls (as per spec)
+        selected_activities = random.sample(activities, min(2, len(activities))) if len(activities) >= 2 else activities
+        
+        for activity in selected_activities:
+            # Determine difficulty
+            base_dc = 12  # Normal daily activities
             
-            if success:
-                print(f"    ✅ {host_life['name']} completed {activity} successfully")
-                host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
-            else:
-                print(f"    ⚠️  {host_life['name']} struggled with {activity}")
-                host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
+            # Stressed people have harder time
+            if host_life.get('stress_level', 0.3) > 0.7:
+                base_dc = 16
+            
+            # Make D20 roll
+            decision = CharacterDecision(
+                character_name=host_life.get('name', 'Unknown'),
+                character_type="civilian",
+                decision_type="social",
+                context=activity,
+                difficulty_class=base_dc,
+                modifiers={
+                    'stress_penalty': -int(host_life.get('stress_level', 0.3) * 5),
+                    'happiness_bonus': int(host_life.get('happiness', 0.5) * 2)
+                },
+                consequences={}
+            )
+            
+            result = d20_system.resolve_character_decision(decision)
+            roll_result = result['roll_result']
+            
+            # Only show if interesting (critical or failure)
+            if roll_result.critical_success:
+                print(f"    ⭐ {host_life.get('name', 'Unknown')}: {activity}")
+                print(f"       CRITICAL SUCCESS! [{roll_result.roll}] Exceptional day!")
+                host_life['happiness'] = min(1.0, host_life.get('happiness', 0.5) + 0.1)
+                
+            elif roll_result.critical_failure:
+                print(f"    💀 {host_life.get('name', 'Unknown')}: {activity}")
+                print(f"       CRITICAL FAILURE! [{roll_result.roll}] Disaster!")
+                host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.2)
+                
+            elif not roll_result.success:
+                print(f"    ❌ {host_life.get('name', 'Unknown')}: {activity}")
+                print(f"       Failed [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
+                host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.05)
     
     def generate_life_event(self, host_life, member_index):
         """Generate a random life event for a host body"""
@@ -790,33 +890,103 @@ class AITravelerTeam(AIEntity):
             print(f"       Security: {mission.get('security_level') or 'unknown'}, Cameras: {mission.get('surveillance_cameras') or 'unknown'}")
     
     def execute_ai_mission(self, mission, world_state):
-        """Execute an AI team mission (only if life allows)"""
+        """Execute mission with D20 rolls for each phase"""
+        if not d20_system or not CharacterDecision:
+            # Fallback to old system if D20 not available
+            if self.life_balance_score < 0.3:
+                print(f"    ⚠️  Team too stressed to execute missions effectively")
+                return False
+            mission["progress"] += random.randint(10, 30)
+            if mission["progress"] >= 100:
+                success = random.random() < 0.7
+                if success:
+                    print(f"    ✅ Mission {mission['type']} completed successfully")
+                    self.handle_mission_success(mission, world_state)
+                else:
+                    print(f"    ❌ Mission {mission['type']} failed")
+                    self.handle_mission_failure(mission, world_state)
+                return True
+            return False
+        
         if self.life_balance_score < 0.3:
             print(f"    ⚠️  Team too stressed to execute missions effectively")
             return False
-            
-        # Mission execution affects host body stress
-        stress_increase = random.uniform(0.05, 0.15)
-        for host_life in self.host_lives:
-            host_life['stress_level'] = min(1.0, host_life['stress_level'] + stress_increase)
         
-        # Simulate mission progress
-        mission["progress"] += random.randint(10, 30)
+        # Determine mission phases based on type
+        phases = ['infiltration', 'execution', 'extraction']
         
-        if mission["progress"] >= 100:
-            # Mission completed
-            success = random.random() < 0.7  # 70% success rate for AI teams
-            
-            if success:
-                print(f"    ✅ Mission {mission['type']} completed successfully")
-                self.handle_mission_success(mission, world_state)
-            else:
-                print(f"    ❌ Mission {mission['type']} failed")
-                self.handle_mission_failure(mission, world_state)
-            
-            return True  # Mission is complete
+        # Calculate base DC from mission difficulty
+        security_level = mission.get('security_level', 'medium')
+        if isinstance(security_level, str):
+            security_dc = {
+                'low': 10,
+                'medium': 15,
+                'high': 20,
+                'critical': 25
+            }.get(security_level.lower(), 15)
+        else:
+            # Numeric security level
+            security_dc = min(25, max(10, int(security_level * 20) + 10))
         
-        return False  # Mission still in progress
+        phase_results = []
+        
+        print(f"\n    🎯 Executing mission: {mission['type']} at {mission['location']}")
+        
+        for phase in phases:
+            # Create character decision
+            decision_type_map = {
+                "infiltration": "stealth",
+                "execution": "technical",
+                "extraction": "combat"
+            }
+            
+            decision = CharacterDecision(
+                character_name=f"Team {self.team_id}",
+                character_type="traveler",
+                decision_type=decision_type_map.get(phase, "stealth"),
+                context=f"{phase} phase at {mission['location']}",
+                difficulty_class=security_dc,
+                modifiers={
+                    'team_cohesion': int(self.relationship_status.get('team_cohesion', 0.5) * 5),
+                    'life_balance': int(self.life_balance_score * 3),
+                    'stress_penalty': -int(sum(h.get('stress_level', 0.5) for h in self.host_lives) / max(1, len(self.host_lives)) * 3)
+                },
+                consequences={}
+            )
+            
+            # Make D20 roll!
+            result = d20_system.resolve_character_decision(decision)
+            roll_result = result['roll_result']
+            
+            # Print roll result
+            print(f"\n    🎲 {phase.upper()} PHASE:")
+            print(f"       Roll: [{roll_result.roll}] + {roll_result.modifier} = {roll_result.total} vs DC {roll_result.target_number}")
+            print(f"       {roll_result.outcome_description}")
+            
+            phase_results.append(roll_result)
+        
+        # Determine overall mission success
+        successes = sum(1 for r in phase_results if r.success)
+        critical_failures = sum(1 for r in phase_results if r.critical_failure)
+        
+        if critical_failures > 0:
+            # Any critical failure = mission failure
+            print(f"\n    💥 MISSION FAILED - Critical failure in one or more phases!")
+            mission['success'] = False
+            self.handle_mission_failure(mission, world_state)
+            return True
+        elif successes >= 2:
+            # 2+ successes = mission success
+            print(f"\n    ✅ MISSION SUCCESS - {successes}/3 phases succeeded!")
+            mission['success'] = True
+            self.handle_mission_success(mission, world_state)
+            return True
+        else:
+            # Partial success
+            print(f"\n    ⚠️  MISSION PARTIAL SUCCESS - Only {successes}/3 phases succeeded")
+            mission['success'] = False
+            self.handle_mission_failure(mission, world_state)
+            return True
     
     def handle_mission_success(self, mission, world_state):
         """Handle successful mission completion"""
@@ -1030,35 +1200,99 @@ class AIFactionOperative(AIEntity):
         print(f"  📋 Planning {op_type} operation against {target['name']}")
     
     def execute_operation(self, world_state):
-        """Execute the current Faction operation"""
+        """Execute faction operation with D20 roll"""
         if not self.current_operation:
+            return
+        
+        if not d20_system or not CharacterDecision:
+            # Fallback to old system
+            op = self.current_operation
+            if self.resources.get("funds", 0) < op.get("resources_needed", 0) * 1000:
+                print(f"  💰 Insufficient funds for operation")
+                self.current_operation = None
+                return
+            op["progress"] = op.get("progress", 0) + random.randint(15, 35)
+            if op["progress"] >= 100:
+                success = random.randint(1, 20) <= int(self.stealth_level * 16)
+                if success:
+                    print(f"  ✅ {op['type']} operation completed successfully")
+                    self.handle_operation_success(op, world_state)
+                else:
+                    print(f"  ❌ {op['type']} operation failed")
+                    self.handle_operation_failure(op, world_state)
+                self.current_operation = None
+            else:
+                print(f"  🔄 Operation {op['type']} in progress: {op.get('progress', 0)}%")
             return
         
         op = self.current_operation
         
         # Check if operation can proceed
-        if self.resources["funds"] < op["resources_needed"] * 1000:
+        if self.resources.get("funds", 0) < op.get("resources_needed", 0) * 1000:
             print(f"  💰 Insufficient funds for operation")
             self.current_operation = None
             return
         
-        # Execute operation
-        op["progress"] += random.randint(15, 35)
-        
-        if op["progress"] >= 100:
-            # Operation completed
-            success = random.randint(1, 20) <= int(self.stealth_level * 16)  # D20 roll based on stealth level
-            
-            if success:
-                print(f"  ✅ {op['type']} operation completed successfully")
-                self.handle_operation_success(op, world_state)
-            else:
-                print(f"  ❌ {op['type']} operation failed")
-                self.handle_operation_failure(op, world_state)
-            
-            self.current_operation = None
+        # Determine operation DC based on difficulty
+        difficulty = op.get('difficulty', 0.5)
+        if isinstance(difficulty, (int, float)):
+            base_dc = int(difficulty * 20) + 10  # DC 10-30
         else:
-            print(f"  🔄 Operation {op['type']} in progress: {op.get('progress', 0)}%")
+            base_dc = 15  # Default
+        
+        # Determine decision type based on operation type
+        op_type = op.get('type', 'sabotage')
+        if "sabotage" in op_type.lower():
+            decision_type = "stealth"
+        elif "assassination" in op_type.lower():
+            decision_type = "combat"
+        else:
+            decision_type = "social"
+        
+        # Make operation roll
+        decision = CharacterDecision(
+            character_name=f"Faction {self.operative_id}",
+            character_type="faction",
+            decision_type=decision_type,
+            context=f"{op_type} against {op.get('target', {}).get('name', 'target')}",
+            difficulty_class=base_dc,
+            modifiers={
+                'specialization': 3 if self.specialization in op_type else 0,
+                'stealth': int(self.stealth_level * 5),
+                'resources': self.resources.get('funds', 0) // 1000
+            },
+            consequences={}
+        )
+        
+        result = d20_system.resolve_character_decision(decision)
+        roll_result = result['roll_result']
+        
+        print(f"\n  🦹 {self.operative_id}: {op_type}")
+        print(f"     Roll: [{roll_result.roll}] + {roll_result.modifier} = {roll_result.total} vs DC {roll_result.target_number}")
+        
+        if roll_result.critical_success:
+            print(f"     💫 CRITICAL SUCCESS! Operation exceeded expectations!")
+            op['progress'] = 100  # Instant completion
+            self.handle_operation_success(op, world_state)
+            self.current_operation = None
+            
+        elif roll_result.success:
+            print(f"     ✅ Progress made")
+            op['progress'] = min(100, op.get('progress', 0) + 30)
+            
+            if op['progress'] >= 100:
+                self.handle_operation_success(op, world_state)
+                self.current_operation = None
+                
+        elif roll_result.critical_failure:
+            print(f"     💀 CRITICAL FAILURE! Operation exposed!")
+            self.status = "captured"
+            self.handle_operation_failure(op, world_state)
+            self.current_operation = None
+            
+        else:
+            print(f"     ❌ Setback encountered")
+            op['progress'] = min(100, op.get('progress', 0) + 10)
     
     def select_operation_target(self, world_state):
         """Select a target for Faction operations"""
@@ -1370,8 +1604,23 @@ class AIGovernmentAgent(AIEntity):
         return random.sample(methods, random.randint(2, 4))
     
     def conduct_investigation(self, world_state):
-        """Conduct ongoing investigation"""
+        """Conduct investigation with D20 rolls"""
         if not self.current_investigation:
+            return
+        
+        if not d20_system or not CharacterDecision:
+            # Fallback to old system
+            investigation = self.current_investigation
+            if not isinstance(investigation, dict) or "type" not in investigation:
+                self.current_investigation = None
+                return
+            print(f"    🔍 Investigating: {investigation['type']} - Progress: {investigation.get('progress', 0)}%")
+            self.gather_evidence(investigation)
+            self.interview_witnesses(investigation)
+            self.analyze_data(investigation)
+            investigation["progress"] += random.randint(10, 25)
+            if investigation["progress"] >= 100:
+                self.complete_investigation(investigation, world_state)
             return
             
         investigation = self.current_investigation
@@ -1386,19 +1635,67 @@ class AIGovernmentAgent(AIEntity):
             print(f"    ❌ Error: Investigation missing 'type' attribute")
             self.current_investigation = None
             return
+        
+        # Determine investigation DC
+        # Hot locations (from player activity) are easier to investigate
+        base_dc = 15
+        if investigation.get('triggered_by_player'):
+            # Player left evidence - easier to find!
+            heat_level = investigation.get('heat_level', 0.5)
+            if heat_level > 0.7:
+                base_dc = 10  # Very hot trail
+            elif heat_level > 0.5:
+                base_dc = 13
+        
+        # Make investigation roll
+        decision = CharacterDecision(
+            character_name=f"{self.agency} Agent {self.agent_id}",
+            character_type="government",
+            decision_type="intelligence",
+            context=f"Investigating {investigation.get('location', 'Unknown Location')}",
+            difficulty_class=base_dc,
+            modifiers={
+                'clearance_level': self.clearance_level,
+                'specialization': 2 if 'investigation' in self.specialization.lower() else 0,
+                'resources': len(self.resources.get('surveillance_equipment', [])) if isinstance(self.resources.get('surveillance_equipment'), list) else self.resources.get('surveillance_equipment', 0) // 2
+            },
+            consequences={}
+        )
+        
+        result = d20_system.resolve_character_decision(decision)
+        roll_result = result['roll_result']
+        
+        # Print investigation result
+        print(f"\n    🔍 {self.agency} Agent {self.agent_id}: {investigation.get('type', 'Investigation')}")
+        print(f"       Roll: [{roll_result.roll}] + {roll_result.modifier} = {roll_result.total} vs DC {roll_result.target_number}")
+        
+        if roll_result.critical_success:
+            print(f"       💫 CRITICAL SUCCESS! Major breakthrough!")
+            if "evidence" not in investigation:
+                investigation["evidence"] = []
+            investigation['evidence'].append("Critical evidence")
+            investigation['evidence'].append("Additional lead")
+            investigation['progress'] = min(100, investigation.get('progress', 0) + 30)
             
-        print(f"    🔍 Investigating: {investigation['type']} - Progress: {investigation.get('progress', 0)}%")
+        elif roll_result.success:
+            print(f"       ✅ Evidence discovered")
+            if "evidence" not in investigation:
+                investigation["evidence"] = []
+            investigation['evidence'].append("Useful evidence")
+            investigation['progress'] = min(100, investigation.get('progress', 0) + 20)
+            
+        elif roll_result.critical_failure:
+            print(f"       💀 CRITICAL FAILURE! Investigation compromised!")
+            investigation['progress'] = min(100, investigation.get('progress', 0) + 5)
+            world_state['traveler_exposure_risk'] = max(0.0, 
+                world_state.get('traveler_exposure_risk', 0.1) - 0.05)  # Traveler got lucky!
+            
+        else:
+            print(f"       ❌ No useful evidence found")
+            investigation['progress'] = min(100, investigation.get('progress', 0) + 10)
         
-        # Conduct investigation activities
-        self.gather_evidence(investigation)
-        self.interview_witnesses(investigation)
-        self.analyze_data(investigation)
-        
-        # Progress investigation
-        investigation["progress"] += random.randint(10, 25)
-        
-        # Check for completion
-        if investigation["progress"] >= 100:
+        # Check completion
+        if investigation.get('progress', 0) >= 100:
             self.complete_investigation(investigation, world_state)
     
     def gather_evidence(self, investigation):
@@ -1715,6 +2012,20 @@ class AIWorldController:
         
         # Show AI turn summary
         self.show_ai_turn_summary()
+        
+        # Show D20 statistics at end of turn
+        if d20_system:
+            try:
+                stats = d20_system.get_roll_statistics()
+                print("\n" + "=" * 60)
+                print("  🎲 D20 ROLL STATISTICS THIS TURN")
+                print("=" * 60)
+                print(f"  Total Rolls: {stats.get('total_rolls', 0)}")
+                print(f"  Critical Successes: {stats.get('critical_successes', 0)} ({stats.get('critical_success_rate', 0.0):.1f}%)")
+                print(f"  Critical Failures: {stats.get('critical_failures', 0)} ({stats.get('critical_failure_rate', 0.0):.1f}%)")
+                print(f"  Overall Success Rate: {stats.get('success_rate', 0.0):.1f}%")
+            except Exception:
+                pass  # Don't break if stats unavailable
         
         print("=" * 60)
         print("🤖 AI World Turn Complete")
