@@ -1,40 +1,84 @@
 {
   "team_leader": {
-    "name": "Charles",
-    "designation": "5031",
+    "name": "Joseph",
+    "designation": "8985",
     "role": "Team Leader",
-    "occupation": "Soldier",
+    "occupation": "Hacker",
     "skills": [
-      "Geography",
-      "Theater",
-      "Cartography",
-      "Sword Fighting"
+      "Business Intelligence",
+      "Data Warehousing",
+      "Cooking",
+      "Intimidation"
     ],
     "abilities": [
-      "Expert Tactician",
-      "Master Codebreaker",
-      "Exceptional Athlete"
+      "Gifted Scientist",
+      "Gifted Poet"
     ],
-    "mission_count": 1,
+    "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
     "timeline_impact": 0
   },
   "team_members": [
     {
-      "name": "Ashley",
-      "designation": "1541",
+      "name": "John",
+      "designation": "5809",
       "role": "Historian",
+      "occupation": "Leader",
+      "skills": [
+        "History",
+        "Horticulture",
+        "Stealth",
+        "Art",
+        "Surgery"
+      ],
+      "abilities": [
+        "Skilled Teacher",
+        "Master Mediator"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Jaxon",
+      "designation": "2946",
+      "role": "Engineer",
+      "occupation": "Engineer",
+      "skills": [
+        "Sociology",
+        "Biology",
+        "Computer Vision"
+      ],
+      "abilities": [
+        "Expert Negotiator",
+        "Skilled Leader",
+        "Charismatic Leader",
+        "Photographic Memory"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0
+    },
+    {
+      "name": "Heather",
+      "designation": "2283",
+      "role": "Medic",
       "occupation": "Tactician",
       "skills": [
-        "Computer Science",
-        "Sword Fighting",
-        "Mechanical Engineering",
-        "Archery"
+        "Stealth",
+        "Meteorology",
+        "Sniping",
+        "Astrophysics",
+        "Music"
       ],
       "abilities": [
-        "Master Hunter",
-        "Skilled First Responder"
+        "Master Surgeon",
+        "Expert Forger",
+        "Expert Negotiator",
+        "Exceptional Pilot"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -42,62 +86,19 @@
       "timeline_impact": 0
     },
     {
-      "name": "Landon",
-      "designation": "2270",
-      "role": "Engineer",
-      "occupation": "Scientist",
-      "skills": [
-        "Archery",
-        "Vulnerability Assessment",
-        "Environmental Science",
-        "Oceanography",
-        "Theater"
-      ],
-      "abilities": [
-        "Expert Cryptologist",
-        "Skilled Thief"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Alexis",
-      "designation": "6604",
-      "role": "Medic",
-      "occupation": "Historian",
-      "skills": [
-        "Combat",
-        "Penetration Testing",
-        "Nutrition"
-      ],
-      "abilities": [
-        "Skilled Driver",
-        "Charismatic Leader",
-        "Exceptional Pilot",
-        "Expert Medic"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Anthony",
-      "designation": "8092",
+      "name": "Mackenzie",
+      "designation": "5518",
       "role": "Tactician",
       "occupation": "Leader",
       "skills": [
-        "Athletics",
-        "Sniping",
         "Textile Science",
-        "First Aid",
-        "Penetration Testing"
+        "Data Analysis",
+        "Physics",
+        "History"
       ],
       "abilities": [
-        "Master Craftsman",
-        "Exceptional Researcher"
+        "Expert Manager",
+        "Master Martial Artist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
@@ -110,64 +111,109 @@
   "active_missions": [],
   "team_cohesion": 0.8,
   "communication_level": 0.7,
-  "timeline_stability": 0.8550000000000001,
+  "timeline_stability": 0.804,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
+      "change": 0.05,
+      "actual_change": 0.065,
+      "old_stability": 0.85,
+      "new_stability": 0.915,
+      "source": "mission_intelligence_gathering_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 15, 2018",
+      "change": -0.2,
+      "actual_change": -0.26,
+      "old_stability": 0.915,
+      "new_stability": 0.655,
+      "source": "mission_counter_intelligence_critical_failure",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
       "change": 0.1,
       "actual_change": 0.13,
-      "old_stability": 0.85,
-      "new_stability": 0.98,
-      "source": "mission_stealth_preparation_complete_success",
+      "old_stability": 0.7000000000000001,
+      "new_stability": 0.8300000000000001,
+      "source": "mission_host_body_crisis_complete_success",
       "fragility_impact": 0.3
     },
     {
       "timestamp": "March 16, 2018",
-      "change": 0.05,
-      "actual_change": 0.065,
-      "old_stability": 0.983,
-      "new_stability": 1.0,
-      "source": "mission_stealth_preparation_success",
+      "change": -0.02,
+      "actual_change": -0.026000000000000002,
+      "old_stability": 0.8300000000000001,
+      "new_stability": 0.804,
+      "source": "mission_maintenance_operation_partial_success",
       "fragility_impact": 0.3
+    }
+  ],
+  "completed_missions": [
+    {
+      "type": "intelligence_gathering",
+      "location": "Jacksonville, FL",
+      "npc": "Director Liaison",
+      "outcome": "Success",
+      "outcome_raw": "SUCCESS",
+      "date": "March 15, 2018",
+      "phase_results": [
+        "SUCCESS",
+        "SUCCESS",
+        "PARTIAL_SUCCESS"
+      ]
     },
     {
-      "timestamp": "March 16, 2018",
-      "change": 0.05,
-      "actual_change": 0.065,
-      "old_stability": 1.0,
-      "new_stability": 1.0,
-      "source": "mission_stealth_preparation_success",
-      "fragility_impact": 0.3
+      "type": "counter_intelligence",
+      "location": "Military Base - Defense Installation",
+      "npc": "Unknown",
+      "outcome": "Failure",
+      "outcome_raw": "CRITICAL_FAILURE",
+      "date": "March 15, 2018",
+      "phase_results": [
+        "PARTIAL_SUCCESS",
+        "SUCCESS",
+        "CRITICAL_SUCCESS"
+      ]
     },
     {
-      "timestamp": "March 17, 2018",
-      "change": -0.1,
-      "actual_change": -0.13,
-      "old_stability": 0.919,
-      "new_stability": 0.789,
-      "source": "mission_intelligence_gathering_failure",
-      "fragility_impact": 0.3
+      "type": "host_body_crisis",
+      "location": "Valley Hills",
+      "npc": "Dr. Delaney - Quantum Frame Technology Developer",
+      "outcome": "Success",
+      "outcome_raw": "COMPLETE_SUCCESS",
+      "date": "March 16, 2018",
+      "phase_results": [
+        "CRITICAL_SUCCESS",
+        "SUCCESS",
+        "SUCCESS"
+      ]
     },
     {
-      "timestamp": "March 17, 2018",
-      "change": 0.05,
-      "actual_change": 0.065,
-      "old_stability": 0.789,
-      "new_stability": 0.8540000000000001,
-      "source": "mission_stealth_preparation_success",
-      "fragility_impact": 0.3
+      "type": "maintenance_operation",
+      "location": "Host Body Residence - Personal Maintenance",
+      "npc": "Unknown",
+      "outcome": "Partial Success",
+      "outcome_raw": "PARTIAL_SUCCESS",
+      "date": "March 16, 2018",
+      "phase_results": [
+        "CRITICAL_SUCCESS",
+        "CRITICAL_SUCCESS",
+        "PARTIAL_SUCCESS"
+      ]
     }
   ],
   "us_political_system": {
     "executive_branch": {
       "president": {
-        "name": "Joseph R. Biden",
-        "party": "Democratic"
+        "name": "Donald J. Trump",
+        "party": "Republican"
       },
       "vice_president": {
-        "name": "Lisa Williams",
-        "party": "Democratic"
+        "name": "Jacob Gonzalez",
+        "party": "Republican"
       }
     },
     "legislative_branch": {
@@ -176,10 +222,10 @@
         "majority_count": 51
       },
       "house": {
-        "majority_party": "Democrat",
+        "majority_party": "Republican",
         "majority_count": 218
       }
     },
-    "turn_count": 3
+    "turn_count": 2
   }
 }
