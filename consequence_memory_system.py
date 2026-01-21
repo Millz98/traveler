@@ -15,62 +15,216 @@ class WorldMemory:
         self.turn_count = 0
         
     def record_player_mission(self, mission: Dict[str, Any]):
-        """Call this after player completes a mission"""
-        
+        """Record player mission with DYNAMIC heat calculation"""
         location = mission['location']
         
-        # Calculate heat based on mission outcome
-        base_heat = 0.2
-        if not mission.get('success', False):
-            base_heat += 0.5  # Failure is HOT
-        if mission.get('casualties', 0) > 0:
-            base_heat += 0.8  # Combat is VERY HOT
+        # DYNAMIC HEAT CALCULATION based on mission outcome
+        base_heat = 0.0
         
-        # Initialize location if new
+        # 1. Success/Failure impact
+        if mission.get('success', False):
+            base_heat = 0.15  # Even success leaves some trace
+            print(f"  ✅ Mission succeeded - minimal heat")
+        else:
+            base_heat = 0.45  # Failure is HOT
+            print(f"  ❌ Mission failed - significant heat")
+        
+        # 2. Phase performance impact
+        phase_results = mission.get('phase_results', [])
+        if phase_results:
+            critical_failures = sum(1 for p in phase_results if p == 'CRITICAL_FAILURE')
+            critical_successes = sum(1 for p in phase_results if p == 'CRITICAL_SUCCESS')
+            partial_successes = sum(1 for p in phase_results if p == 'PARTIAL_SUCCESS')
+            
+            # Critical failures add MAJOR heat
+            if critical_failures > 0:
+                base_heat += 0.35 * critical_failures
+                print(f"  💀 {critical_failures} critical failure(s) - MAJOR heat increase!")
+            
+            # Partial successes add moderate heat
+            if partial_successes > 0:
+                base_heat += 0.1 * partial_successes
+                print(f"  ⚠️  {partial_successes} partial success(es) - moderate heat")
+            
+            # Critical successes reduce heat
+            if critical_successes > 0:
+                base_heat -= 0.1 * critical_successes
+                print(f"  ⭐ {critical_successes} critical success(es) - reduced heat")
+        
+        # 3. Evidence and casualties
+        if mission.get('evidence_left', False):
+            base_heat += 0.25
+            print(f"  🔬 Evidence left behind - heat +25%")
+        
+        casualties = mission.get('casualties', 0)
+        if casualties > 0:
+            base_heat += 0.15 * casualties
+            print(f"  💀 {casualties} casualties - heat +{casualties * 15}%")
+        
+        # 4. Stealth failure
+        if mission.get('stealth_failed', False):
+            base_heat += 0.2
+            print(f"  👁️ Stealth compromised - heat +20%")
+        
+        # 5. Security level of location
+        security_multipliers = {
+            'low': 0.8,      # Low security = less attention
+            'medium': 1.0,   # Normal
+            'high': 1.3,     # High security = more attention
+            'critical': 1.6  # Critical = massive attention
+        }
+        security_level = mission.get('security_level', 'medium')
+        base_heat *= security_multipliers.get(security_level, 1.0)
+        print(f"  🔒 Security level: {security_level} - heat x{security_multipliers.get(security_level, 1.0)}")
+        
+        # Initialize location tracking
         if location not in self.hot_locations:
             self.hot_locations[location] = {
                 'heat_level': 0.0,
                 'incident_count': 0,
-                'last_incident_turn': self.turn_count
+                'last_incident_turn': self.turn_count,
+                'worst_incident': 'none'
             }
         
-        # Update heat
-        self.hot_locations[location]['heat_level'] = min(1.0,
+        # Apply heat (cumulative)
+        previous_heat = self.hot_locations[location]['heat_level']
+        self.hot_locations[location]['heat_level'] = min(1.0, 
             self.hot_locations[location]['heat_level'] + base_heat)
         self.hot_locations[location]['incident_count'] += 1
         self.hot_locations[location]['last_incident_turn'] = self.turn_count
         
-        # Print feedback
+        # Track worst incident type
+        if base_heat > 0.6:
+            self.hot_locations[location]['worst_incident'] = 'critical'
+        elif base_heat > 0.4:
+            self.hot_locations[location]['worst_incident'] = 'major'
+        
+        # Print dynamic feedback
+        heat_increase = (self.hot_locations[location]['heat_level'] - previous_heat) * 100
         print(f"\n  🔥 LOCATION HEAT: {location}")
-        print(f"     Heat Level: {self.hot_locations[location]['heat_level']:.0%}")
+        print(f"     Previous: {previous_heat:.0%} → Current: {self.hot_locations[location]['heat_level']:.0%} (+{heat_increase:.0f}%)")
+        print(f"     Total Incidents: {self.hot_locations[location]['incident_count']}")
         
-        # Generate consequences
-        self._generate_consequences(mission)
-    
-    def _generate_consequences(self, mission):
-        """Generate future consequences"""
+        # Generate DYNAMIC consequences
+        self._generate_dynamic_consequences(mission, base_heat)
+
+    def _generate_dynamic_consequences(self, mission: Dict[str, Any], heat_level: float):
+        """Generate consequences that vary based on mission severity"""
+        location = mission['location']
+        consequences_generated = 0
         
+        print(f"\n💥 GENERATING DYNAMIC CONSEQUENCES (Heat: {heat_level:.0%}):")
+        
+        # 1. IMMEDIATE RESPONSE - always happens on failure
         if not mission.get('success', False):
-            # Mission failure = consequences
-            print(f"\n💥 GENERATING FAILURE CONSEQUENCES:")
+            response_intensity = min(1.0, heat_level * 1.2)
             
-            # Turn +1: Immediate response
             self.scheduled_consequences.append({
                 'trigger_turn': self.turn_count + 1,
-                'description': f"🚨 Federal agents investigate {mission['location']}",
-                'location': mission['location'],
-                'intensity': 0.9
+                'description': f"🚨 {'URGENT' if response_intensity > 0.7 else 'Priority'} federal response to {location}",
+                'location': location,
+                'intensity': response_intensity,
+                'type': 'immediate_response'
             })
-            print(f"  ⏰ Turn +1: Federal response")
+            consequences_generated += 1
+            print(f"  ⏰ Turn +1: {'URGENT' if response_intensity > 0.7 else 'Standard'} federal response (intensity: {response_intensity:.0%})")
+        
+        # 2. FORENSICS - only if evidence left or critical failure
+        if mission.get('evidence_left', False) or heat_level > 0.6:
+            forensic_depth = 'full' if heat_level > 0.7 else 'standard'
+            turns_until = 2 if heat_level > 0.7 else 3
             
-            # Turn +2: Forensics
             self.scheduled_consequences.append({
-                'trigger_turn': self.turn_count + 2,
-                'description': f"🔬 Forensic analysis at {mission['location']}",
-                'location': mission['location'],
-                'intensity': 0.7
+                'trigger_turn': self.turn_count + turns_until,
+                'description': f"🔬 {forensic_depth.title()} forensic analysis at {location}",
+                'location': location,
+                'intensity': heat_level * 0.8,
+                'type': 'forensics',
+                'traveler_exposure_risk': 0.1 if forensic_depth == 'standard' else 0.25
             })
-            print(f"  ⏰ Turn +2: Forensics")
+            consequences_generated += 1
+            print(f"  ⏰ Turn +{turns_until}: {forensic_depth.title()} forensic analysis")
+        
+        # 3. MEDIA COVERAGE - only if heat is very high
+        if heat_level > 0.65:
+            media_turns = random.randint(2, 4)
+            media_intensity = 'breaking news' if heat_level > 0.8 else 'local coverage'
+            
+            self.scheduled_consequences.append({
+                'trigger_turn': self.turn_count + media_turns,
+                'description': f"📺 {media_intensity.title()}: Incident at {location}",
+                'location': location,
+                'intensity': heat_level,
+                'type': 'media',
+                'public_awareness_increase': 0.05 if media_intensity == 'local coverage' else 0.15
+            })
+            consequences_generated += 1
+            print(f"  ⏰ Turn +{media_turns}: {media_intensity.title()}")
+        
+        # 4. WITNESS STATEMENTS - if there were witnesses
+        if mission.get('witnesses', []):
+            witness_count = len(mission['witnesses'])
+            witness_turns = random.randint(1, 3)
+            
+            self.scheduled_consequences.append({
+                'trigger_turn': self.turn_count + witness_turns,
+                'description': f"👁️ {witness_count} witness(es) providing statements about {location}",
+                'location': location,
+                'intensity': 0.4 + (witness_count * 0.1),
+                'type': 'witnesses',
+                'witness_count': witness_count
+            })
+            consequences_generated += 1
+            print(f"  ⏰ Turn +{witness_turns}: {witness_count} witness statement(s)")
+        
+        # 5. INCREASED SURVEILLANCE - if location hit multiple times
+        if self.hot_locations[location]['incident_count'] >= 2:
+            surveillance_turns = random.randint(3, 6)
+            
+            self.scheduled_consequences.append({
+                'trigger_turn': self.turn_count + surveillance_turns,
+                'description': f"📹 24/7 surveillance network deployed at {location}",
+                'location': location,
+                'intensity': 0.8,
+                'type': 'surveillance',
+                'duration': random.randint(5, 15)
+            })
+            consequences_generated += 1
+            print(f"  ⏰ Turn +{surveillance_turns}: Permanent surveillance installation")
+        
+        # 6. TASK FORCE - only if CRITICAL incident
+        if heat_level > 0.85:
+            task_force_turns = random.randint(4, 7)
+            
+            self.scheduled_consequences.append({
+                'trigger_turn': self.turn_count + task_force_turns,
+                'description': f"🚨 FEDERAL TASK FORCE established targeting {location} area",
+                'location': location,
+                'intensity': 1.0,
+                'type': 'task_force',
+                'priority': 'critical'
+            })
+            consequences_generated += 1
+            print(f"  ⏰ Turn +{task_force_turns}: ⚠️ FEDERAL TASK FORCE formed!")
+        
+        # 7. CASUALTIES INVESTIGATION - if there were deaths
+        if mission.get('casualties', 0) > 0:
+            casualties = mission['casualties']
+            
+            self.scheduled_consequences.append({
+                'trigger_turn': self.turn_count + 1,
+                'description': f"💀 HOMICIDE INVESTIGATION: {casualties} death(s) at {location}",
+                'location': location,
+                'intensity': 1.0,
+                'type': 'homicide',
+                'priority': 'critical',
+                'media_coverage': True
+            })
+            consequences_generated += 1
+            print(f"  ⏰ Turn +1: 💀 HOMICIDE INVESTIGATION ({casualties} casualties)")
+        
+        if consequences_generated == 0:
+            print(f"  ✅ Clean operation - no major consequences generated")
     
     def process_turn(self):
         """Process consequences - call at start of turn"""
