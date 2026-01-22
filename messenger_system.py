@@ -382,7 +382,7 @@ class MessengerSystem:
                 "21st century law enforcement showing increased interest in unexplained deaths.",
                 "Quantum signature detected from unauthorized time travel technology. Investigate.",
                 "Timeline stability compromised. Multiple branches detected.",
-                "Assassination of President Kennedy imminent. Prevent timeline catastrophe.",
+                "Assassination of President [CURRENT_PRESIDENT] imminent. Prevent timeline catastrophe.",
                 "Nuclear war timeline detected. Immediate intervention required.",
                 "Faction has altered historical events. Restore timeline integrity."
             ]
@@ -399,7 +399,35 @@ class MessengerSystem:
             else:
                 message_content = "Former Traveler team has joined Faction. Consider them hostile. Designations: UNKNOWN (no active NPC traveler agents found)."
         
+        # Replace [CURRENT_PRESIDENT] placeholder with actual current president
+        if "[CURRENT_PRESIDENT]" in message_content:
+            current_president = self._get_current_president_name()
+            if current_president:
+                message_content = message_content.replace("[CURRENT_PRESIDENT]", current_president)
+            else:
+                message_content = message_content.replace("[CURRENT_PRESIDENT]", "the current President")
+        
         return message_type, message_content
+    
+    def _get_current_president_name(self) -> str:
+        """Get the name of the current President of the United States"""
+        try:
+            # Try to get from game reference if available
+            if hasattr(self, 'game_ref') and self.game_ref:
+                if hasattr(self.game_ref, 'us_political_system') and self.game_ref.us_political_system:
+                    exec_branch = self.game_ref.us_political_system.executive_branch
+                    if hasattr(exec_branch, 'president') and exec_branch.president:
+                        return exec_branch.president.name
+            
+            # Fallback: Try to import and access directly (for standalone calls)
+            try:
+                import us_political_system
+                # This won't work for global instance, but worth trying
+            except Exception:
+                pass
+        except Exception:
+            pass
+        return None
 
     def _resolve_rogue_traveler_designations(self, count=3):
         """Pick real, already-active NPC Traveler designations for rogue-team alerts."""

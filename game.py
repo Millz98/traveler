@@ -45,6 +45,7 @@ class Game:
         self.dilemma_generator = moral_dilemmas.DilemmaGenerator()
         self.update_system = traveler_updates.UpdateSystem()
         self.messenger_system = messenger_system.MessengerSystem()
+        self.messenger_system.game_ref = self  # Give messenger system access to game for president lookup
         self.living_world = living_world.LivingWorld()
         self.time_system = time_system.TimeSystem()
         self.tribunal_system = tribunal_system.TribunalSystem()
@@ -1299,18 +1300,235 @@ class Game:
             print(f"✅ {target_name or 'Target'} survived the assassination attempt. (Target D20: {roll})")
         else:
             print(f"💀 {target_name or 'Target'} was killed in the assassination attempt. (Target D20: {roll})")
+            
+            # SPECIAL HANDLING: If the President died, trigger MASSIVE consequences
+            if mission.get("is_presidential_assassination") or target_role == "President of the United States":
+                self._handle_presidential_death(target_name, mission)
+
+    def _handle_presidential_death(self, president_name: str, mission: dict):
+        """Handle the death of the President of the United States - MASSIVE REAL-WORLD CONSEQUENCES"""
+        print("\n" + "=" * 80)
+        print("🚨 PRESIDENTIAL ASSASSINATION - NATIONAL CATASTROPHE")
+        print("=" * 80)
+        print(f"💀 {president_name}, President of the United States, has been assassinated.")
+        print("=" * 80)
+        
+        location = mission.get("location", "Unknown Location")
+        method = mission.get("assassination_method", mission.get("target_threat_method", "Unknown"))
+        president_party = mission.get("president_party", "Unknown")
+        
+        # MASSIVE CONSEQUENCES - Like real-world presidential assassination
+        print("\n🌍 IMMEDIATE NATIONAL CONSEQUENCES:")
+        print("=" * 80)
+        
+        # 1. Government succession
+        try:
+            if hasattr(self, 'us_political_system') and self.us_political_system:
+                exec_branch = self.us_political_system.executive_branch
+                if hasattr(exec_branch, 'vice_president') and exec_branch.vice_president:
+                    new_president = exec_branch.vice_president.name
+                    new_president_party = exec_branch.vice_president.party
+                    print(f"   👑 VICE PRESIDENT {new_president} ({new_president_party}) ASSUMES OFFICE")
+                    print(f"      • 25th Amendment invoked - Immediate succession")
+                    print(f"      • New president sworn in within hours")
+                    print(f"      • Government continuity maintained")
+                    
+                    # Update the political system
+                    exec_branch.set_president(new_president_party, new_president)
+                    print(f"      • {new_president} is now the President of the United States")
+                else:
+                    print(f"   ⚠️  VICE PRESIDENT STATUS UNKNOWN - Succession unclear")
+        except Exception as e:
+            print(f"   ⚠️  Could not process presidential succession: {e}")
+        
+        # 2. National emergency declared
+        print(f"\n   🚨 NATIONAL EMERGENCY DECLARED:")
+        print(f"      • All federal agencies on maximum alert")
+        print(f"      • Military placed on high alert")
+        print(f"      • National security protocols activated")
+        print(f"      • Government operations under emergency protocols")
+        
+        # 3. Massive timeline impact
+        try:
+            from messenger_system import global_world_tracker
+            # Presidential assassination causes MASSIVE timeline disruption
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "timeline_stability",
+                "value": -0.30,  # MASSIVE disruption
+                "operation": "add"
+            })
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "public_awareness",
+                "value": 0.50,  # MASSIVE public awareness
+                "operation": "add"
+            })
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "government_control",
+                "value": 0.25,  # Government tightens control
+                "operation": "add"
+            })
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "surveillance_level",
+                "value": 0.40,  # MASSIVE surveillance increase
+                "operation": "add"
+            })
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "national_security",
+                "value": -0.30,  # National security compromised
+                "operation": "add"
+            })
+            
+            # Create ongoing effects
+            global_world_tracker.track_world_event(
+                event_type="presidential_assassination",
+                description=f"President {president_name} assassinated - National crisis",
+                effects=[
+                    {"type": "attribute_change", "target": "timeline_stability", "value": -0.30, "operation": "add"},
+                    {"type": "attribute_change", "target": "public_awareness", "value": 0.50, "operation": "add"},
+                    {"type": "world_event", "target": "national_emergency", "value": "ACTIVE"},
+                    {"type": "world_event", "target": "presidential_succession", "value": "ACTIVE"}
+                ],
+                ongoing_effects=[
+                    {"type": "attribute_change", "target": "timeline_stability", "value": -0.05, "operation": "add"},  # Ongoing instability
+                    {"type": "attribute_change", "target": "surveillance_level", "value": 0.02, "operation": "add"}  # Ongoing surveillance
+                ]
+            )
+        except Exception:
+            pass
+        
+        # 4. Government news - MASSIVE coverage
+        try:
+            from government_news_system import report_political_assassination, generate_news_story
+            
+            # Generate breaking news story
+            news_title = f"BREAKING: President {president_name} Assassinated"
+            news_content = f"In a shocking and unprecedented attack, President {president_name} of the United States has been assassinated. "
+            news_content += f"The attack occurred in {location} using {method}. "
+            news_content += f"Emergency services responded immediately, but the President was pronounced dead at the scene. "
+            news_content += f"The nation is in mourning as the most severe security breach in modern American history unfolds. "
+            news_content += f"All federal agencies have been placed on maximum alert. "
+            news_content += f"The Vice President has been sworn in as the new President of the United States. "
+            news_content += f"This assassination represents a catastrophic failure of national security and will have profound consequences for the nation and the world. "
+            news_content += f"International leaders have expressed shock and condemnation. "
+            news_content += f"The investigation into this attack will be the largest in American history."
+            
+            news_story = generate_news_story(
+                title=news_title,
+                content=news_content,
+                priority="CRITICAL",
+                category="NATIONAL_CRISIS",
+                media="All Major Networks"
+            )
+            
+            # Also report through political assassination system
+            report_political_assassination(
+                target_name=president_name,
+                office="President of the United States",
+                location=location,
+                survived=False,
+                method=method
+            )
+            
+            print(f"\n   📰 MASSIVE MEDIA COVERAGE:")
+            print(f"      • All major networks covering 24/7")
+            print(f"      • International news coverage")
+            print(f"      • Public memorials and vigils nationwide")
+            print(f"      • Historical significance: Presidential assassination")
+        except Exception as e:
+            print(f"   ⚠️  News generation error: {e}")
+        
+        # 5. Government agencies response
+        print(f"\n   🏛️  FEDERAL AGENCY RESPONSE:")
+        print(f"      • FBI: Full-scale investigation launched")
+        print(f"      • Secret Service: Complete security review")
+        print(f"      • CIA: Intelligence gathering on threat")
+        print(f"      • DHS: National security protocols activated")
+        print(f"      • NSA: Digital surveillance at maximum")
+        print(f"      • Department of Defense: Military alert raised")
+        print(f"      • All agencies: Coordinated response effort")
+        
+        # 6. Political consequences
+        print(f"\n   🗳️  POLITICAL CONSEQUENCES:")
+        print(f"      • {president_party} Party leadership in crisis")
+        print(f"      • Opposition party calls for investigation")
+        print(f"      • Congressional emergency session called")
+        print(f"      • Political stability questioned")
+        print(f"      • Public confidence in government shaken")
+        
+        # 7. International consequences
+        print(f"\n   🌐 INTERNATIONAL CONSEQUENCES:")
+        print(f"      • World leaders express shock and condolences")
+        print(f"      • International markets react to instability")
+        print(f"      • Foreign policy implications")
+        print(f"      • Global security concerns raised")
+        print(f"      • Diplomatic relations affected")
+        
+        # 8. Long-term timeline effects
+        print(f"\n   ⏰ LONG-TERM TIMELINE EFFECTS:")
+        print(f"      • Historical timeline permanently altered")
+        print(f"      • Future events accelerated")
+        print(f"      • National trauma and mourning period")
+        print(f"      • Security protocols permanently changed")
+        print(f"      • Public trust in institutions damaged")
+        
+        # 9. Update US Political System
+        try:
+            if hasattr(self, 'us_political_system') and self.us_political_system:
+                # Set national emergency level
+                from us_political_system import AlertLevel
+                self.us_political_system.national_emergency_level = AlertLevel.CRITICAL
+                
+                # Create crisis
+                self.us_political_system.current_crisis = {
+                    "type": "presidential_assassination",
+                    "severity": "CRITICAL",
+                    "description": f"President {president_name} assassinated",
+                    "location": location,
+                    "method": method,
+                    "timestamp": datetime.now()
+                }
+                
+                # Trigger government operations
+                self.us_political_system.government_operations.append({
+                    "type": "emergency_response",
+                    "description": "Presidential assassination response",
+                    "agencies": ["FBI", "CIA", "Secret Service", "DHS", "NSA", "DoD"],
+                    "priority": "CRITICAL",
+                    "status": "active"
+                })
+        except Exception:
+            pass
+        
+        print("\n" + "=" * 80)
+        print("⚠️  WARNING: This assassination will have MASSIVE and PERMANENT consequences.")
+        print("   The timeline has been fundamentally altered.")
+        print("   The future you came from may now be inevitable.")
+        print("=" * 80)
 
     def _trigger_real_time_government_response_to_attack(self, target_name: str, target_role: str, location: str, survived: bool):
         """Simulate real-time US response: media + agencies + investigations."""
+        # SPECIAL: Presidential assassination gets MASSIVE response (handled separately)
+        is_president = target_role == "President of the United States"
+        
         # World state effects (so other systems react this turn)
         try:
             from messenger_system import global_world_tracker
-            # Attempt always increases awareness and surveillance
-            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "public_awareness", "value": 0.06, "operation": "add"})
-            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "surveillance_level", "value": 0.08, "operation": "add"})
-            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "government_control", "value": 0.04, "operation": "add"})
-            # If target died, destabilize more
-            global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "timeline_stability", "value": (-0.06 if not survived else -0.01), "operation": "add"})
+            if is_president and not survived:
+                # Presidential assassination - MASSIVE effects (already handled in _handle_presidential_death)
+                pass  # Effects already applied
+            else:
+                # Regular assassination attempt
+                # Attempt always increases awareness and surveillance
+                global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "public_awareness", "value": 0.06, "operation": "add"})
+                global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "surveillance_level", "value": 0.08, "operation": "add"})
+                global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "government_control", "value": 0.04, "operation": "add"})
+                # If target died, destabilize more
+                global_world_tracker.apply_single_effect({"type": "attribute_change", "target": "timeline_stability", "value": (-0.06 if not survived else -0.01), "operation": "add"})
         except Exception:
             pass
 
@@ -1371,8 +1589,15 @@ class Game:
         
         # Only proceed if mission was successful
         if final_outcome not in ("COMPLETE_SUCCESS", "SUCCESS", "PARTIAL_SUCCESS"):
-            print("\n⚠️  Host body termination mission failed - consciousness transfer not executed")
-            print("   The current host body remains active but compromised.")
+            print("\n" + "=" * 60)
+            print("⚠️  HOST BODY TERMINATION MISSION FAILED")
+            print("=" * 60)
+            print("   Consciousness transfer not executed.")
+            print("   The current host body remains active but is now CRITICALLY COMPROMISED.")
+            print("=" * 60)
+            
+            # Apply failure consequences to the host body
+            self._apply_host_body_termination_failure_consequences(mission)
             return
         
         # Check if this is for the player's host body (team leader)
@@ -1475,6 +1700,177 @@ class Game:
         print(f"   Previous host body ({old_host_name}) has been terminated")
         print(f"   Family and local community have been notified of the death")
     
+    def _apply_host_body_termination_failure_consequences(self, mission: dict):
+        """Apply severe consequences when host body termination mission fails"""
+        import random
+        
+        if not hasattr(self, 'team') or not self.team or not self.team.leader:
+            return
+        
+        player_traveler = self.team.leader
+        host_body = getattr(player_traveler, 'host_body', None)
+        
+        if not host_body:
+            return
+        
+        host_name = getattr(host_body, 'name', 'Unknown')
+        host_location = getattr(host_body, 'location', 'Unknown Location')
+        
+        print(f"\n💥 CRITICAL HOST BODY COMPLICATIONS:")
+        print("=" * 60)
+        
+        # Generate multiple severe complications
+        complications = []
+        
+        # 1. Medical complications (the body is failing)
+        medical_complications = [
+            "Organ failure - body systems shutting down",
+            "Severe neurological damage from failed transfer attempt",
+            "Cardiac arrhythmia - irregular heartbeat",
+            "Respiratory distress - difficulty breathing",
+            "Metabolic collapse - body unable to process nutrients",
+            "Immune system failure - vulnerable to infections",
+            "Chronic pain from transfer attempt damage"
+        ]
+        medical_comp = random.choice(medical_complications)
+        complications.append(("MEDICAL", medical_comp))
+        print(f"   🏥 MEDICAL COMPLICATION: {medical_comp}")
+        
+        # 2. Consciousness stability issues
+        consciousness_issues = [
+            "Consciousness instability - frequent disorientation",
+            "Memory fragmentation - host memories bleeding through",
+            "Identity confusion - Traveler and host consciousness conflicting",
+            "Transfer trauma - psychological damage from failed attempt",
+            "Reality distortion - difficulty distinguishing past from present"
+        ]
+        consciousness_comp = random.choice(consciousness_issues)
+        complications.append(("CONSCIOUSNESS", consciousness_comp))
+        print(f"   🧠 CONSCIOUSNESS ISSUE: {consciousness_comp}")
+        
+        # 3. Family/social complications
+        family_complications = [
+            "Family noticed severe behavioral changes",
+            "Spouse/partner concerned about sudden health decline",
+            "Children frightened by parent's condition",
+            "Family demanding medical intervention",
+            "Neighbors reporting unusual behavior",
+            "Colleagues noticing work performance collapse"
+        ]
+        family_comp = random.choice(family_complications)
+        complications.append(("FAMILY", family_comp))
+        print(f"   👨‍👩‍👧‍👦 FAMILY/SOCIAL: {family_comp}")
+        
+        # 4. Work/occupation complications
+        work_complications = [
+            "Unable to perform job duties - medical leave required",
+            "Colleagues reporting concerning behavior",
+            "Supervisor requesting medical evaluation",
+            "Job performance critically compromised",
+            "Risk of termination due to health issues"
+        ]
+        work_comp = random.choice(work_complications)
+        complications.append(("WORK", work_comp))
+        print(f"   💼 WORK COMPLICATION: {work_comp}")
+        
+        # Apply complications to host body
+        if not hasattr(host_body, 'complications'):
+            host_body.complications = []
+        
+        for comp_type, comp_desc in complications:
+            host_body.complications.append({
+                "type": comp_type,
+                "description": comp_desc,
+                "severity": "CRITICAL",
+                "source": "host_body_termination_failure",
+                "turn_created": getattr(self, 'current_turn', 0)
+            })
+        
+        # Set host body health status
+        if not hasattr(host_body, 'health_status'):
+            host_body.health_status = "CRITICAL"
+        else:
+            host_body.health_status = "CRITICAL"
+        
+        # Set mental state
+        if not hasattr(host_body, 'mental_state'):
+            host_body.mental_state = "UNSTABLE"
+        else:
+            host_body.mental_state = "UNSTABLE"
+        
+        # Increase stress to maximum
+        if not hasattr(host_body, 'stress_level'):
+            host_body.stress_level = 1.0
+        else:
+            host_body.stress_level = min(1.0, host_body.stress_level + 0.5)
+        
+        # Decrease happiness
+        if not hasattr(host_body, 'happiness'):
+            host_body.happiness = 0.1
+        else:
+            host_body.happiness = max(0.0, host_body.happiness - 0.5)
+        
+        # Set family issues flag
+        host_body.family_issues = True
+        host_body.job_problems = True
+        
+        print("\n" + "=" * 60)
+        print("📊 CONSEQUENCE SUMMARY:")
+        print("=" * 60)
+        print(f"   • Host Body: {host_name} is in CRITICAL condition")
+        print(f"   • Health Status: CRITICAL - body systems failing")
+        print(f"   • Mental State: UNSTABLE - consciousness conflict")
+        print(f"   • Active Complications: {len(complications)}")
+        print(f"   • Stress Level: {host_body.stress_level:.1%} (MAXIMUM)")
+        print(f"   • Family Issues: ACTIVE")
+        print(f"   • Work Problems: ACTIVE")
+        print(f"   • Location: {host_location}")
+        
+        # Generate news report about the medical emergency
+        try:
+            from government_news_system import generate_news_story
+            news_title = f"Medical Emergency Reported in {host_location}"
+            news_content = f"Local resident {host_name} was rushed to the hospital following a sudden medical emergency. "
+            news_content += f"Emergency services responded to reports of a severe health crisis. "
+            news_content += f"Medical personnel are working to stabilize the patient's condition. "
+            news_content += f"Family members have been notified and are requesting privacy during this difficult time. "
+            news_content += f"Authorities are investigating the circumstances surrounding the medical emergency."
+            
+            news_story = generate_news_story(
+                title=news_title,
+                content=news_content,
+                priority="MEDIUM",
+                category="LOCAL_NEWS",
+                media="Local News"
+            )
+            
+            print(f"\n📰 NEWS: Medical emergency reported in local news")
+        except Exception:
+            pass
+        
+        # Update world state - failed transfer causes timeline issues
+        try:
+            from messenger_system import global_world_tracker
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "timeline_stability",
+                "value": -0.10,  # Failed transfer causes significant timeline disruption
+                "operation": "add"
+            })
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "public_awareness",
+                "value": 0.05,  # Medical emergency attracts attention
+                "operation": "add"
+            })
+        except Exception:
+            pass
+        
+        print("\n⚠️  WARNING: Host body is deteriorating rapidly.")
+        print("   Another consciousness transfer attempt may be required soon.")
+        print("   The current host body cannot sustain the Traveler consciousness indefinitely.")
+        print("=" * 60)
+    
     def _generate_host_body_death_family_consequences(self, old_host_name, old_host_age, old_host_occupation, old_host_location, old_host_family):
         """Generate consequences for the host body's family after death"""
         print("\n" + "=" * 60)
@@ -1569,7 +1965,118 @@ class Game:
             mission["npc"] = "Director Medical Team"
             mission["challenge"] = "Critical - Host body failing, transfer must succeed"
         
-        # Assassination mission parsing (minimal but effective for current content)
+        # Presidential assassination mission parsing - USE ACTUAL CURRENT PRESIDENT
+        elif "assassination" in content and "president" in content:
+            mission["type"] = "prevent_historical_disaster"
+            mission["objectives"] = ["Locate the threat", "Intercept assassination attempt", "Protect the President", "Prevent timeline catastrophe", "Avoid exposure"]
+            mission["npc"] = "Secret Service Liaison"
+            mission["challenge"] = "CRITICAL - Presidential assassination prevention - Maximum security"
+            mission["time_limit"] = "Immediate - Must be completed within hours"
+            
+            # Get the ACTUAL current president from the US political system
+            target_name = None
+            target_role = "President of the United States"
+            president_party = None
+            
+            try:
+                if hasattr(self, 'us_political_system') and self.us_political_system:
+                    exec_branch = self.us_political_system.executive_branch
+                    if hasattr(exec_branch, 'president') and exec_branch.president:
+                        target_name = exec_branch.president.name
+                        president_party = exec_branch.president.party
+                        print(f"\n🎯 PRESIDENTIAL ASSASSINATION MISSION:")
+                        print(f"   Target: {target_name} ({president_party} Party)")
+                        print(f"   Office: President of the United States")
+                        print(f"   ⚠️  CRITICAL: Failure will have MASSIVE real-world consequences")
+            except Exception as e:
+                print(f"⚠️  Could not retrieve current president: {e}")
+            
+            # Fallback if president not available
+            if not target_name:
+                target_name = "President (Unknown)"
+                print(f"⚠️  WARNING: Using placeholder president name - US Political System may not be initialized")
+            
+            mission["assassination_target_office"] = "President of the United States"
+            mission["assassination_target_name"] = target_name
+            mission["assassination_method"] = "unknown"
+            mission["president_party"] = president_party or "Unknown"
+            
+            # Generalized target fields (used for any protectable NPC)
+            mission["target_npc_name"] = target_name
+            mission["target_npc_role"] = "President of the United States"
+            mission["target_can_die"] = True
+            mission["is_presidential_assassination"] = True  # Flag for special handling
+            
+            # Create president NPC if needed (for tracking death/consequences)
+            target_id = None
+            try:
+                if getattr(self, "world", None):
+                    # Try to find an existing NPC with that name
+                    for npc in (self.world.npcs or []):
+                        # Skip dead NPCs
+                        npc_alive = True
+                        try:
+                            npc_alive = bool(npc.background.get("alive", True))
+                        except Exception:
+                            npc_alive = True
+                        if not npc_alive:
+                            continue
+                        if getattr(npc, "name", "").lower() == target_name.lower():
+                            target_id = npc.id
+                            break
+                    
+                    if not target_id:
+                        # Create a new government NPC record for the President
+                        from world_generation import TravelersNPC
+                        import random
+                        new_id = f"NPC_PRESIDENT_{len(self.world.npcs) + 1:03d}"
+                        new_npc = TravelersNPC(
+                            id=new_id,
+                            name=target_name,
+                            age=random.randint(50, 80),  # President age range
+                            occupation="President of the United States",
+                            faction="government",
+                            background={
+                                "education": "Law" if president_party == "Democratic" else "Business",
+                                "years_experience": random.randint(20, 40),
+                                "previous_roles": random.randint(3, 6),
+                                "family_status": random.choice(["Married", "Married with children"]),
+                                "financial_status": "Wealthy",
+                                "political_views": "Liberal" if president_party == "Democratic" else "Conservative",
+                                "personal_interests": ["Public service", "Policy", "National security"],
+                                "alive": True,
+                            },
+                            education="Law" if president_party == "Democratic" else "Business",
+                            work_location="White House, Washington D.C.",
+                            home_address="1600 Pennsylvania Avenue NW, Washington D.C.",
+                            personality_traits=["Public-facing", "Diplomatic", "Cautious"],
+                            paranoia_level=random.uniform(0.4, 0.7),  # Presidents have higher paranoia
+                            observation_skills=random.uniform(0.6, 0.9),  # High observation skills
+                            cooperation_level=random.uniform(0.3, 0.6),
+                            security_clearance=5,  # Maximum clearance
+                            contacts=[],
+                            secrets=["National security briefings", "Classified information"],
+                            valuable_information=["Presidential schedule", "Security protocols", "Policy decisions"],
+                            daily_routine={"weekday": ["Oval Office", "Meetings", "Briefings", "Public appearances"], "weekend": ["Camp David", "Family time", "Policy review"]},
+                            schedule_reliability=random.uniform(0.8, 0.95),  # Very reliable schedule
+                            social_habits=["Public appearances", "State dinners", "International travel"],
+                            threat_to_travelers=random.uniform(0.1, 0.3),  # Low threat (not actively hunting)
+                            usefulness_to_travelers=random.uniform(0.7, 0.9),  # High usefulness (policy influence)
+                            current_awareness=random.uniform(0.2, 0.4),
+                        )
+                        self.world.npcs.append(new_npc)
+                        target_id = new_id
+            except Exception as e:
+                target_id = None
+                print(f"⚠️  Could not create President NPC: {e}")
+            
+            mission["assassination_target_npc_id"] = target_id
+            mission["target_npc_id"] = target_id
+            # Track alive state (default alive)
+            if target_id and target_id not in self.npc_status:
+                self.npc_status[target_id] = True
+            
+        # Senator/other assassination mission parsing
         elif "assassination" in content and "senator" in content:
             mission["type"] = "prevent_historical_disaster"
             mission["objectives"] = ["Locate the target", "Intercept the threat", "Prevent assassination", "Avoid exposure"]
@@ -6673,40 +7180,115 @@ class Game:
         self.clear_screen()
         self.print_header("HOST BODY COMPLICATIONS")
         
-        if hasattr(self, 'player_character') and self.player_character and hasattr(self.player_character, 'host_body'):
-            host_body = self.player_character.host_body
+        # Check team leader's host body (player's host)
+        host_body = None
+        if hasattr(self, 'team') and self.team and self.team.leader:
+            host_body = getattr(self.team.leader, 'host_body', None)
+        
+        # Fallback to player_character if team not available
+        if not host_body and hasattr(self, 'player_character') and self.player_character:
+            host_body = getattr(self.player_character, 'host_body', None)
+        
+        if host_body:
             print("🏥 HOST BODY HEALTH STATUS")
-            print("=" * 50)
+            print("=" * 60)
             
-            # Check for various complications
-            complications = []
-            if hasattr(host_body, 'health_status') and host_body.health_status != 'Healthy':
-                complications.append(f"Health: {host_body.health_status}")
-            
-            if hasattr(host_body, 'mental_state') and host_body.mental_state != 'Stable':
-                complications.append(f"Mental State: {host_body.mental_state}")
-            
-            if hasattr(host_body, 'social_standing') and host_body.social_standing == 'Compromised':
-                complications.append(f"Social Standing: {host_body.social_standing}")
-            
-            if hasattr(host_body, 'legal_status') and host_body.legal_status == 'Wanted':
-                complications.append(f"Legal Status: {host_body.legal_status}")
-            
-            if complications:
-                print("⚠️  ACTIVE COMPLICATIONS:")
-                for comp in complications:
-                    print(f"  • {comp}")
-            else:
-                print("✅ No active complications detected")
-            
-            # Show general host body info
+            # Show general host body info first
             print(f"\n📋 HOST BODY DETAILS:")
             print(f"  • Name: {getattr(host_body, 'name', 'Unknown')}")
             print(f"  • Age: {getattr(host_body, 'age', 'Unknown')}")
             print(f"  • Occupation: {getattr(host_body, 'occupation', 'Unknown')}")
             print(f"  • Location: {getattr(host_body, 'location', 'Unknown')}")
+            
+            # Check for stored complications list
+            complications_found = []
+            if hasattr(host_body, 'complications') and host_body.complications:
+                for comp in host_body.complications:
+                    comp_type = comp.get('type', 'UNKNOWN')
+                    comp_desc = comp.get('description', 'Unknown complication')
+                    comp_severity = comp.get('severity', 'MODERATE')
+                    comp_source = comp.get('source', 'unknown')
+                    
+                    complications_found.append({
+                        'type': comp_type,
+                        'description': comp_desc,
+                        'severity': comp_severity,
+                        'source': comp_source
+                    })
+            
+            # Check for various status complications
+            status_complications = []
+            if hasattr(host_body, 'health_status') and host_body.health_status and host_body.health_status != 'Healthy':
+                status_complications.append(f"Health Status: {host_body.health_status}")
+            
+            if hasattr(host_body, 'mental_state') and host_body.mental_state and host_body.mental_state != 'Stable':
+                status_complications.append(f"Mental State: {host_body.mental_state}")
+            
+            if hasattr(host_body, 'social_standing') and host_body.social_standing == 'Compromised':
+                status_complications.append(f"Social Standing: {host_body.social_standing}")
+            
+            if hasattr(host_body, 'legal_status') and host_body.legal_status == 'Wanted':
+                status_complications.append(f"Legal Status: {host_body.legal_status}")
+            
+            if hasattr(host_body, 'family_issues') and host_body.family_issues:
+                status_complications.append("Family Issues: ACTIVE")
+            
+            if hasattr(host_body, 'job_problems') and host_body.job_problems:
+                status_complications.append("Work Problems: ACTIVE")
+            
+            # Show stress and happiness levels
+            if hasattr(host_body, 'stress_level'):
+                stress = host_body.stress_level
+                print(f"\n📊 HOST BODY STATUS:")
+                print(f"  • Stress Level: {stress:.1%}")
+                if stress > 0.8:
+                    print(f"    ⚠️  CRITICAL STRESS - Host body is under extreme pressure")
+                elif stress > 0.6:
+                    print(f"    ⚠️  HIGH STRESS - Host body is struggling")
+            
+            if hasattr(host_body, 'happiness'):
+                happiness = host_body.happiness
+                print(f"  • Happiness: {happiness:.1%}")
+                if happiness < 0.3:
+                    print(f"    ⚠️  CRITICALLY LOW - Host body quality of life is poor")
+            
+            # Display all complications
+            if complications_found or status_complications:
+                print(f"\n⚠️  ACTIVE COMPLICATIONS ({len(complications_found) + len(status_complications)} total):")
+                print("=" * 60)
+                
+                # Show detailed complications from list
+                for comp in complications_found:
+                    severity_icon = "🚨" if comp['severity'] == "CRITICAL" else "⚠️"
+                    print(f"\n{severity_icon} {comp['type']} COMPLICATION:")
+                    print(f"   Description: {comp['description']}")
+                    print(f"   Severity: {comp['severity']}")
+                    if comp['source'] != 'unknown':
+                        print(f"   Source: {comp['source'].replace('_', ' ').title()}")
+                
+                # Show status complications
+                if status_complications:
+                    print(f"\n📋 STATUS COMPLICATIONS:")
+                    for comp in status_complications:
+                        print(f"   • {comp}")
+                
+                # Show recommendations
+                print(f"\n💡 RECOMMENDATIONS:")
+                if any(c['severity'] == 'CRITICAL' for c in complications_found):
+                    print(f"   🚨 CRITICAL: Host body requires immediate attention")
+                    print(f"   • Consider another consciousness transfer attempt")
+                    print(f"   • Medical intervention may be necessary")
+                    print(f"   • Family/work complications need management")
+                else:
+                    print(f"   • Monitor host body condition closely")
+                    print(f"   • Address complications before they worsen")
+                    print(f"   • Consider mission to resolve complications")
+            else:
+                print("\n✅ No active complications detected")
+                print("   Host body is in stable condition")
         else:
             print("❌ No host body information available")
+            print("   No host body assigned to team leader")
         
         self.print_separator()
         input("Press Enter to continue...")
