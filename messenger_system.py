@@ -3271,6 +3271,224 @@ class DynamicWorldEventsSystem:
         
         return event_id
     
+    def process_defected_programmer_operations(self):
+        """Process operations for defected programmers - they remain active!"""
+        defected_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data.get("loyalty") == "defected" and data.get("status") == "active"
+        ]
+        
+        if not defected_programmers:
+            return
+        
+        for programmer_name in defected_programmers:
+            programmer = self.directors_programmers[programmer_name]
+            defection_info = self.defection_status.get(programmer_name, {})
+            target_faction = defection_info.get("target_faction", "The Faction")
+            
+            # Check if they're on cooldown
+            if defection_info.get("operation_cooldown", 0) > 0:
+                defection_info["operation_cooldown"] -= 1
+                continue
+            
+            # If not on a mission, start a new operation
+            if programmer_name in self.npc_schedules:
+                npc = self.npc_schedules[programmer_name]
+                if npc.get("current_mission") is None:
+                    # Determine operation type based on faction
+                    if target_faction == "The Faction":
+                        operation_types = ["intelligence_gathering", "sabotage", "recruitment"]
+                    else:  # Traveler 001
+                        operation_types = ["timeline_disruption", "recruitment", "infrastructure_sabotage"]
+                    
+                    operation_type = random.choice(operation_types)
+                    
+                    # Start the operation
+                    mission_id = self.start_npc_mission(programmer_name, operation_type)
+                    if mission_id:
+                        print(f"   🦹 Defected programmer {programmer_name} ({target_faction}) started {operation_type} operation")
+                        defection_info["current_operation"] = operation_type
+    
+    def check_traveler_detection_of_defected_programmers(self):
+        """Check if Traveler teams (player or AI) detect defected programmer activities"""
+        defected_programmers = [
+            name for name, data in self.directors_programmers.items()
+            if data.get("loyalty") == "defected" and data.get("status") == "active"
+        ]
+        
+        if not defected_programmers:
+            return
+        
+        # Check each defected programmer's current activity
+        for programmer_name in defected_programmers:
+            programmer = self.directors_programmers[programmer_name]
+            defection_info = self.defection_status.get(programmer_name, {})
+            
+            # Check if they're currently on a mission
+            if programmer_name in self.npc_schedules:
+                npc = self.npc_schedules[programmer_name]
+                if npc.get("current_mission"):
+                    # D20 roll for detection chance
+                    # Base DC: 15 (moderate difficulty to detect)
+                    detection_dc = 15
+                    
+                    # Adjust DC based on operation type (some are harder to detect)
+                    operation_type = npc.get("current_mission", "")
+                    if operation_type in ["intelligence_gathering", "recruitment"]:
+                        detection_dc += 3  # Harder to detect
+                    elif operation_type in ["sabotage", "infrastructure_sabotage"]:
+                        detection_dc -= 2  # Easier to detect (more visible)
+                    
+                    # Roll for detection (simulate Traveler team intelligence gathering)
+                    detection_roll = random.randint(1, 20)
+                    
+                    if detection_roll >= detection_dc:
+                        # DETECTED! Generate interception mission
+                        self.generate_programmer_interception_mission(programmer_name, operation_type, detection_roll)
+    
+    def generate_programmer_interception_mission(self, programmer_name, operation_type, detection_roll):
+        """Generate a mission for Traveler teams to intercept a defected programmer"""
+        programmer = self.directors_programmers[programmer_name]
+        defection_info = self.defection_status.get(programmer_name, {})
+        target_faction = defection_info.get("target_faction", "The Faction")
+        
+        # Check if interception mission already exists
+        existing_interception = [
+            m for m in self.mission_timers.values()
+            if m.get("mission_type") == "intercept_defected_programmer" and m.get("target_programmer") == programmer_name
+        ]
+        
+        if existing_interception:
+            return  # Already being intercepted
+        
+        # Determine mission location (use programmer's current location or generate one)
+        mission_location = "Unknown Location"
+        if programmer_name in self.npc_schedules:
+            npc = self.npc_schedules[programmer_name]
+            mission_location = npc.get("location", "Unknown Location")
+        
+        # Create interception mission
+        interception_mission = {
+            "type": "intercept_defected_programmer",
+            "target_programmer": programmer_name,
+            "target_faction": target_faction,
+            "operation_type": operation_type,
+            "location": mission_location,
+            "urgency": "HIGH",
+            "description": f"Intercept {programmer_name} ({target_faction}) before they complete {operation_type}",
+            "detection_roll": detection_roll,
+            "available_to_teams": True,  # Available to both player and AI teams
+            "time_limit": random.randint(2, 4),  # 2-4 turns to intercept
+            "created_turn": getattr(global_world_tracker, 'current_turn', 0)
+        }
+        
+        # Add to global mission queue (available to all Traveler teams)
+        if not hasattr(self, 'interception_missions'):
+            self.interception_missions = []
+        self.interception_missions.append(interception_mission)
+        
+        print(f"   🚨 INTERCEPTION MISSION GENERATED: Stop {programmer_name} ({target_faction})")
+        print(f"      Operation: {operation_type} at {mission_location}")
+        print(f"      Detection Roll: {detection_roll}")
+        print(f"      Available to all Traveler teams")
+    
+    def attempt_programmer_interception(self, team_id, programmer_name, world_state=None):
+        """Attempt to intercept a defected programmer (called by Traveler teams)"""
+        if not hasattr(self, 'interception_missions'):
+            return {"success": False, "message": "No interception missions available"}
+        
+        # Find the interception mission
+        interception = None
+        for mission in self.interception_missions:
+            if mission.get("target_programmer") == programmer_name:
+                interception = mission
+                break
+        
+        if not interception:
+            return {"success": False, "message": f"No active interception mission for {programmer_name}"}
+        
+        # Check if target is still active
+        if programmer_name not in self.directors_programmers:
+            return {"success": False, "message": f"{programmer_name} is no longer active"}
+        
+        programmer = self.directors_programmers[programmer_name]
+        if programmer.get("loyalty") != "defected":
+            return {"success": False, "message": f"{programmer_name} is no longer defected"}
+        
+        # D20 roll for interception success
+        # Base DC: 18 (difficult - defected programmers are skilled)
+        interception_dc = 18
+        
+        # Adjust DC based on operation type
+        operation_type = interception.get("operation_type", "")
+        if operation_type in ["sabotage", "infrastructure_sabotage"]:
+            interception_dc -= 2  # Easier to intercept (more visible operations)
+        elif operation_type in ["intelligence_gathering", "recruitment"]:
+            interception_dc += 2  # Harder to intercept (covert operations)
+        
+        # Roll for interception
+        interception_roll = random.randint(1, 20)
+        
+        # Team modifiers (could be enhanced with team stats)
+        team_modifier = 0
+        if world_state:
+            # Add modifiers based on team capabilities
+            team_modifier += 2  # Base Traveler team bonus
+        
+        total_roll = interception_roll + team_modifier
+        
+        result = {
+            "success": total_roll >= interception_dc,
+            "roll": interception_roll,
+            "modifier": team_modifier,
+            "total": total_roll,
+            "dc": interception_dc,
+            "programmer": programmer_name,
+            "operation_type": operation_type
+        }
+        
+        if result["success"]:
+            # SUCCESS! Intercepted the programmer
+            print(f"   ✅ INTERCEPTION SUCCESS! Team {team_id} stopped {programmer_name}")
+            print(f"      Roll: {interception_roll} + {team_modifier} = {total_roll} vs DC {interception_dc}")
+            
+            # Disrupt their operation
+            if programmer_name in self.npc_schedules:
+                npc = self.npc_schedules[programmer_name]
+                if npc.get("current_mission"):
+                    # Cancel their current mission
+                    mission_id = None
+                    for mid, mission in self.mission_timers.items():
+                        if mission.get("npc") == programmer_name and mission.get("active"):
+                            mission_id = mid
+                            break
+                    
+                    if mission_id:
+                        # Mark mission as disrupted
+                        self.mission_timers[mission_id]["active"] = False
+                        self.mission_timers[mission_id]["disrupted"] = True
+                        self.complete_npc_mission(mission_id, success=False)
+                    
+                    npc["current_mission"] = None
+                    npc["mission_cooldown"] = random.randint(3, 6)  # Longer cooldown after interception
+            
+            # Remove interception mission
+            self.interception_missions = [m for m in self.interception_missions if m.get("target_programmer") != programmer_name]
+            
+            result["message"] = f"Successfully intercepted {programmer_name} and disrupted their {operation_type} operation"
+        else:
+            # FAILURE - programmer evades interception
+            print(f"   ❌ INTERCEPTION FAILED! {programmer_name} evaded Team {team_id}")
+            print(f"      Roll: {interception_roll} + {team_modifier} = {total_roll} vs DC {interception_dc}")
+            
+            # Programmer becomes more cautious (harder to detect next time)
+            defection_info = self.defection_status.get(programmer_name, {})
+            defection_info["detection_dc_modifier"] = defection_info.get("detection_dc_modifier", 0) + 2
+            
+            result["message"] = f"Failed to intercept {programmer_name}. They evaded and are now more cautious"
+        
+        return result
+    
     def process_world_turn(self):
         """Process one turn of world events and NPC actions"""
         print(f"🔄 Processing world turn...")
@@ -3294,6 +3512,12 @@ class DynamicWorldEventsSystem:
                     print(f"🚨 Defection events processed: {len(defection_events)} programmers")
         except:
             pass  # Game reference might not be available
+        
+        # NEW: Process defected programmer operations (they remain active!)
+        self.process_defected_programmer_operations()
+        
+        # NEW: Check for Traveler team detection of defected programmer activities
+        self.check_traveler_detection_of_defected_programmers()
         
         # Process AI Traveler Teams
         self.process_ai_traveler_teams()
@@ -5314,14 +5538,40 @@ def get_world_activity_feed():
             "chance": defection_chance
         })
         
+        # Determine which faction they defect to (Faction or Traveler 001)
+        # 60% chance Faction, 40% chance Traveler 001
+        target_faction = "The Faction" if random.random() < 0.6 else "Traveler 001"
+        
         # Update defection status
         self.defection_status[programmer_name].update({
             "defected": True,
             "defection_turn": current_turn,
-            "target_faction": "The Faction",
+            "target_faction": target_faction,
             "defection_method": method,
-            "defection_reason": reason
+            "defection_reason": reason,
+            "status": "active",  # Ensure they remain active
+            "current_operation": None,
+            "operation_cooldown": 0
         })
+        
+        # Update programmer data to track faction
+        programmer["defected_to"] = target_faction
+        programmer["status"] = "active"  # Keep them active
+        
+        # Add to appropriate faction
+        if target_faction == "The Faction":
+            if target_faction in self.faction_agendas:
+                self.faction_agendas[target_faction]["defected_programmers"].append(programmer_name)
+        elif target_faction == "Traveler 001":
+            # Traveler 001 gets their own tracking
+            if "Traveler 001" not in self.faction_agendas:
+                self.faction_agendas["Traveler 001"] = {
+                    "defected_programmers": [],
+                    "influence": 0.1,
+                    "operatives": 0
+                }
+            self.faction_agendas["Traveler 001"]["defected_programmers"].append(programmer_name)
+            self.faction_agendas["Traveler 001"]["operatives"] += 1
         
         # Generate defection event
         defection_event = {
@@ -5331,11 +5581,12 @@ def get_world_activity_feed():
             "reason": reason,
             "turn": current_turn,
             "severity": "CRITICAL",
-            "description": f"🚨 CRITICAL: {programmer_name} has defected to the Faction!",
+            "description": f"🚨 CRITICAL: {programmer_name} has defected to {target_faction}!",
             "details": f"Defection triggered by {method}. Reason: {reason}",
+            "target_faction": target_faction,
             "consequences": {
                 "director_control": -0.15,
-                "faction_influence": 0.20,
+                "faction_influence": 0.20 if target_faction == "The Faction" else 0.10,
                 "timeline_stability": -0.10,
                 "system_security": -0.25
             }

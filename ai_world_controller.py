@@ -262,6 +262,9 @@ class AITravelerTeam(AIEntity):
         self.manage_relationships()
         self.manage_work_responsibilities()
         
+        # NEW: Check for interception missions (defected programmers)
+        self._check_and_attempt_interceptions(world_state)
+        
         # Check for new missions (only if life is stable)
         if self.life_balance_score > 0.4:
             if random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance of new mission)
@@ -300,6 +303,49 @@ class AITravelerTeam(AIEntity):
         
         self.update_life_balance()
         self.update_world_state(world_state)
+    
+    def _check_and_attempt_interceptions(self, world_state):
+        """Check for interception missions and attempt them if team is available"""
+        # Only attempt if team is in good shape
+        if self.life_balance_score < 0.4:
+            return
+        
+        # Try to get messenger system to access interception missions
+        try:
+            # Get game reference from world_state if available
+            game_ref = world_state.get('game_reference')
+            if not game_ref:
+                return
+            
+            if not hasattr(game_ref, 'messenger_system'):
+                return
+            
+            dwe = game_ref.messenger_system.dynamic_world_events
+            interception_missions = getattr(dwe, 'interception_missions', [])
+            
+            if not interception_missions:
+                return
+            
+            # Random chance to attempt interception (20% per turn)
+            if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance)
+                # Pick a random interception mission
+                mission = random.choice(interception_missions)
+                programmer_name = mission.get("target_programmer")
+                
+                if programmer_name:
+                    # Attempt interception
+                    result = dwe.attempt_programmer_interception(
+                        team_id=self.team_id,
+                        programmer_name=programmer_name,
+                        world_state=world_state
+                    )
+                    
+                    if result.get("success"):
+                        print(f"  ✅ Team {self.team_id} intercepted {programmer_name}!")
+                    # Don't print failures to reduce noise
+        
+        except Exception:
+            pass  # Silently fail if system not available
         
     def manage_host_lives(self, time_system):
         """Manage the daily lives of all host bodies"""
@@ -1973,12 +2019,16 @@ class AIWorldController:
         
         # Output is now handled by the calling game.py method
     
-    def execute_ai_turn(self, world_state, time_system, world_memory=None):
+    def execute_ai_turn(self, world_state, time_system, world_memory=None, player_team=None):
         """Execute AI turn when player ends their turn"""
         print(f"\n🤖 AI WORLD TURN - {time_system.get_current_date_string()}")
         print("=" * 60)
         
         self.turn_count += 1
+        
+        # Process player's team host bodies first (if provided)
+        if player_team:
+            self._process_player_team_host_bodies(player_team, world_state, time_system)
         
         # AI Traveler teams take their turns
         print(f"\n🕵️  AI TRAVELER TEAMS:")
@@ -2029,6 +2079,136 @@ class AIWorldController:
         
         print("=" * 60)
         print("🤖 AI World Turn Complete")
+    
+    def _process_player_team_host_bodies(self, player_team, world_state, time_system):
+        """Process the player's team host bodies with daily activities"""
+        if not player_team or not hasattr(player_team, 'members'):
+            return
+        
+        print(f"\n👥 YOUR TEAM:")
+        print(f"  🏠 Managing host body daily lives...")
+        
+        # Get all team members with host bodies
+        members_with_hosts = [m for m in player_team.members if hasattr(m, 'host_body') and m.host_body]
+        
+        if not members_with_hosts:
+            return
+        
+        # Generate daily activities for each host body
+        daily_activities = [
+            "Morning exercise", "Work preparation", "Reading", "Meditation", 
+            "Meetings", "Email management", "Team collaboration", "Commute to work",
+            "Work routine", "Client meeting", "Performance review", "Planning",
+            "Training", "Project work", "Research", "Writing", "Coding",
+            "Social interaction", "Family time", "Hobby activity"
+        ]
+        
+        for member in members_with_hosts:
+            host_body = member.host_body
+            if not host_body:
+                continue
+            
+            # Get host body attributes (with defaults)
+            host_name = getattr(host_body, 'name', f'Host-{member.designation}')
+            
+            # Initialize stress/happiness if they don't exist
+            if not hasattr(host_body, 'stress_level'):
+                host_body.stress_level = 0.3
+            if not hasattr(host_body, 'happiness'):
+                host_body.happiness = 0.5
+            
+            host_stress = host_body.stress_level
+            host_happiness = host_body.happiness
+            
+            # Select 2 random activities for D20 rolls
+            selected_activities = random.sample(daily_activities, min(2, len(daily_activities)))
+            
+            for activity in selected_activities:
+                if not d20_system or not CharacterDecision:
+                    # Fallback: simple success check
+                    success = random.randint(1, 20) <= 16
+                    if not success:
+                        print(f"    ❌ {host_name}: {activity}")
+                        print(f"       Failed")
+                    continue
+                
+                # Determine difficulty
+                base_dc = 11  # Normal daily activities
+                if host_stress > 0.7:
+                    base_dc = 15
+                
+                # Make D20 roll
+                decision = CharacterDecision(
+                    character_name=host_name,
+                    character_type="civilian",
+                    decision_type="social",
+                    context=activity,
+                    difficulty_class=base_dc,
+                    modifiers={
+                        'stress_penalty': -int(host_stress * 5),
+                        'happiness_bonus': int(host_happiness * 2)
+                    },
+                    consequences={}
+                )
+                
+                result = d20_system.resolve_character_decision(decision)
+                roll_result = result['roll_result']
+                
+                # Show all results (not just failures, since this is the player's team)
+                if roll_result.critical_success:
+                    print(f"    ⭐ {host_name}: {activity}")
+                    print(f"       CRITICAL SUCCESS! [{roll_result.roll}] Exceptional day!")
+                    host_body.happiness = min(1.0, host_happiness + 0.1)
+                elif roll_result.critical_failure:
+                    print(f"    💀 {host_name}: {activity}")
+                    print(f"       CRITICAL FAILURE! [{roll_result.roll}] Disaster!")
+                    host_body.stress_level = min(1.0, host_stress + 0.2)
+                elif not roll_result.success:
+                    print(f"    ❌ {host_name}: {activity}")
+                    print(f"       Failed [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
+                    host_body.stress_level = min(1.0, host_stress + 0.05)
+            
+            # Handle random life events (similar to AI teams)
+            if random.randint(1, 20) <= 3:  # 15% chance
+                events = [
+                    "Family member called", "Work deadline approaching", "Medical appointment",
+                    "Social invitation", "Financial concern", "Relationship issue"
+                ]
+                event = random.choice(events)
+                print(f"    📅 Life event for {host_name}: {event}")
+                if random.randint(1, 20) <= 14:  # 70% success
+                    print(f"      ✅ General event handled well")
+                else:
+                    print(f"      ⚠️  Event was challenging")
+            
+            # Handle relationship events
+            if random.randint(1, 20) <= 2:  # 10% chance
+                rel_events = [
+                    "Social invitation", "Relationship milestone", "Family interaction"
+                ]
+                event = random.choice(rel_events)
+                print(f"    👥 Relationship event for {host_name}: {event}")
+                print(f"      ✅ Positive relationship event")
+            
+            # Handle work events
+            if random.randint(1, 20) <= 2:  # 10% chance
+                work_events = [
+                    "Team collaboration", "Work routine", "Commute to work"
+                ]
+                event = random.choice(work_events)
+                print(f"    💼 Weekday event for {host_name}: {event}")
+                if random.randint(1, 20) <= 14:  # 70% success
+                    print(f"      ✅ Weekday event handled well")
+                else:
+                    print(f"      ⚠️  Weekday event was challenging")
+        
+        # Show team summary
+        print(f"  📊 Team Status:")
+        print(f"    • Active Members: {len(members_with_hosts)}")
+        if hasattr(player_team, 'team_cohesion'):
+            print(f"    • Team Cohesion: {player_team.team_cohesion:.2f}")
+        if hasattr(player_team, 'communication_level'):
+            print(f"    • Communication: {player_team.communication_level:.2f}")
     
     def generate_world_events(self, world_state, time_system):
         """Generate random world events during AI turn"""

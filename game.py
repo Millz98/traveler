@@ -656,31 +656,33 @@ class Game:
                     elif choice == "21":
                         self.view_director_programmers()
                     elif choice == "22":
-                        self.view_dynamic_world_status()
+                        self.view_interception_missions()
                     elif choice == "23":
-                        self.view_world_activity_feed()
+                        self.view_dynamic_world_status()
                     elif choice == "24":
-                        self.view_government_news_and_status()
+                        self.view_world_activity_feed()
                     elif choice == "25":
-                        self.view_us_political_system_status()
+                        self.view_government_news_and_status()
                     elif choice == "26":
-                        self.view_dynamic_traveler_systems_status()
+                        self.view_us_political_system_status()
                     elif choice == "27":
-                        self.view_dynamic_mission_system_status()
+                        self.view_dynamic_traveler_systems_status()
                     elif choice == "28":
-                        self.view_d20_statistics()
+                        self.view_dynamic_mission_system_status()
                     elif choice == "29":
-                        self.view_rich_world_data()
+                        self.view_d20_statistics()
                     elif choice == "30":
-                        self.end_turn()
+                        self.view_rich_world_data()
                     elif choice == "31":
-                        self.save_game()
+                        self.end_turn()
                     elif choice == "32":
+                        self.save_game()
+                    elif choice == "33":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
                     else:
-                        print("\n❌ Invalid choice. Please enter a number between 1 and 30.")
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 33.")
                         input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
@@ -729,10 +731,11 @@ class Game:
             print("19. View Tribunal Status")
             print("20. View Timeline Analysis")
             print("21. View Director's Programmers")
-            print("22. View Dynamic World Status")
-            print("23. View World Activity Feed")
-        print("24. View Government News & Status")
-        print("25. View US Political System Status")
+            print("22. View Interception Missions (Defected Programmers)")
+            print("23. View Dynamic World Status")
+            print("24. View World Activity Feed")
+        print("25. View Government News & Status")
+        print("26. View US Political System Status")
         print("26. View Dynamic Traveler Systems Status")
         print("27. View Dynamic Mission System Status")
         print("28. View D20 Decision System Statistics")
@@ -2738,7 +2741,14 @@ class Game:
         # FIRST: Execute AI world turn
         if hasattr(self, 'ai_world_controller'):
             print("\n🤖 Processing AI World Controller...")
-            self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system)
+            # Pass player team so their host bodies are processed too
+            player_team = self.team if hasattr(self, 'team') and self.team else None
+            self.ai_world_controller.execute_ai_turn(
+                self.get_game_state(), 
+                self.time_system, 
+                world_memory=getattr(self, 'world_memory', None),
+                player_team=player_team
+            )
             self.ai_world_controller.update_world_state_from_ai_turn(self.get_game_state())
             print("✅ AI World Controller processed!")
         
@@ -2829,7 +2839,14 @@ class Game:
             rolls.append(result)
             
             # Execute the actual AI turn
-            self.ai_world_controller.execute_ai_turn(self.get_game_state(), self.time_system)
+            # Pass player team so their host bodies are processed too
+            player_team = self.team if hasattr(self, 'team') and self.team else None
+            self.ai_world_controller.execute_ai_turn(
+                self.get_game_state(), 
+                self.time_system,
+                world_memory=getattr(self, 'world_memory', None),
+                player_team=player_team
+            )
             self.ai_world_controller.update_world_state_from_ai_turn(self.get_game_state())
         
         return rolls
@@ -4846,7 +4863,8 @@ class Game:
             "mission_count": mission_count,
             "timeline_stability": self.living_world.timeline_stability,
             "faction_influence": self.living_world.faction_influence,
-            "director_control": self.living_world.director_control
+            "director_control": self.living_world.director_control,
+            "game_reference": self  # Add game reference for AI teams to access interception missions
         }
         
         # Add hacking system state if available
@@ -5356,6 +5374,101 @@ class Game:
             else:
                 print(f"❌ Invalid choice. Please enter 1-4.")
                 input("Press Enter to continue...")
+    
+    def view_interception_missions(self):
+        """View and attempt interception missions for defected programmers"""
+        while True:
+            self.clear_screen()
+            print(f"{'='*60}")
+            print(f"🚨 INTERCEPTION MISSIONS - DEFECTED PROGRAMMERS")
+            print(f"{'='*60}")
+            
+            if not hasattr(self, 'messenger_system') or not hasattr(self.messenger_system, 'dynamic_world_events'):
+                print("\n⚠️  Dynamic World Events system not initialized.")
+                input("Press Enter to continue...")
+                return
+            
+            dwe = self.messenger_system.dynamic_world_events
+            
+            # Get available interception missions
+            interception_missions = getattr(dwe, 'interception_missions', [])
+            
+            if not interception_missions:
+                print("\n✅ No active interception missions available.")
+                print("   Defected programmers are either not active or have not been detected yet.")
+                print("\n   Interception missions are generated when:")
+                print("   • A defected programmer is actively executing an operation")
+                print("   • A Traveler team successfully detects their activity (D20 roll)")
+                print("   • The operation is visible enough to be intercepted")
+            else:
+                print(f"\n🚨 ACTIVE INTERCEPTION MISSIONS ({len(interception_missions)}):")
+                print(f"{'-'*60}")
+                
+                for i, mission in enumerate(interception_missions, 1):
+                    programmer_name = mission.get("target_programmer", "Unknown")
+                    target_faction = mission.get("target_faction", "Unknown")
+                    operation_type = mission.get("operation_type", "Unknown")
+                    location = mission.get("location", "Unknown Location")
+                    time_limit = mission.get("time_limit", 0)
+                    detection_roll = mission.get("detection_roll", 0)
+                    
+                    print(f"\n{i}. {programmer_name} ({target_faction})")
+                    print(f"   Operation: {operation_type}")
+                    print(f"   Location: {location}")
+                    print(f"   Time Remaining: {time_limit} turn(s)")
+                    print(f"   Detection Roll: {detection_roll}")
+                    print(f"   Urgency: {mission.get('urgency', 'MEDIUM')}")
+                    print(f"   Description: {mission.get('description', 'Intercept defected programmer')}")
+                
+                print(f"\n{'='*60}")
+                print("Options:")
+                print("  [1-{}] - Attempt interception (enter mission number)".format(len(interception_missions)))
+                print("  'b' - Go back to main menu")
+                
+                choice = input("\nYour choice: ").strip().lower()
+                
+                if choice == 'b':
+                    break
+                elif choice.isdigit():
+                    mission_index = int(choice) - 1
+                    if 0 <= mission_index < len(interception_missions):
+                        mission = interception_missions[mission_index]
+                        programmer_name = mission.get("target_programmer")
+                        
+                        # Attempt interception
+                        print(f"\n🚨 ATTEMPTING INTERCEPTION...")
+                        print(f"   Target: {programmer_name}")
+                        print(f"   Operation: {mission.get('operation_type')}")
+                        
+                        result = dwe.attempt_programmer_interception(
+                            team_id=self.team.leader.designation if hasattr(self, 'team') and self.team else "Player Team",
+                            programmer_name=programmer_name,
+                            world_state=self.get_game_state()
+                        )
+                        
+                        print(f"\n{'='*60}")
+                        if result.get("success"):
+                            print(f"✅ {result.get('message', 'Interception successful!')}")
+                            print(f"   Roll: {result.get('roll')} + {result.get('modifier')} = {result.get('total')} vs DC {result.get('dc')}")
+                        else:
+                            print(f"❌ {result.get('message', 'Interception failed!')}")
+                            print(f"   Roll: {result.get('roll')} + {result.get('modifier')} = {result.get('total')} vs DC {result.get('dc')}")
+                        print(f"{'='*60}")
+                        
+                        input("\nPress Enter to continue...")
+                    else:
+                        print("\n❌ Invalid mission number.")
+                        input("Press Enter to continue...")
+                else:
+                    print("\n❌ Invalid choice.")
+                    input("Press Enter to continue...")
+            
+            print(f"\n{'='*60}")
+            print("Press 'b' to go back to main menu")
+            choice = input("Your choice: ").strip().lower()
+            
+            if choice == 'b':
+                break
     
     def view_defection_risk_analysis(self):
         """Display detailed defection risk analysis for all programmers"""
