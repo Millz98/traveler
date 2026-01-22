@@ -79,7 +79,7 @@ class GovernmentDetectionSystem:
         self.generate_real_time_detection_events(world_state, game_state)
         
         # Process all pending detection events
-        self.process_detection_events(world_state)
+        self.process_detection_events(world_state, game_state)
         
         # Update active investigations
         self.update_investigations(world_state)
@@ -124,8 +124,10 @@ class GovernmentDetectionSystem:
         print(f"     Severity: {severity:.2f}")
         print(f"     Risk Increase: {severity * detection_chance * risk_multiplier * 0.1:.3f}")
         
-    def process_detection_events(self, world_state: Dict):
+    def process_detection_events(self, world_state: Dict, game_state: Dict = None):
         """Process all pending detection events"""
+        if game_state is None:
+            game_state = {}
         print(f"\n📋 Processing {len(self.detection_events)} detection events...")
         
         for event in self.detection_events[:]:
@@ -144,6 +146,9 @@ class GovernmentDetectionSystem:
                     event.status = "detected"
                     self.handle_detection(event, detection_result, world_state)
                     print(f"\n    🚨 DETECTED: Government agencies have successfully identified the threat.")
+                    
+                    # Check if Traveler teams or news can discover this detection
+                    self.check_detection_discovery(event, detection_result, world_state, game_state)
                 else:
                     event.status = "avoided"
                     print(f"\n    ✅ AVOIDED: The threat successfully evaded government detection.")
@@ -1138,6 +1143,197 @@ class GovernmentDetectionSystem:
             return "The Faction's operations are approaching dangerous exposure levels. Government intelligence agencies are closing in, and their carefully constructed cover is being tested. Every operation now carries increased risk of discovery. The Faction must adapt their tactics or risk losing their advantage in the shadow war for the future."
         
         return f"The {entity.replace('_', ' ')} is approaching exposure thresholds, requiring increased operational security and caution."
+    
+    def check_detection_discovery(self, event: DetectionEvent, detection_result: Dict, world_state: Dict, game_state: Dict):
+        """Check if Traveler teams or news can discover this detection event"""
+        # Base chance of discovery based on detection quality and severity
+        base_discovery_chance = detection_result.get("detection_quality", 0.5) * event.severity
+        
+        # Higher severity detections are more likely to leak
+        severity_modifier = event.severity * 0.3
+        
+        # Critical successes are more likely to be noticed
+        if detection_result.get("critical_success", False):
+            severity_modifier += 0.2
+        
+        # Multiple agencies involved = more likely to leak
+        agency_count = len(detection_result.get("monitoring_agencies", []))
+        agency_modifier = min(0.2, agency_count * 0.05)
+        
+        total_discovery_chance = min(0.8, base_discovery_chance + severity_modifier + agency_modifier)
+        
+        # Check if Traveler teams discover it
+        if random.random() < total_discovery_chance * 0.6:  # 60% of discovery chance for Travelers
+            self.discover_by_traveler_teams(event, detection_result, world_state, game_state)
+        
+        # Check if news discovers it (lower chance, but possible)
+        if random.random() < total_discovery_chance * 0.3:  # 30% of discovery chance for news
+            self.discover_by_news(event, detection_result, world_state, game_state)
+    
+    def discover_by_traveler_teams(self, event: DetectionEvent, detection_result: Dict, world_state: Dict, game_state: Dict):
+        """Traveler teams discover the detection event through monitoring/hacking"""
+        print(f"\n    🔍 TRAVELER INTELLIGENCE: Detection event discovered!")
+        
+        # Determine how they discovered it
+        discovery_methods = [
+            "monitoring government communications",
+            "hacking government databases",
+            "intercepting surveillance feeds",
+            "infiltrating government agencies",
+            "monitoring news and public records",
+            "analyzing government activity patterns"
+        ]
+        method = random.choice(discovery_methods)
+        
+        # Create intelligence report
+        intelligence_report = {
+            "type": "government_detection_discovered",
+            "event_type": event.event_type,
+            "location": event.location,
+            "description": event.description,
+            "severity": event.severity,
+            "detection_quality": detection_result.get("detection_quality", 0.5),
+            "agencies_involved": detection_result.get("monitoring_agencies", []),
+            "discovery_method": method,
+            "timestamp": event.timestamp,
+            "context_data": event.context_data or {}
+        }
+        
+        # Add to game state for Traveler teams to access
+        if 'traveler_intelligence' not in game_state:
+            game_state['traveler_intelligence'] = []
+        game_state['traveler_intelligence'].append(intelligence_report)
+        
+        # Notify player and AI teams
+        print(f"       📡 Discovery Method: {method}")
+        print(f"       📍 Location: {event.location}")
+        print(f"       🎯 Event Type: {event.event_type.replace('_', ' ').title()}")
+        print(f"       ⚠️  Severity: {event.severity:.1%}")
+        print(f"       🏛️  Agencies: {', '.join(detection_result.get('monitoring_agencies', []))}")
+        
+        # Add specific details based on event type
+        if event.context_data:
+            context = event.context_data
+            if event.event_type == "mission_activity":
+                print(f"       🎯 Mission Type: {context.get('mission_type', 'Unknown')}")
+                print(f"       📋 Objective: {context.get('mission_objective', 'Unknown')}")
+            elif event.event_type == "cyber_activity":
+                print(f"       🖥️  Target System: {context.get('target_system', 'Unknown')}")
+                print(f"       🔓 Operation Type: {context.get('operation_type', 'Unknown')}")
+            elif event.event_type == "faction_operation":
+                print(f"       🦹 Activity Type: {context.get('activity_type', 'Unknown')}")
+                print(f"       📊 Faction Influence: {context.get('faction_influence', 0.2):.1%}")
+        
+        print(f"       💡 Intelligence: Government has detected {event.description}")
+        print(f"       ⚠️  WARNING: This detection increases exposure risk!")
+        
+        # Try to notify AI Traveler teams
+        try:
+            from ai_world_controller import AIWorldController
+            # This will be handled by the AI controller when it processes teams
+            if 'ai_detection_intelligence' not in game_state:
+                game_state['ai_detection_intelligence'] = []
+            game_state['ai_detection_intelligence'].append(intelligence_report)
+        except Exception:
+            pass
+    
+    def discover_by_news(self, event: DetectionEvent, detection_result: Dict, world_state: Dict, game_state: Dict):
+        """News/media discovers the detection event and reports it"""
+        print(f"\n    📰 NEWS DISCOVERY: Detection event leaked to media!")
+        
+        # Determine news source
+        news_sources = [
+            "anonymous government source",
+            "whistleblower",
+            "leaked documents",
+            "investigative journalism",
+            "public records request",
+            "government transparency report"
+        ]
+        source = random.choice(news_sources)
+        
+        # Create news story
+        news_story = {
+            "type": "government_detection_news",
+            "event_type": event.event_type,
+            "location": event.location,
+            "description": event.description,
+            "severity": event.severity,
+            "source": source,
+            "agencies_involved": detection_result.get("monitoring_agencies", []),
+            "timestamp": event.timestamp,
+            "context_data": event.context_data or {}
+        }
+        
+        # Add to government news system
+        try:
+            from government_news_system import generate_news_story
+            # Generate a news story about the detection
+            news_title = self._generate_news_title(event, detection_result)
+            news_content = self._generate_news_content(event, detection_result, source)
+            
+            news_story_full = generate_news_story(
+                title=news_title,
+                content=news_content,
+                priority="HIGH" if event.severity > 0.6 else "MEDIUM",
+                category="GOVERNMENT_ACTION",
+                media="Multiple Sources"
+            )
+            
+            # Add to game state
+            if 'detection_news_stories' not in game_state:
+                game_state['detection_news_stories'] = []
+            game_state['detection_news_stories'].append(news_story_full)
+            
+            print(f"       📰 News Source: {source}")
+            print(f"       📰 Headline: {news_title}")
+            print(f"       📍 Location: {event.location}")
+            print(f"       🏛️  Agencies: {', '.join(detection_result.get('monitoring_agencies', []))}")
+            print(f"       ⚠️  Public Awareness: This detection is now public knowledge!")
+            
+        except Exception as e:
+            # Fallback if news system not available
+            print(f"       📰 News Source: {source}")
+            print(f"       📰 Story: Government agencies detected {event.description}")
+            print(f"       📍 Location: {event.location}")
+            print(f"       ⚠️  Public Awareness: This detection may become public knowledge!")
+    
+    def _generate_news_title(self, event: DetectionEvent, detection_result: Dict) -> str:
+        """Generate a news headline for the detection event"""
+        event_type = event.event_type.replace('_', ' ').title()
+        location = event.location.replace('_', ' ').title()
+        
+        titles = {
+            "mission_activity": f"Government Surveillance Detects Suspicious Activity in {location}",
+            "cyber_activity": f"Cybersecurity Breach Detected: Government Agencies Investigate {location}",
+            "faction_operation": f"Intelligence Agencies Uncover Organized Subversive Activity",
+            "timeline_anomaly": f"Scientific Agencies Report Unusual Quantum Fluctuations",
+            "surveillance_alert": f"Enhanced Surveillance Networks Detect Coordinated Activity",
+            "world_event_analysis": f"Government Analysts Identify Suspicious Patterns in Recent Events"
+        }
+        
+        return titles.get(event.event_type, f"Government Agencies Detect {event_type} Activity")
+    
+    def _generate_news_content(self, event: DetectionEvent, detection_result: Dict, source: str) -> str:
+        """Generate news content for the detection event"""
+        agencies = ', '.join(detection_result.get("monitoring_agencies", []))
+        location = event.location.replace('_', ' ').title()
+        
+        content = f"According to {source}, government agencies including {agencies} have detected {event.description.lower()} "
+        content += f"in {location}. "
+        
+        if event.context_data:
+            context = event.context_data
+            if context.get("detection_indicators"):
+                indicators = context["detection_indicators"][:2]
+                content += f"Intelligence sources report {', '.join(indicators).lower()}. "
+        
+        content += f"The investigation is ongoing, with multiple agencies coordinating their response. "
+        content += f"Officials have declined to comment on the specific nature of the threat, "
+        content += f"but sources indicate that surveillance and counter-intelligence operations have been intensified. "
+        content += f"This development comes as government agencies continue to monitor potential threats to national security."
+        
+        return content
 
 # Global detection system instance
 government_detection = GovernmentDetectionSystem()

@@ -309,7 +309,9 @@ class Game:
                 # Persist Director programmers so special NPCs like Grace Day (0027) stay in the game once introduced
                 "director_programmers": getattr(self, "director_programmers", None),
                 "world_memory": self._serialize_world_memory() if getattr(self, "world_memory", None) else None,
-                "us_political_system": self._save_us_political_system_state() if hasattr(self, 'us_political_system') and self.us_political_system else None
+                "us_political_system": self._save_us_political_system_state() if hasattr(self, 'us_political_system') and self.us_political_system else None,
+                # Persist Traveler 001's history and patterns so his actions have lasting impact
+                "traveler_001_state": self._save_traveler_001_state() if hasattr(self, 'traveler_001_system') and self.traveler_001_system else None
             }
             
             # Save team members
@@ -514,6 +516,13 @@ class Game:
             except Exception:
                 pass
             
+            # Restore Traveler 001's history and patterns
+            try:
+                if save_data.get("traveler_001_state") and hasattr(self, 'traveler_001_system') and self.traveler_001_system:
+                    self._restore_traveler_001_state(save_data["traveler_001_state"])
+            except Exception:
+                pass
+            
             # Restore timeline data
             if "timeline_stability" in save_data:
                 # Update the GlobalWorldStateTracker instead of local variable
@@ -574,6 +583,102 @@ class Game:
         wm.player_actions = data.get("player_actions", []) or []
         wm.hot_locations = data.get("hot_locations", {}) or {}
         wm.scheduled_consequences = data.get("scheduled_consequences", []) or {}
+    
+    def _save_traveler_001_state(self) -> dict:
+        """Serialize Traveler 001's history and patterns for persistence"""
+        try:
+            if not hasattr(self, 'traveler_001_system') or not self.traveler_001_system:
+                return {}
+            
+            t001 = self.traveler_001_system
+            
+            # Serialize mission history (convert dataclass to dict)
+            mission_history = []
+            for mission in getattr(t001, 'mission_history', []):
+                mission_dict = {
+                    "mission_id": mission.mission_id,
+                    "mission_type": mission.mission_type,
+                    "description": mission.description,
+                    "location": mission.location,
+                    "outcome": mission.outcome,
+                    "start_time": mission.start_time.isoformat() if mission.start_time else None,
+                    "completion_time": mission.completion_time.isoformat() if mission.completion_time else None
+                }
+                mission_history.append(mission_dict)
+            
+            return {
+                "traveler_001": t001.traveler_001.copy(),
+                "objectives": t001.objectives.copy(),
+                "resources": t001.resources.copy(),
+                "mission_history": mission_history,
+                "mission_patterns": getattr(t001, 'mission_patterns', {}),
+                "operation_locations": getattr(t001, 'operation_locations', {})
+            }
+        except Exception:
+            return {}
+    
+    def _restore_traveler_001_state(self, data: dict):
+        """Restore Traveler 001's history and patterns from saved state"""
+        try:
+            if not hasattr(self, 'traveler_001_system') or not self.traveler_001_system:
+                return
+            
+            if not isinstance(data, dict):
+                return
+            
+            t001 = self.traveler_001_system
+            
+            # Restore 001's status
+            if "traveler_001" in data:
+                t001.traveler_001.update(data["traveler_001"])
+            
+            # Restore objectives
+            if "objectives" in data:
+                t001.objectives.update(data["objectives"])
+            
+            # Restore resources
+            if "resources" in data:
+                t001.resources.update(data["resources"])
+            
+            # Restore mission patterns (critical for persistent behavior)
+            if "mission_patterns" in data:
+                t001.mission_patterns = data["mission_patterns"]
+            
+            # Restore operation locations (for location-based decisions)
+            if "operation_locations" in data:
+                t001.operation_locations = data["operation_locations"]
+            
+            # Restore mission history (for pattern recognition)
+            if "mission_history" in data:
+                from traveler_001_system import Traveler001Mission
+                from datetime import datetime
+                
+                restored_history = []
+                for mission_dict in data["mission_history"]:
+                    try:
+                        mission = Traveler001Mission(
+                            mission_id=mission_dict.get("mission_id", ""),
+                            mission_type=mission_dict.get("mission_type", ""),
+                            description=mission_dict.get("description", ""),
+                            location=mission_dict.get("location", ""),
+                            target="Various",
+                            success_chance=0.5,
+                            timeline_impact=0.0,
+                            faction_influence_gain=0.0,
+                            government_response=0.0,
+                            active=False,
+                            start_time=datetime.fromisoformat(mission_dict["start_time"]) if mission_dict.get("start_time") else None,
+                            completion_time=datetime.fromisoformat(mission_dict["completion_time"]) if mission_dict.get("completion_time") else None,
+                            outcome=mission_dict.get("outcome")
+                        )
+                        restored_history.append(mission)
+                    except Exception:
+                        pass
+                
+                t001.mission_history = restored_history
+            
+        except Exception:
+            pass  # Don't break game if restoration fails
 
     def run(self):
         """Main game loop"""
@@ -664,25 +769,27 @@ class Game:
                     elif choice == "25":
                         self.view_government_news_and_status()
                     elif choice == "26":
-                        self.view_us_political_system_status()
+                        self.view_traveler_intelligence_reports()
                     elif choice == "27":
-                        self.view_dynamic_traveler_systems_status()
+                        self.view_us_political_system_status()
                     elif choice == "28":
-                        self.view_dynamic_mission_system_status()
+                        self.view_dynamic_traveler_systems_status()
                     elif choice == "29":
-                        self.view_d20_statistics()
+                        self.view_dynamic_mission_system_status()
                     elif choice == "30":
-                        self.view_rich_world_data()
+                        self.view_d20_statistics()
                     elif choice == "31":
-                        self.end_turn()
+                        self.view_rich_world_data()
                     elif choice == "32":
-                        self.save_game()
+                        self.end_turn()
                     elif choice == "33":
+                        self.save_game()
+                    elif choice == "34":
                         print("\n👋 Thanks for playing Travelers!")
                         self.save_game()
                         break
                     else:
-                        print("\n❌ Invalid choice. Please enter a number between 1 and 33.")
+                        print("\n❌ Invalid choice. Please enter a number between 1 and 34.")
                         input("Press Enter to continue...")
                     
             except KeyboardInterrupt:
@@ -735,14 +842,15 @@ class Game:
             print("23. View Dynamic World Status")
             print("24. View World Activity Feed")
         print("25. View Government News & Status")
-        print("26. View US Political System Status")
-        print("27. View Dynamic Traveler Systems Status")
-        print("28. View Dynamic Mission System Status")
-        print("29. View D20 Decision System Statistics")
-        print("30. View Rich World Data (NPCs & Locations)")
-        print("31. End Turn")
-        print("32. Save Game")
-        print("33. Quit Game")
+        print("26. View Traveler Intelligence Reports (Government Detection Intel)")
+        print("27. View US Political System Status")
+        print("28. View Dynamic Traveler Systems Status")
+        print("29. View Dynamic Mission System Status")
+        print("30. View D20 Decision System Statistics")
+        print("31. View Rich World Data (NPCs & Locations)")
+        print("32. End Turn")
+        print("33. Save Game")
+        print("34. Quit Game")
         
         self.print_separator()
         
@@ -760,7 +868,7 @@ class Game:
         if not self.team_formed:
             choice = input(f"\nEnter your choice (1-6): ")
         else:
-            choice = input(f"\nEnter your choice (1-32): ")
+            choice = input(f"\nEnter your choice (1-34): ")
         
         return choice
 
@@ -6805,6 +6913,138 @@ class Game:
         
         self.print_separator()
         input("Press Enter to continue...")
+    
+    def view_traveler_intelligence_reports(self):
+        """View intelligence reports gathered by Traveler teams about government detection activities"""
+        self.clear_screen()
+        self.print_header("TRAVELER INTELLIGENCE REPORTS")
+        self.print_separator()
+        
+        game_state = self.get_game_state()
+        intelligence_reports = game_state.get('traveler_intelligence', [])
+        
+        if not intelligence_reports:
+            print("\n📡 NO INTELLIGENCE REPORTS AVAILABLE")
+            print("=" * 60)
+            print("\n💡 Intelligence reports are generated when:")
+            print("   • Government agencies detect Traveler or Faction activities")
+            print("   • Traveler teams successfully monitor/hack government systems")
+            print("   • News sources leak information about government investigations")
+            print("\n🎯 Use this intelligence to:")
+            print("   • Understand what the government knows about your operations")
+            print("   • Identify locations with high surveillance")
+            print("   • Plan missions to avoid detection")
+            print("   • Fix the timeline by preventing government interference")
+            print("\n" + "=" * 60)
+            input("\nPress Enter to continue...")
+            return
+        
+        print(f"\n📡 TRAVELER INTELLIGENCE REPORTS ({len(intelligence_reports)} total)")
+        print("=" * 60)
+        print("\n💡 INTELLIGENCE PURPOSE:")
+        print("   The future you came from is a nightmare. Every piece of intelligence")
+        print("   helps you understand what the government knows, so you can:")
+        print("   • Prevent timeline disruptions that lead to the future")
+        print("   • Avoid government detection that could compromise your mission")
+        print("   • Identify threats before they become critical")
+        print("   • Make informed decisions to fix the timeline")
+        print("\n" + "=" * 60)
+        
+        # Show most recent reports first
+        from datetime import datetime
+        recent_reports = sorted(intelligence_reports, key=lambda x: x.get('timestamp', datetime.now()), reverse=True)
+        
+        for idx, report in enumerate(recent_reports[:20], 1):  # Show last 20 reports
+            print(f"\n📋 INTELLIGENCE REPORT #{idx}")
+            print("-" * 60)
+            
+            # Report metadata
+            timestamp = report.get('timestamp', datetime.now())
+            if isinstance(timestamp, str):
+                try:
+                    timestamp = datetime.fromisoformat(timestamp)
+                except:
+                    timestamp = datetime.now()
+            
+            print(f"📅 Date: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"🎯 Event Type: {report.get('event_type', 'Unknown').replace('_', ' ').title()}")
+            print(f"📍 Location: {report.get('location', 'Unknown')}")
+            print(f"⚠️  Severity: {report.get('severity', 0.0):.1%}")
+            print(f"🏛️  Agencies Involved: {', '.join(report.get('agencies_involved', []))}")
+            print(f"📡 Discovery Method: {report.get('discovery_method', 'Unknown')}")
+            
+            # Description
+            description = report.get('description', 'No description available')
+            print(f"\n📝 DETECTION DETAILS:")
+            print(f"   {description}")
+            
+            # Context-specific intelligence
+            context = report.get('context_data', {})
+            if context:
+                print(f"\n🔍 ADDITIONAL INTELLIGENCE:")
+                
+                if report.get('event_type') == "mission_activity":
+                    print(f"   🎯 Mission Type: {context.get('mission_type', 'Unknown')}")
+                    print(f"   📋 Objective: {context.get('mission_objective', 'Unknown')}")
+                    print(f"   👥 Team Size: {context.get('team_size', 'Unknown')}")
+                    print(f"   ⚡ Urgency: {context.get('mission_urgency', 0.0):.1%}")
+                    if context.get('detection_indicators'):
+                        print(f"   🚨 Detection Indicators:")
+                        for indicator in context.get('detection_indicators', [])[:3]:
+                            print(f"      • {indicator}")
+                
+                elif report.get('event_type') == "cyber_activity":
+                    print(f"   🖥️  Target System: {context.get('target_system', 'Unknown')}")
+                    print(f"   🔓 Operation Type: {context.get('operation_type', 'Unknown')}")
+                    print(f"   👤 Hacker Type: {context.get('hacker_type', 'Unknown')}")
+                    print(f"   📊 Alert Level: {context.get('alert_level', 0.0):.1%}")
+                
+                elif report.get('event_type') == "faction_operation":
+                    print(f"   🦹 Activity Type: {context.get('activity_type', 'Unknown')}")
+                    print(f"   📊 Faction Influence: {context.get('faction_influence', 0.2):.1%}")
+                    print(f"   🎯 Description: {context.get('activity_description', 'Unknown')}")
+                
+                elif report.get('event_type') == "timeline_anomaly":
+                    print(f"   ⏰ Timeline Stability: {context.get('timeline_stability', 0.8):.1%}")
+                    print(f"   📊 Anomaly Magnitude: {context.get('anomaly_magnitude', 0.2):.1%}")
+                    print(f"   📍 Affected Locations: {context.get('affected_locations', 0)}")
+            
+            # Detection quality
+            detection_quality = report.get('detection_quality', 0.0)
+            print(f"\n📊 DETECTION QUALITY: {detection_quality:.1%}")
+            if detection_quality > 0.8:
+                print(f"   🚨 CRITICAL: Government has high-quality intelligence on this event")
+            elif detection_quality > 0.6:
+                print(f"   ⚠️  HIGH: Government has substantial intelligence")
+            elif detection_quality > 0.4:
+                print(f"   🔍 MODERATE: Government has partial intelligence")
+            else:
+                print(f"   ✅ LOW: Government intelligence is limited")
+            
+            # Actionable intelligence
+            print(f"\n💡 ACTIONABLE INTELLIGENCE:")
+            print(f"   • Government knows about: {report.get('event_type', 'Unknown').replace('_', ' ')}")
+            print(f"   • Location risk: {report.get('location', 'Unknown')} is under surveillance")
+            print(f"   • Exposure risk: {report.get('severity', 0.0):.1%} severity increases exposure")
+            print(f"   • Recommendation: {'AVOID this location' if report.get('severity', 0.0) > 0.6 else 'Exercise caution in this area'}")
+        
+        print("\n" + "=" * 60)
+        print(f"\n📊 INTELLIGENCE SUMMARY:")
+        print(f"   • Total Reports: {len(intelligence_reports)}")
+        print(f"   • High Severity Events: {sum(1 for r in intelligence_reports if r.get('severity', 0.0) > 0.6)}")
+        print(f"   • Critical Detections: {sum(1 for r in intelligence_reports if r.get('detection_quality', 0.0) > 0.8)}")
+        
+        # Find most active location
+        locations = [r.get('location', 'Unknown') for r in intelligence_reports]
+        if locations:
+            most_active = max(set(locations), key=locations.count)
+            print(f"   • Most Active Location: {most_active}")
+        
+        print("\n🎯 REMEMBER: Every piece of intelligence helps you fix the timeline.")
+        print("   Use this information to make informed decisions and prevent the future.")
+        
+        self.print_separator()
+        input("\nPress Enter to continue...")
 
     def view_government_news_and_status(self):
         """View government news and operational status"""
