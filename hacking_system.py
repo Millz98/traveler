@@ -215,6 +215,10 @@ class Hacker:
             if result:
                 # Success
                 op["status"] = "completed"
+                # Enrich result with operation metadata so higher-level systems can react realistically
+                if isinstance(result, dict):
+                    result.setdefault("target_name", op["target"].name)
+                    result.setdefault("operation_type", op["type"])
                 op["result"] = result
                 self.operation_history.append(op.copy())
                 
@@ -388,6 +392,8 @@ class HackingSystem:
         self.global_alert_level = 0.0
         self.government_investigations = []  # Track active investigations
         self.cyber_threats = 0.0  # Track cyber threat level
+        # NEW: Track Traveler-gathered intelligence about Faction activity and infrastructure
+        self.faction_intel = []  # Each entry: {"source": hacker_name, "target": target_name, "severity": ..., "timestamp": ...}
         
     def initialize_hacking_world(self, hackers=None, targets=None, tools_count=None):
         """Initialize the hacking world with hackers and targets"""
@@ -521,6 +527,11 @@ class HackingSystem:
         for hacker in self.hackers:
             if not hacker.current_operation and random.random() < 0.3:
                 self.start_random_operation(hacker, world_state)
+
+        # After new operations are started, ensure that any active breaches have at least one defender assigned.
+        # This makes breaches feel real-time: if the Faction breaks something, Traveler or government hackers
+        # are pushed to respond instead of just leaving the system red.
+        self._ensure_breach_responses(world_state)
         
         # Update target defenses
         self.update_target_defenses()
@@ -580,6 +591,16 @@ class HackingSystem:
             # Non-government hackers can operate normally
             if hacker.faction == "traveler":
                 operation_types = ["intelligence_gathering", "system_manipulation", "cover_maintenance"]
+                # Travelers primarily use the net to understand the world and find the Faction.
+                # Prefer targets that show signs of Faction activity or previous breaches.
+                faction_scent_targets = [
+                    t for t in self.targets
+                    if t.current_breach
+                    and hasattr(t.current_breach.get("hacker"), "faction")
+                    and t.current_breach["hacker"].faction == "faction"
+                ]
+                if faction_scent_targets:
+                    target = random.choice(faction_scent_targets)
             elif hacker.faction == "faction":
                 operation_types = ["sabotage", "recruitment", "timeline_manipulation"]
             else:
@@ -652,6 +673,42 @@ class HackingSystem:
                     world_state['government_control'] = min(1.0, world_state.get('government_control', 0.5) + 0.08)
             else:
                 print(f"    ⚠️  Warning: Hacker object missing faction attribute: {hacker}")
+
+        # Traveler hackers primarily gather intelligence about the world and the Faction.
+        # When they complete an intelligence_gathering operation, record intel and
+        # subtly influence world_state instead of just treating it as a generic breach.
+        op_type = result.get("operation_type", "")
+        if op_type.startswith("intelligence_gathering") and hasattr(result["hacker"], "faction"):
+            if result["hacker"].faction == "traveler":
+                intel_entry = {
+                    "source": getattr(result["hacker"], "name", "Unknown Traveler Hacker"),
+                    "target": result.get("target_name", "Unknown System"),
+                    "severity": result.get("severity", 0.5),
+                    "detected": result.get("detected", False),
+                    "timestamp": datetime.now().isoformat(),
+                }
+                self.faction_intel.append(intel_entry)
+                print(f"    🛰️  Traveler intel gathered on {intel_entry['target']} "
+                      f"(severity {intel_entry['severity']:.2f})")
+
+                # Use gathered intel to very slightly counter the Faction and improve Traveller awareness.
+                world_state["known_faction_activity"] = world_state.get("known_faction_activity", [])
+                world_state["known_faction_activity"].append({
+                    "target": intel_entry["target"],
+                    "severity": intel_entry["severity"],
+                    "source": intel_entry["source"],
+                })
+                # Small nudges: intel can reduce effective faction influence or improve traveler positioning.
+                world_state["faction_influence"] = max(
+                    0.0, world_state.get("faction_influence", 0.3) - 0.01
+                )
+                world_state["traveler_exposure_risk"] = max(
+                    0.0, world_state.get("traveler_exposure_risk", 0.1) - 0.005
+                )
+
+        # If this was a defensive operation (Traveler or Government), attempt to contain/fix any breach
+        if op_type:
+            self._attempt_breach_containment(result, world_state)
     
     def should_government_hacker_operate(self, hacker, world_state):
         """Determine if a government hacker should operate based on investigation needs"""
@@ -757,6 +814,68 @@ class HackingSystem:
                 ["government", "corporate", "financial"]
             )
             print(f"    🕵️  Government investigation created: Faction Activity Investigation")
+
+    def _attempt_breach_containment(self, result, world_state):
+        """
+        If a defensive operation completed (Traveler or Government), roll to see
+        if the hacker successfully contains/fixes any active breach on that target.
+        """
+        target_name = result.get("target_name")
+        op_type = result.get("operation_type", "")
+        hacker = result.get("hacker")
+
+        if not target_name or not hasattr(hacker, "faction"):
+            return
+
+        # Only certain operation types are capable of containment
+        defensive_ops = (
+            "cyber_defense",
+            "counterintelligence",
+            "surveillance",
+            "cover_maintenance",
+        )
+        if not any(op_type.startswith(d) for d in defensive_ops):
+            return
+
+        # Find the matching target
+        target = None
+        for t in self.targets:
+            if t.name == target_name:
+                target = t
+                break
+        if not target or not target.current_breach:
+            return
+
+        # Only Traveler/government hackers attempt fixes; faction hacks don't patch their own breaches
+        if hacker.faction not in ("traveler", "government"):
+            return
+
+        # Containment roll: more skilled defenders and lower severity are more likely to succeed
+        severity = float(target.current_breach.get("severity", 0.5) or 0.5)
+        skill = float(getattr(hacker, "skill_level", 0.7) or 0.7)
+        base_chance = 0.35 + (skill * 0.4) - (severity * 0.25)
+        base_chance = max(0.1, min(0.9, base_chance))
+
+        roll = random.random()
+        if roll < base_chance:
+            print(f"    🛡️  {hacker.name} successfully contained breach on {target.name} "
+                  f"(chance {base_chance:.0%}, roll {roll:.2f})")
+            target.current_breach = None
+            # Reduce alert level a bit after successful containment
+            target.alert_level = max(0.0, target.alert_level - 0.2)
+            # Slightly improve world state based on who fixed it
+            if hacker.faction == "government":
+                world_state["government_control"] = min(1.0, world_state.get("government_control", 0.5) + 0.03)
+            elif hacker.faction == "traveler":
+                world_state["timeline_stability"] = min(1.0, world_state.get("timeline_stability", 0.5) + 0.02)
+        else:
+            print(f"    ⚠️  {hacker.name} attempted to contain breach on {target.name} but only partially succeeded "
+                  f"(chance {base_chance:.0%}, roll {roll:.2f})")
+            # Partial success: keep breach but reduce severity slightly
+            try:
+                target.current_breach["severity"] = max(0.0, severity - 0.1)
+            except Exception:
+                pass
     
     def select_government_operation_type(self, hacker, target, world_state):
         """Select operation type for government investigation"""
@@ -777,6 +896,57 @@ class HackingSystem:
         else:
             # Other systems - defensive monitoring
             return "cyber_defense"
+
+    def _ensure_breach_responses(self, world_state):
+        """
+        Scan for active breaches and, if none of the defenders are already working on them,
+        assign Traveler/government hackers to respond in real time.
+        """
+        # Collect breached targets
+        breached_targets = [t for t in self.targets if t.current_breach]
+        if not breached_targets:
+            return
+
+        # Map targets to any current defenders already acting on them
+        defended_targets = set()
+        for h in self.hackers:
+            if h.current_operation:
+                tgt = h.current_operation.get("target")
+                if isinstance(tgt, HackingTarget) and tgt.current_breach:
+                    defended_targets.add(tgt.name)
+
+        # For each breached target without a defender, assign a response hacker if possible
+        for target in breached_targets:
+            if target.name in defended_targets:
+                continue  # Already being worked on
+
+            breach = target.current_breach
+            attacker = breach.get("hacker")
+            attacker_faction = getattr(attacker, "faction", "unknown") if attacker else "unknown"
+
+            # Prefer government hackers as first responders
+            defenders = [h for h in self.hackers if not h.current_operation and h.faction == "government"]
+            # If no government hackers free and the attacker is Faction, Traveler hackers can jump in
+            if not defenders and attacker_faction == "faction":
+                defenders = [h for h in self.hackers if not h.current_operation and h.faction == "traveler"]
+
+            if not defenders:
+                continue
+
+            responder = random.choice(defenders)
+
+            # Choose an appropriate defensive operation type
+            if isinstance(responder, GovernmentHacker):
+                op_type = self.select_government_operation_type(responder, target, world_state)
+            elif isinstance(responder, TravelerHacker):
+                # Travelers use cover_maintenance / system_manipulation defensively
+                op_type = "cover_maintenance"
+            else:
+                op_type = "cyber_defense"
+
+            success, message = responder.start_operation(target, op_type)
+            if success:
+                print(f"    🛡️  {responder.name} auto-started {op_type} to respond to breach on {target.name}")
     
     def update_target_defenses(self):
         """Update target system defenses"""
