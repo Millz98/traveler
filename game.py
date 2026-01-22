@@ -1039,6 +1039,12 @@ class Game:
             except Exception:
                 pass
             
+            # Handle host body termination missions (consciousness transfer)
+            try:
+                self._handle_host_body_termination_mission(mission, final_outcome)
+            except Exception:
+                pass
+            
             # Show detailed world consequences
             mission_exec_data = {
                 'mission': mission,
@@ -1236,6 +1242,196 @@ class Game:
                 )
         except Exception:
             pass
+    
+    def _handle_host_body_termination_mission(self, mission: dict, final_outcome: str):
+        """Handle host body termination missions - transfer consciousness to new host body"""
+        # Check if this is a host body termination mission
+        mission_type = mission.get("type", "")
+        mission_description = mission.get("description", "")
+        mission_objective = mission.get("objective", "")
+        
+        is_termination_mission = (
+            "host body termination" in mission_description.lower() or
+            "host body termination" in mission_objective.lower() or
+            "emergency consciousness transfer" in mission_description.lower() or
+            "emergency consciousness transfer" in mission_objective.lower() or
+            mission_type == "host_body_termination"
+        )
+        
+        if not is_termination_mission:
+            return
+        
+        # Only proceed if mission was successful
+        if final_outcome not in ("COMPLETE_SUCCESS", "SUCCESS", "PARTIAL_SUCCESS"):
+            print("\n⚠️  Host body termination mission failed - consciousness transfer not executed")
+            print("   The current host body remains active but compromised.")
+            return
+        
+        # Check if this is for the player's host body (team leader)
+        if not hasattr(self, 'team') or not self.team or not self.team.leader:
+            return
+        
+        player_traveler = self.team.leader
+        old_host_body = getattr(player_traveler, 'host_body', None)
+        
+        if not old_host_body:
+            print("\n⚠️  No host body assigned - cannot perform consciousness transfer")
+            return
+        
+        # Perform consciousness transfer
+        print("\n" + "=" * 60)
+        print("🔄 EMERGENCY CONSCIOUSNESS TRANSFER")
+        print("=" * 60)
+        print(f"   Transferring {player_traveler.designation} ({player_traveler.name})")
+        print(f"   From: {old_host_body.name} (Age {old_host_body.age}, {old_host_body.occupation})")
+        
+        # Generate new host body
+        import host_body
+        new_host_body = host_body.generate_host_body()
+        player_traveler.host_body = new_host_body
+        
+        print(f"   To: {new_host_body.name} (Age {new_host_body.age}, {new_host_body.occupation})")
+        print(f"   Location: {new_host_body.location}")
+        print("=" * 60)
+        
+        # Mark old host body as dead
+        old_host_name = old_host_body.name
+        old_host_age = old_host_body.age
+        old_host_occupation = old_host_body.occupation
+        old_host_location = getattr(old_host_body, 'location', 'Unknown Location')
+        old_host_family = getattr(old_host_body, 'family_status', 'Unknown family')
+        
+        # Generate news report for the death
+        try:
+            from government_news_system import report_npc_death_incident
+            report_npc_death_incident(
+                npc_name=old_host_name,
+                npc_role=old_host_occupation,
+                location=old_host_location,
+                cause="Medical emergency / Sudden death",
+                context="Local resident"
+            )
+        except Exception:
+            pass
+        
+        # Generate family consequences
+        self._generate_host_body_death_family_consequences(
+            old_host_name=old_host_name,
+            old_host_age=old_host_age,
+            old_host_occupation=old_host_occupation,
+            old_host_location=old_host_location,
+            old_host_family=old_host_family
+        )
+        
+        # Update world state - host body death affects timeline
+        try:
+            from messenger_system import global_world_tracker
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "timeline_stability",
+                "value": -0.05,  # Host body death causes minor timeline disruption
+                "operation": "add"
+            })
+            global_world_tracker.apply_single_effect({
+                "type": "attribute_change",
+                "target": "public_awareness",
+                "value": 0.02,  # Local news coverage
+                "operation": "add"
+            })
+        except Exception:
+            pass
+        
+        # Record the transfer in game state
+        if not hasattr(self, 'host_body_transfers'):
+            self.host_body_transfers = []
+        
+        self.host_body_transfers.append({
+            "turn": getattr(self, 'current_turn', 0),
+            "old_host": {
+                "name": old_host_name,
+                "age": old_host_age,
+                "occupation": old_host_occupation,
+                "location": old_host_location
+            },
+            "new_host": {
+                "name": new_host_body.name,
+                "age": new_host_body.age,
+                "occupation": new_host_body.occupation,
+                "location": new_host_body.location
+            },
+            "reason": "Emergency consciousness transfer - host body termination"
+        })
+        
+        print(f"\n✅ Consciousness transfer complete!")
+        print(f"   {player_traveler.designation} is now operating in {new_host_body.name}'s body")
+        print(f"   Previous host body ({old_host_name}) has been terminated")
+        print(f"   Family and local community have been notified of the death")
+    
+    def _generate_host_body_death_family_consequences(self, old_host_name, old_host_age, old_host_occupation, old_host_location, old_host_family):
+        """Generate consequences for the host body's family after death"""
+        print("\n" + "=" * 60)
+        print("💔 FAMILY CONSEQUENCES")
+        print("=" * 60)
+        
+        # Determine family impact based on family status
+        family_impact = "moderate"
+        if "children" in old_host_family.lower() or "parent" in old_host_family.lower():
+            family_impact = "severe"
+        elif "married" in old_host_family.lower():
+            family_impact = "high"
+        
+        # Generate family reactions
+        consequences = []
+        
+        if family_impact == "severe":
+            consequences.append(f"• {old_host_name}'s family is devastated by the sudden loss")
+            consequences.append(f"• Children/spouse require grief counseling and support")
+            consequences.append(f"• Family members questioning circumstances of death")
+            consequences.append(f"• Local community organizing memorial services")
+        elif family_impact == "high":
+            consequences.append(f"• Spouse deeply affected by the loss")
+            consequences.append(f"• Family requesting medical investigation into cause of death")
+            consequences.append(f"• Close friends and colleagues expressing shock")
+        else:
+            consequences.append(f"• Family members notified of {old_host_name}'s passing")
+            consequences.append(f"• Standard death notification procedures completed")
+        
+        # Additional consequences
+        consequences.append(f"• Obituary published in local media")
+        consequences.append(f"• Funeral arrangements being made")
+        consequences.append(f"• {old_host_occupation} workplace notified of employee death")
+        
+        for consequence in consequences:
+            print(f"   {consequence}")
+        
+        # Generate government news story about the death
+        try:
+            from government_news_system import report_npc_death_incident
+            report_npc_death_incident(
+                npc_name=old_host_name,
+                npc_role=old_host_occupation,
+                location=old_host_location,
+                cause="Sudden medical emergency",
+                context=f"Local {old_host_occupation.lower()} passed away unexpectedly"
+            )
+        except Exception:
+            pass
+        
+        print("=" * 60)
+        
+        # Update consequence memory system
+        try:
+            if getattr(self, 'consequence_system', None):
+                # Record that a host body death occurred (affects local heat)
+                self.consequence_system.record_player_mission({
+                    "location": old_host_location,
+                    "type": "host_body_termination",
+                    "success": True,  # Mission succeeded (transfer happened)
+                    "casualties": 1,  # Host body died
+                    "stealth_failed": False,  # Death appears natural
+                })
+        except Exception:
+            pass
 
     def queue_messenger_mission(self, messenger):
         """Convert a messenger directive into an active mission (non-interactive)."""
@@ -1257,8 +1453,16 @@ class Game:
 
         content = (getattr(messenger, "message_content", "") or "").lower()
 
+        # Host body termination mission parsing
+        if "host body termination" in content or "emergency consciousness transfer" in content:
+            mission["type"] = "host_body_termination"
+            mission["objective"] = "Execute emergency consciousness transfer"
+            mission["objectives"] = ["Prepare for consciousness transfer", "Secure new host body", "Execute transfer", "Minimize timeline disruption"]
+            mission["npc"] = "Director Medical Team"
+            mission["challenge"] = "Critical - Host body failing, transfer must succeed"
+        
         # Assassination mission parsing (minimal but effective for current content)
-        if "assassination" in content and "senator" in content:
+        elif "assassination" in content and "senator" in content:
             mission["type"] = "prevent_historical_disaster"
             mission["objectives"] = ["Locate the target", "Intercept the threat", "Prevent assassination", "Avoid exposure"]
             mission["npc"] = "Protective Detail Liaison"
