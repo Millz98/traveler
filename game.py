@@ -63,6 +63,14 @@ class Game:
         except Exception:
             self.consequence_system = None
             self.world_memory = None
+
+        # Emergent narrative: story from actual gameplay events
+        try:
+            from emergent_narrative_system import RealityBasedNarrativeIntegrator
+            self.narrative = RealityBasedNarrativeIntegrator()
+            print("✅ Emergent Narrative System initialized - story emerges from real events")
+        except Exception:
+            self.narrative = None
         
         # Initialize government detection system
         try:
@@ -1231,6 +1239,16 @@ class Game:
                     "casualties": 0,  # not tracked in current mission system yet
                     "stealth_failed": bool(stealth_failed),
                 })
+                # Emergent narrative: record actual outcome for story generation
+                if getattr(self, "narrative", None):
+                    self.narrative.record_mission_outcome({
+                        "location": mission.get("location", "Unknown"),
+                        "type": mission.get("type", "Unknown"),
+                        "success": success_bool,
+                        "critical_failure": final_outcome == "CRITICAL_FAILURE",
+                        "evidence_left": stealth_failed,
+                        "casualties": 0,
+                    })
         except Exception:
             pass
 
@@ -3616,8 +3634,35 @@ class Game:
                 print("✅ Traveler 001 System processed - rogue Traveler activities completed!")
             else:
                 print("\n🦹 Traveler 001 System not initialized - skipping 001 processing")
-            
-            # FINALLY: Advance the world turn and show summary (this will now use the updated real-time values)
+
+        # EIGHTH: Emergent narrative - record what actually happened and generate story
+        if getattr(self, "narrative", None) and hasattr(self, "ai_world_controller"):
+            agents = getattr(self.ai_world_controller, "government_agents", []) or []
+            for agent in agents:
+                if getattr(agent, "current_investigation", None):
+                    inv = agent.current_investigation
+                    self.narrative.record_government_investigation(
+                        f"{agent.agency}-{agent.agent_id}",
+                        inv,
+                    )
+                    if inv.get("evidence"):
+                        self.narrative.record_evidence_discovery(
+                            f"{agent.agency}-{agent.agent_id}",
+                            inv.get("location", "Unknown"),
+                        )
+            for team in getattr(self.ai_world_controller, "ai_teams", []) or []:
+                for host in getattr(team, "host_lives", []) or []:
+                    stress = float(host.get("stress_level", 0) or 0)
+                    if stress > 0.6:
+                        self.narrative.record_host_suspicion(
+                            host.get("name", "Unknown"),
+                            stress,
+                        )
+            self.narrative.process_turn_narrative(
+                game_turn=getattr(self.time_system, "current_turn", None)
+            )
+
+        # Advance the world turn and show summary (uses updated real-time values)
         print("\n📅 Generating Daily Summary with real-time world state...")
         turn_summary = self.advance_world_turn()
 
