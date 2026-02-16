@@ -309,15 +309,53 @@ class ProceduralStoryGenerator:
             return None
         for npc in self.world_generator.npcs:
             if getattr(npc, "name", None) == name:
-                return {
-                    "name": getattr(npc, "name", "Unknown"),
-                    "occupation": getattr(npc, "occupation", "Civilian"),
-                    "age": getattr(npc, "age", 35),
-                    "faction": getattr(npc, "faction", "civilian"),
-                    "personality_traits": getattr(npc, "personality_traits", []),
-                    "work_location": getattr(npc, "work_location", "unknown"),
-                }
+                return self._npc_to_dict(npc)
         return None
+
+    def _npc_to_dict(self, npc: Any) -> Dict[str, Any]:
+        """Turn a world generator NPC into a story-friendly dict."""
+        return {
+            "name": getattr(npc, "name", "Unknown"),
+            "occupation": getattr(npc, "occupation", "Civilian"),
+            "age": getattr(npc, "age", 35),
+            "faction": getattr(npc, "faction", "civilian"),
+            "personality_traits": getattr(npc, "personality_traits", []),
+            "work_location": getattr(npc, "work_location", "unknown"),
+        }
+
+    def _get_npcs_for_location(
+        self, location: str, need: int = 3, exclude_names: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Get NPCs tied to a location (work there or nearby) or random civilians so stories have real names."""
+        exclude_names = exclude_names or []
+        out = []
+        if not self.world_generator or not getattr(self.world_generator, "npcs", None):
+            return out
+        npcs = self.world_generator.npcs
+        # Prefer NPCs whose work_location matches or contains the location (e.g. "Metropolitan Social Security Office")
+        location_lower = location.lower()
+        at_location = []
+        for npc in npcs:
+            name = getattr(npc, "name", None)
+            if not name or name in exclude_names:
+                continue
+            work = (getattr(npc, "work_location", "") or "").lower()
+            if location_lower in work or work in location_lower:
+                at_location.append(self._npc_to_dict(npc))
+        # Add civilians not at this location so we have enough variety
+        others = [
+            self._npc_to_dict(npc)
+            for npc in npcs
+            if getattr(npc, "name", None) and getattr(npc, "name") not in exclude_names
+            and getattr(npc, "faction", "civilian") == "civilian"
+        ]
+        # Use location-linked first, then fill with random civilians
+        out = list(at_location)
+        for o in others:
+            if o["name"] not in [x["name"] for x in out] and len(out) < need:
+                out.append(o)
+        random.shuffle(out)
+        return out[:need]
 
     def _determine_story_type(self, patterns: List[Dict], tension: float) -> str:
         """Determine what type of story to generate. Avoids repeating same type two turns in a row."""
@@ -371,7 +409,14 @@ class ProceduralStoryGenerator:
             (p.get("event_count", 0) for p in patterns if p.get("location") == location),
             0,
         )
-        suspects = random.sample(npcs, min(3, len(npcs))) if npcs else []
+        # Use real NPCs from patterns when available; otherwise get NPCs from the world so we show real names, not "Unknown Subject"
+        suspects = list(random.sample(npcs, min(3, len(npcs)))) if npcs else []
+        if len(suspects) < 3:
+            extra = self._get_npcs_for_location(
+                location or "the city", need=3 - len(suspects), exclude_names=[s.get("name") for s in suspects]
+            )
+            suspects.extend(extra)
+        suspects = suspects[:3]
 
         def s(i, key, default):
             return suspects[i].get(key, default) if i < len(suspects) else default

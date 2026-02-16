@@ -413,14 +413,16 @@ class AITravelerTeam(AIEntity):
         selected_activities = random.sample(activities, min(2, len(activities))) if len(activities) >= 2 else activities
         
         for activity in selected_activities:
-            # Determine difficulty
-            base_dc = 12  # Normal daily activities
-            
-            # Stressed people have harder time
+            # Routine daily life: easier DC so hosts succeed most of the time (they live this life every day)
+            base_dc = 8   # Easy – normal daily activities (social -1 in D20 = DC 7, need 7+)
             if host_life.get('stress_level', 0.3) > 0.7:
-                base_dc = 16
+                base_dc = 12  # Stressed: moderate difficulty
+            elif host_life.get('stress_level', 0.3) > 0.5:
+                base_dc = 10  # Some stress: slightly harder
             
-            # Make D20 roll
+            stress = host_life.get('stress_level', 0.3)
+            happiness = host_life.get('happiness', 0.5)
+            # Routine competence: they do this every day; small bonus so it's not a coin flip
             decision = CharacterDecision(
                 character_name=host_life.get('name', 'Unknown'),
                 character_type="civilian",
@@ -428,8 +430,9 @@ class AITravelerTeam(AIEntity):
                 context=activity,
                 difficulty_class=base_dc,
                 modifiers={
-                    'stress_penalty': -int(host_life.get('stress_level', 0.3) * 5),
-                    'happiness_bonus': int(host_life.get('happiness', 0.5) * 2)
+                    'routine_life': 2,   # Daily routine – they're used to it
+                    'stress_penalty': -int(stress * 4),
+                    'happiness_bonus': int(happiness * 2)
                 },
                 consequences={}
             )
@@ -437,18 +440,19 @@ class AITravelerTeam(AIEntity):
             result = d20_system.resolve_character_decision(decision)
             roll_result = result['roll_result']
             
-            # Only show if interesting (critical or failure)
             if roll_result.critical_success:
                 print(f"    ⭐ {host_life.get('name', 'Unknown')}: {activity}")
                 print(f"       CRITICAL SUCCESS! [{roll_result.roll}] Exceptional day!")
                 host_life['happiness'] = min(1.0, host_life.get('happiness', 0.5) + 0.1)
-                
             elif roll_result.critical_failure:
                 print(f"    💀 {host_life.get('name', 'Unknown')}: {activity}")
                 print(f"       CRITICAL FAILURE! [{roll_result.roll}] Disaster!")
                 host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.2)
-                
-            elif not roll_result.success:
+            elif roll_result.success:
+                print(f"    ✅ {host_life.get('name', 'Unknown')}: {activity}")
+                print(f"       Success [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
+                host_life['happiness'] = min(1.0, host_life.get('happiness', 0.5) + 0.02)
+            else:
                 print(f"    ❌ {host_life.get('name', 'Unknown')}: {activity}")
                 print(f"       Failed [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
                 host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.05)
@@ -2132,12 +2136,13 @@ class AIWorldController:
                         print(f"       Failed")
                     continue
                 
-                # Determine difficulty
-                base_dc = 11  # Normal daily activities
+                # Routine daily life: easier DC so player team succeeds most of the time
+                base_dc = 8   # Easy – normal daily activities
                 if host_stress > 0.7:
-                    base_dc = 15
+                    base_dc = 12
+                elif host_stress > 0.5:
+                    base_dc = 10
                 
-                # Make D20 roll
                 decision = CharacterDecision(
                     character_name=host_name,
                     character_type="civilian",
@@ -2145,7 +2150,8 @@ class AIWorldController:
                     context=activity,
                     difficulty_class=base_dc,
                     modifiers={
-                        'stress_penalty': -int(host_stress * 5),
+                        'routine_life': 2,   # Daily routine – they're used to it
+                        'stress_penalty': -int(host_stress * 4),
                         'happiness_bonus': int(host_happiness * 2)
                     },
                     consequences={}
@@ -2154,7 +2160,7 @@ class AIWorldController:
                 result = d20_system.resolve_character_decision(decision)
                 roll_result = result['roll_result']
                 
-                # Show all results (not just failures, since this is the player's team)
+                # Show all results (success and failure) so player sees balance
                 if roll_result.critical_success:
                     print(f"    ⭐ {host_name}: {activity}")
                     print(f"       CRITICAL SUCCESS! [{roll_result.roll}] Exceptional day!")
@@ -2163,7 +2169,11 @@ class AIWorldController:
                     print(f"    💀 {host_name}: {activity}")
                     print(f"       CRITICAL FAILURE! [{roll_result.roll}] Disaster!")
                     host_body.stress_level = min(1.0, host_stress + 0.2)
-                elif not roll_result.success:
+                elif roll_result.success:
+                    print(f"    ✅ {host_name}: {activity}")
+                    print(f"       Success [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
+                    host_body.happiness = min(1.0, host_happiness + 0.02)
+                else:
                     print(f"    ❌ {host_name}: {activity}")
                     print(f"       Failed [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
                     host_body.stress_level = min(1.0, host_stress + 0.05)
