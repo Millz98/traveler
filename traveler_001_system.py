@@ -86,6 +86,8 @@ class Traveler001System:
         self.mission_history = []
         self.current_operations = []
         self.faction_recruitment_attempts = []
+        # Recent consequences (for narrative/story; keep last 10)
+        self.recent_consequences = []
         
         # Resources and capabilities (based on canonical show history)
         self.resources = {
@@ -407,6 +409,8 @@ class Traveler001System:
             "location": mission.location
         }
         game_state['traveler_001_consequences'].append(consequence)
+        self.recent_consequences.append(consequence)
+        self.recent_consequences = self.recent_consequences[-10:]
         
         # PERSISTENT: Track in mission history for pattern recognition
         if not hasattr(self, 'mission_patterns'):
@@ -494,6 +498,8 @@ class Traveler001System:
             "location": mission.location
         }
         game_state['traveler_001_consequences'].append(consequence)
+        self.recent_consequences.append(consequence)
+        self.recent_consequences = self.recent_consequences[-10:]
         
         # Track failure in patterns
         if not hasattr(self, 'mission_patterns'):

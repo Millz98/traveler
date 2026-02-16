@@ -71,6 +71,17 @@ class Game:
             print("✅ Emergent Narrative System initialized - story emerges from real events")
         except Exception:
             self.narrative = None
+
+        # Procedural story: immersive prose using real game characters
+        try:
+            if self.world is not None:
+                from procedural_story_generator import NarrativeIntegrator
+                self.story_integrator = NarrativeIntegrator(self.world)
+                print("✅ Procedural Story Generator initialized - unique narratives from real characters")
+            else:
+                self.story_integrator = None
+        except Exception:
+            self.story_integrator = None
         
         # Initialize government detection system
         try:
@@ -340,7 +351,7 @@ class Game:
                 save_data["team_members"].append(member_data)
             
             with open(self.save_file, 'w') as f:
-                json.dump(save_data, f, indent=2)
+                json.dump(save_data, f, indent=2, default=str)
             
             print("\n" + "=" * 40)
             print("           GAME SAVED")
@@ -3658,13 +3669,39 @@ class Game:
                             host.get("name", "Unknown"),
                             stress,
                         )
-            self.narrative.process_turn_narrative(
+            narrative_data = self.narrative.process_turn_narrative(
                 game_turn=getattr(self.time_system, "current_turn", None)
             )
+        else:
+            narrative_data = None
 
         # Advance the world turn and show summary (uses updated real-time values)
         print("\n📅 Generating Daily Summary with real-time world state...")
         turn_summary = self.advance_world_turn()
+
+        # Procedural story: immersive prose from ALL significant events (investigations, faction, 001, world events, government news)
+        if getattr(self, "story_integrator", None):
+            try:
+                breaking_news_list = []
+                try:
+                    from government_news_system import get_breaking_news
+                    breaking_news_list = get_breaking_news() or []
+                except Exception:
+                    pass
+                traveler_001_list = []
+                if hasattr(self, "traveler_001_system") and self.traveler_001_system:
+                    traveler_001_list = getattr(self.traveler_001_system, "recent_consequences", [])[-5:]
+                self.story_integrator.generate_and_print_story(
+                    events=(narrative_data or {}).get("active_threads", []),
+                    patterns=(narrative_data or {}).get("new_patterns", []),
+                    tension=(narrative_data or {}).get("tension_level", 0.5),
+                    turn=(narrative_data or {}).get("turn", getattr(self.time_system, "current_turn", 1)),
+                    turn_summary=turn_summary,
+                    breaking_news=breaking_news_list,
+                    traveler_001_consequences=traveler_001_list,
+                )
+            except Exception:
+                pass
 
         # Show any breaking government news (e.g., assassination attempts) that occurred this turn
         try:
