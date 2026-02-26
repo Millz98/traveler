@@ -24,6 +24,7 @@ from datetime import datetime
 from typing import Dict
 from d20_decision_system import CharacterDecision
 from world_generation import World
+from turn_narrative_engine import get_turn_narrative_engine, reset_turn_narrative_engine
 
 class Game:
     def __init__(self, seed=None):
@@ -119,6 +120,14 @@ class Game:
         except ImportError:
             print("⚠️  Dynamic Mission System not available")
             self.dynamic_mission_system = None
+        
+        # Initialize Turn Narrative Engine (enhanced End Turn processing)
+        try:
+            self.turn_narrative_engine = get_turn_narrative_engine(self)
+            print("✅ Turn Narrative Engine initialized - Every turn will be unique!")
+        except Exception:
+            print("⚠️  Turn Narrative Engine not available")
+            self.turn_narrative_engine = None
         
         # Initialize D20 Decision System
         try:
@@ -3599,6 +3608,18 @@ class Game:
             )
             self.ai_world_controller.update_world_state_from_ai_turn(self.get_game_state())
             print("✅ AI World Controller processed!")
+            
+            # NEW: Process turn with Turn Narrative Engine for enhanced AI storytelling
+            if hasattr(self, 'turn_narrative_engine') and self.turn_narrative_engine:
+                print("\n🎭 Processing Turn Narrative Engine...")
+                turn_narrative_result = self.turn_narrative_engine.process_turn(
+                    self.ai_world_controller,
+                    self.time_system,
+                    self.get_game_state()
+                )
+                if turn_narrative_result.get("full_narrative"):
+                    print(turn_narrative_result["full_narrative"])
+                print("✅ Turn Narrative Engine processed!")
         
         # SECOND: Execute hacking system turn
         if hasattr(self, 'hacking_system'):
@@ -5537,6 +5558,11 @@ class Game:
     def initialize_new_game(self):
         """Initialize a new game with starting setup"""
         print("\n🚀 Initializing new game...")
+        
+        # Reset Turn Narrative Engine for fresh game
+        if hasattr(self, 'turn_narrative_engine') and self.turn_narrative_engine:
+            reset_turn_narrative_engine()
+            self.turn_narrative_engine = get_turn_narrative_engine(self)
         
         # Present timeline and world information
         self.present_timeline()
