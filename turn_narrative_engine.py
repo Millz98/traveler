@@ -59,7 +59,7 @@ class TurnNarrativeEngine:
         self.turn_count += 1
         
         # Collect ALL data from game systems
-        turn_data = self._collect_comprehensive_turn_data(ai_world_controller, game_state)
+        turn_data = self._collect_comprehensive_turn_data(ai_world_controller, time_system, game_state)
         
         # Generate narrative based on actual data
         narrative = self._generate_dynamic_narrative(turn_data)
@@ -74,7 +74,7 @@ class TurnNarrativeEngine:
         
         return turn_data
     
-    def _collect_comprehensive_turn_data(self, ai_world_controller, game_state: Dict) -> Dict:
+    def _collect_comprehensive_turn_data(self, ai_world_controller, time_system, game_state: Dict) -> Dict:
         """Collect comprehensive data from all game systems"""
         
         data = {
