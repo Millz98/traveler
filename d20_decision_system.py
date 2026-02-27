@@ -15,6 +15,7 @@ class D20Roll:
     critical_failure: bool
     degree_of_success: str
     outcome_description: str
+    turn: int = 0  # Track which turn this roll happened on
 
 @dataclass
 class CharacterDecision:
@@ -34,6 +35,7 @@ class D20DecisionSystem:
         self.roll_history = []
         self.character_decisions = []
         self.world_impact_log = []
+        self.current_turn = 0  # Track current turn for per-turn stats
         
         # D&D-style difficulty classes
         self.difficulty_classes = {
@@ -113,7 +115,8 @@ class D20DecisionSystem:
             critical_success=critical_success,
             critical_failure=critical_failure,
             degree_of_success=degree_of_success,
-            outcome_description=outcome_description
+            outcome_description=outcome_description,
+            turn=self.current_turn
         )
         
         # Log the roll
@@ -376,7 +379,7 @@ class D20DecisionSystem:
         return impact
     
     def get_roll_statistics(self) -> Dict:
-        """Get statistics about all D20 rolls made"""
+        """Get statistics about all D20 rolls made (cumulative)"""
         if not self.roll_history:
             return {"message": "No rolls recorded yet"}
         
@@ -385,6 +388,44 @@ class D20DecisionSystem:
         critical_failures = sum(1 for roll in self.roll_history if roll.critical_failure)
         successes = sum(1 for roll in self.roll_history if roll.success)
         failures = sum(1 for roll in self.roll_history if not roll.success)
+        
+        return {
+            "total_rolls": total_rolls,
+            "critical_successes": critical_successes,
+            "critical_failures": critical_failures,
+            "successes": successes,
+            "failures": failures,
+            "success_rate": (successes / total_rolls) * 100 if total_rolls > 0 else 0,
+            "critical_success_rate": (critical_successes / total_rolls) * 100 if total_rolls > 0 else 0,
+            "critical_failure_rate": (critical_failures / total_rolls) * 100 if total_rolls > 0 else 0
+        }
+    
+    def start_new_turn(self, turn_number: int):
+        """Start a new turn - updates turn counter for per-turn stats"""
+        self.current_turn = turn_number
+    
+    def get_turn_statistics(self) -> Dict:
+        """Get statistics about D20 rolls made THIS TURN ONLY"""
+        turn_rolls = [roll for roll in self.roll_history if roll.turn == self.current_turn]
+        
+        if not turn_rolls:
+            return {
+                "total_rolls": 0,
+                "critical_successes": 0,
+                "critical_failures": 0,
+                "successes": 0,
+                "failures": 0,
+                "success_rate": 0.0,
+                "critical_success_rate": 0.0,
+                "critical_failure_rate": 0.0,
+                "message": "No rolls this turn"
+            }
+        
+        total_rolls = len(turn_rolls)
+        critical_successes = sum(1 for roll in turn_rolls if roll.critical_success)
+        critical_failures = sum(1 for roll in turn_rolls if roll.critical_failure)
+        successes = sum(1 for roll in turn_rolls if roll.success)
+        failures = sum(1 for roll in turn_rolls if not roll.success)
         
         return {
             "total_rolls": total_rolls,

@@ -3574,6 +3574,11 @@ class Game:
         
         print("🔄 Ending current turn and advancing world...")
         print("All AI entities will take their actions...")
+        
+        # Tell D20 system a new turn is starting (for per-turn statistics)
+        if hasattr(self, 'd20_system') and self.d20_system:
+            current_turn = getattr(self.time_system, 'current_turn', 1)
+            self.d20_system.start_new_turn(current_turn)
 
         # STEP 1 (EXACT): process consequences FIRST (before AI)
         try:

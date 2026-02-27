@@ -2070,7 +2070,7 @@ class AIWorldController:
         # Show D20 statistics at end of turn
         if d20_system:
             try:
-                stats = d20_system.get_roll_statistics()
+                stats = d20_system.get_turn_statistics()
                 print("\n" + "=" * 60)
                 print("  🎲 D20 ROLL STATISTICS THIS TURN")
                 print("=" * 60)
