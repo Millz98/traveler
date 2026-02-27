@@ -3617,8 +3617,8 @@ class Game:
                     self.time_system,
                     self.get_game_state()
                 )
-                if turn_narrative_result.get("full_narrative"):
-                    print(turn_narrative_result["full_narrative"])
+                if turn_narrative_result.get("narrative"):
+                    print(turn_narrative_result["narrative"])
                 print("✅ Turn Narrative Engine processed!")
         
         # SECOND: Execute hacking system turn
