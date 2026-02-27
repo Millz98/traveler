@@ -2012,9 +2012,15 @@ class Game:
             mission["time_limit"] = "Immediate - Must be completed within hours"
             
             # Get the ACTUAL current president from the US political system
+            # First check if president is available (not already killed in a previous mission)
             target_name = None
             target_role = "President of the United States"
             president_party = None
+            
+            # Check if president is available using our helper
+            if not self.is_npc_available_for_mission("", "President of the United States"):
+                # President is dead/unavailable - skip this mission type
+                return None
             
             try:
                 if hasattr(self, 'us_political_system') and self.us_political_system:
@@ -2116,14 +2122,25 @@ class Game:
             
         # Senator/other assassination mission parsing
         elif "assassination" in content and "senator" in content:
+            # Get available senators and filter out dead ones
+            available_targets = self.get_available_targets_for_mission("political")
+            alive_senators = [t for t in available_targets if t.get('role') == 'Senator']
+            
+            if not alive_senators:
+                # No senators available (all dead) - skip this mission
+                return None
+            
+            # Pick a random alive senator
+            target_data = random.choice(alive_senators)
+            target_name = target_data["name"]
+            target_role = "Senator"
+            
             mission["type"] = "prevent_historical_disaster"
             mission["objectives"] = ["Locate the target", "Intercept the threat", "Prevent assassination", "Avoid exposure"]
             mission["npc"] = "Protective Detail Liaison"
-            mission["assassination_target_office"] = "U.S. Senator"
+            mission["assassination_target_office"] = f"U.S. Senator - {target_data.get('state', 'Unknown')}"
             mission["assassination_method"] = "unknown"
-
-            # Ensure target is a real NPC in the procedural world (or create a lightweight one)
-            target_name = "Senator Johnson"
+            mission["target_party"] = target_data.get("party", "Unknown")
             mission["assassination_target_name"] = target_name
             # Generalized target fields (used for any protectable NPC)
             mission["target_npc_name"] = target_name
@@ -5805,6 +5822,94 @@ class Game:
             game_state.update(hacking_state)
         
         return game_state
+    
+    def is_npc_available_for_mission(self, npc_name: str, npc_role: str = None) -> bool:
+        """Check if an NPC is available for a mission (alive and in game)"""
+        # Check entity tracker if available
+        try:
+            from game_entity_tracker import get_entity_tracker
+            tracker = get_entity_tracker(self)
+            if tracker and tracker.entities:
+                # Look for the NPC by name
+                for entity_id, entity in tracker.entities.items():
+                    if entity.name.lower() == npc_name.lower() and entity.status == "active":
+                        return True
+                    # Also check by role if provided
+                    if npc_role and entity.metadata.get('role', '').lower() == npc_role.lower():
+                        if entity.status == "active":
+                            return True
+        except Exception:
+            pass
+        
+        # Check US political system for political figures
+        if npc_role:
+            npc_role_lower = npc_role.lower()
+            if "president" in npc_role_lower:
+                try:
+                    if hasattr(self, 'us_political_system') and self.us_political_system:
+                        exec_branch = self.us_political_system.executive_branch
+                        if hasattr(exec_branch, 'president') and exec_branch.president:
+                            # President exists - check if they match
+                            if exec_branch.president.name.lower() == npc_name.lower():
+                                return True
+                            return True  # President exists
+                except Exception:
+                    pass
+            elif "senator" in npc_role_lower:
+                try:
+                    if hasattr(self, 'us_political_system') and self.us_political_system:
+                        leg = self.us_political_system.legislative_branch
+                        if hasattr(leg, 'senate') and hasattr(leg.senate, 'senators'):
+                            for party, senators in leg.senate.senators.items():
+                                for senator in senators:
+                                    if senator.get('name', '').lower() == npc_name.lower():
+                                        return True
+                except Exception:
+                    pass
+        
+        # Default: NPC is available (assume alive if we can't verify)
+        return True
+    
+    def get_available_targets_for_mission(self, target_type: str) -> list:
+        """Get list of available targets of a specific type for missions"""
+        targets = []
+        
+        if target_type == "political":
+            try:
+                if hasattr(self, 'us_political_system') and self.us_political_system:
+                    exec_branch = self.us_political_system.executive_branch
+                    
+                    # President
+                    if hasattr(exec_branch, 'president') and exec_branch.president:
+                        targets.append({
+                            "name": exec_branch.president.name,
+                            "role": "President of the United States",
+                            "party": exec_branch.president.party
+                        })
+                    
+                    # Vice President
+                    if hasattr(exec_branch, 'vice_president') and exec_branch.vice_president:
+                        targets.append({
+                            "name": exec_branch.vice_president.name,
+                            "role": "Vice President",
+                            "party": exec_branch.vice_president.party
+                        })
+                    
+                    # Senators
+                    leg = self.us_political_system.legislative_branch
+                    if hasattr(leg, 'senate') and hasattr(leg.senate, 'senators'):
+                        for party, senators in leg.senate.senators.items():
+                            for senator in senators:
+                                targets.append({
+                                    "name": senator.get('name', 'Unknown'),
+                                    "role": "Senator",
+                                    "party": party,
+                                    "state": senator.get('state', 'Unknown')
+                                })
+            except Exception:
+                pass
+        
+        return targets
 
     def initialize_new_game(self):
         """Initialize a new authentic Travelers game experience"""

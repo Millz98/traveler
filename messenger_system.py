@@ -351,16 +351,33 @@ class MessengerSystem:
             except Exception:
                 pass
         
+        # Get available targets to avoid picking dead NPCs
+        available_targets = []
+        if game_ref:
+            try:
+                if hasattr(game_ref, 'get_available_targets_for_mission'):
+                    available_targets = game_ref.get_available_targets_for_mission("political")
+            except Exception:
+                pass
+        
+        # Build message templates dynamically based on available targets
+        director_orders = [
+            "All teams converge on downtown Seattle immediately. Protocol Alpha activated.",
+            "Massive timeline disruption detected. All operations suspended.",
+            "Faction has compromised Director communications. Switch to emergency protocols.",
+            "Host body termination imminent. Prepare for emergency consciousness transfer.",
+            "Nuclear facility breach detected. Immediate response required.",
+            "Faction leader Vincent Ingram spotted at coordinates. Eliminate threat."
+        ]
+        
+        # Only add senator assassination message if there's an available senator
+        alive_senators = [t for t in available_targets if t.get('role') == 'Senator']
+        if alive_senators:
+            senator = random.choice(alive_senators)
+            director_orders.append(f"Assassination attempt on Senator {senator['name'].split()[-1]} in 2 hours. Intercept and prevent.")
+        
         message_templates = {
-            "DIRECTOR_ORDER": [
-                "All teams converge on downtown Seattle immediately. Protocol Alpha activated.",
-                "Massive timeline disruption detected. All operations suspended.",
-                "Faction has compromised Director communications. Switch to emergency protocols.",
-                "Host body termination imminent. Prepare for emergency consciousness transfer.",
-                "Assassination attempt on Senator Johnson in 2 hours. Intercept and prevent.",
-                "Nuclear facility breach detected. Immediate response required.",
-                "Faction leader Vincent Ingram spotted at coordinates. Eliminate threat."
-            ],
+            "DIRECTOR_ORDER": director_orders,
             "MISSION_UPDATE": [
                 "Mission parameters have changed. New objective: Prevent assassination of Dr. Delaney.",
                 "Timeline deviation detected. Abort current mission and report to safe house.",
