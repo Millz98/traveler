@@ -339,8 +339,18 @@ class MessengerSystem:
             return True
         return False
 
-    def generate_random_message(self):
+    def generate_random_message(self, game_ref=None):
         """Generate a random message that might need delivery"""
+        # Check if Grace Day is already in the game before including her in messages
+        grace_day_available = True
+        if game_ref:
+            try:
+                if hasattr(game_ref, 'director_programmers') and isinstance(game_ref.director_programmers, dict):
+                    if "Grace Day" in game_ref.director_programmers:
+                        grace_day_available = False
+            except Exception:
+                pass
+        
         message_templates = {
             "DIRECTOR_ORDER": [
                 "All teams converge on downtown Seattle immediately. Protocol Alpha activated.",
@@ -354,39 +364,18 @@ class MessengerSystem:
             "MISSION_UPDATE": [
                 "Mission parameters have changed. New objective: Prevent assassination of Dr. Delaney.",
                 "Timeline deviation detected. Abort current mission and report to safe house.",
-                "Additional resources being deployed. Grace Day (0027) will arrive within the hour.",
                 "Mission success probability has dropped to 23%. Consider requesting backup.",
                 "Target has moved to new location. Intercept before they escape.",
                 "Assassination plot confirmed. Target: Dr. Marcy. Location: University Hospital.",
                 "Faction operatives attempting to kill witness. Protect at all costs."
             ],
-            "PROTOCOL_VIOLATION": [
-                "Protocol 3 violation detected in your operational area. Maintain strict adherence.",
-                "Host body integration levels are suboptimal. Recommend memory synchronization.",
-                "Cover identity maintenance requires immediate attention. Host family expressing concerns.",
-                "Protocol 6 reminder: No inter-team communication without authorization.",
-                "Multiple protocol violations detected. Immediate tribunal required.",
-                "Host body showing signs of rejection. Emergency transfer protocols activated."
-            ],
-            "FACTION_ALERT": [
-                "Faction activity detected in sectors 7 and 12. Exercise extreme caution.",
-                "Faction Traveler Vincent Ingram (001) spotted in your area. Do not engage.",
-                "Faction sabotage of power infrastructure planned for this week. Increase security.",
-                "Former Traveler team has joined Faction. Consider them hostile. Designations: 3247, 3248, 3249.",
-                "Faction attempting to assassinate key scientist. Prevent at all costs.",
-                "Faction has compromised nuclear codes. Intercept before detonation.",
-                "Faction leader planning mass casualty event. Stop immediately."
-            ],
-            "TIMELINE_UPDATE": [
-                "New historical data suggests timeline branch at coordinates 47.6062° N, 122.3321° W.",
-                "21st century law enforcement showing increased interest in unexplained deaths.",
-                "Quantum signature detected from unauthorized time travel technology. Investigate.",
-                "Timeline stability compromised. Multiple branches detected.",
-                "Assassination of President [CURRENT_PRESIDENT] imminent. Prevent timeline catastrophe.",
-                "Nuclear war timeline detected. Immediate intervention required.",
-                "Faction has altered historical events. Restore timeline integrity."
-            ]
         }
+        
+        # Only add Grace Day message if she's not already in the game
+        if grace_day_available:
+            message_templates["MISSION_UPDATE"].append(
+                "Additional resources being deployed. Grace Day (0027) will arrive within the hour."
+            )
         
         message_type = random.choice(list(message_templates.keys()))
         message_content = random.choice(message_templates[message_type])

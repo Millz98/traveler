@@ -4523,7 +4523,7 @@ class Game:
         
         if hasattr(self, 'messenger_system'):
             if self.messenger_system.has_urgent_messages():
-                message_type, content = self.messenger_system.generate_random_message()
+                message_type, content = self.messenger_system.generate_random_message(self)
                 messenger = self.messenger_system.create_messenger(message_type, content)
                 self.messenger_system.deliver_message(messenger, self)
             else:
