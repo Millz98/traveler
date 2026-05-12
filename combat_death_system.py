@@ -137,30 +137,37 @@ def mission_combat_probability(mission: Dict[str, Any], phase: str, success_leve
     if tier == "none":
         return 0.0
 
-    base_by_tier = {"low": 0.05, "medium": 0.14, "high": 0.32}
-    base = base_by_tier.get(tier, 0.08)
+    # Raised (2026): prior values made timeline combat vanishingly rare on common mission types.
+    base_by_tier = {"low": 0.10, "medium": 0.20, "high": 0.34}
+    base = base_by_tier.get(tier, 0.12)
 
     # Phase: extraction is inherently hotter; infiltration rarely devolves into sustained fire
     if phase == "infiltration":
-        base += 0.02 if tier == "high" else (0.01 if tier == "medium" else 0.0)
+        base += 0.03 if tier == "high" else (0.02 if tier == "medium" else 0.015)
     elif phase == "execution":
-        base += 0.06 if tier == "high" else (0.04 if tier == "medium" else 0.02)
+        base += 0.07 if tier == "high" else (0.05 if tier == "medium" else 0.03)
     elif phase == "extraction":
-        base += 0.05 if tier == "high" else (0.035 if tier == "medium" else 0.015)
+        base += 0.06 if tier == "high" else (0.04 if tier == "medium" else 0.025)
         if _hot_zone() and tier != "low":
             base += 0.08
 
+    # Softer than before: strong phase play no longer almost cancels armed contact rolls.
     stress = {
-        "CRITICAL_SUCCESS": -0.05,
-        "SUCCESS": -0.02,
-        "PARTIAL_SUCCESS": 0.04,
-        "FAILURE": 0.08,
-        "CRITICAL_FAILURE": 0.14,
+        "CRITICAL_SUCCESS": -0.02,
+        "SUCCESS": -0.01,
+        "PARTIAL_SUCCESS": 0.03,
+        "FAILURE": 0.06,
+        "CRITICAL_FAILURE": 0.10,
     }.get(success_level, 0.0)
     base += stress
 
-    cap = 0.52 if tier == "high" else (0.32 if tier == "medium" else 0.22)
-    return max(0.0, min(cap, base))
+    cap = 0.55 if tier == "high" else (0.38 if tier == "medium" else 0.28)
+    p = max(0.0, min(cap, base))
+    # When this mission tier allows combat at all, keep a small floor so runs see occasional shear.
+    _COMBAT_FLOOR = 0.08
+    if tier != "none":
+        p = max(_COMBAT_FLOOR, p)
+    return min(cap, p)
 
 
 def _traveler_combat_mods(member: Any) -> Dict[str, int]:
