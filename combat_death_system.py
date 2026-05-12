@@ -683,6 +683,7 @@ def run_timeline_shear_firefight(
     enemy_type = "faction" if foe == FACTION_THE_FACTION else "government"
     battle_outcome = ""
     rnd = 0
+    shear = 0
 
     for rnd in range(1, rounds_max + 1):
         living_enemies = [e for e in enemies if e.get("alive")]
