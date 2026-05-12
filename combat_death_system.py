@@ -355,6 +355,7 @@ def _timeline_snap_casualty(
                 f"   💀 {getattr(victim, 'designation', '?')} ({getattr(victim, 'name', '?')}): "
                 f"KIA — already critical; the snap collapses their host line."
             )
+            _register_support_kia(summary, team, game, victim)
     try:
         from messenger_system import global_world_tracker
 
@@ -366,6 +367,145 @@ def _timeline_snap_casualty(
         })
     except Exception:
         pass
+
+
+def _register_support_kia(summary: Dict[str, Any], team: Any, game: Any, fallen: Any) -> None:
+    """Queue a non-leader KIA for Director replacement assessment (after the fight)."""
+    if fallen is getattr(team, "leader", None):
+        return
+    summary.setdefault("fallen_support", []).append(fallen)
+
+
+def _replacement_dc_and_mods(game: Any) -> Tuple[int, Dict[str, int]]:
+    dc = 14
+    mods: Dict[str, int] = {}
+    try:
+        from messenger_system import global_world_tracker
+
+        w = global_world_tracker.world_state_cache
+        stab = float(w.get("timeline_stability", 0.85))
+        if stab >= 0.88:
+            dc -= 1
+        elif stab <= 0.45:
+            dc += 2
+        elif stab <= 0.6:
+            dc += 1
+        dctrl = float(w.get("director_control", 0.8))
+        if dctrl >= 0.78:
+            mods["director_priority"] = 1
+        elif dctrl <= 0.45:
+            mods["director_strain"] = -2
+    except Exception:
+        pass
+    return max(9, min(20, dc)), mods
+
+
+def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[str]) -> Dict[str, Any]:
+    """
+    Director rolls d20 vs DC to authorize a new consciousness into the vacated role slot.
+    """
+    result: Dict[str, Any] = {
+        "fallen_designation": getattr(fallen, "designation", "?"),
+        "fallen_name": getattr(fallen, "name", "?"),
+        "role": getattr(fallen, "role", None),
+        "authorized": False,
+        "roll": None,
+        "total": None,
+        "dc": None,
+    }
+    role = getattr(fallen, "role", None)
+    if not role or role == "Team Leader":
+        result["reason"] = "not_replaceable_role"
+        return result
+    try:
+        idx = team.members.index(fallen)
+    except ValueError:
+        result["reason"] = "not_on_roster"
+        return result
+    if getattr(fallen, "alive", True):
+        result["reason"] = "still_alive"
+        return result
+
+    dc, mods = _replacement_dc_and_mods(game)
+    result["dc"] = dc
+
+    if d20_system:
+        rr = d20_system.roll_d20(
+            "Director",
+            "survival",
+            f"authorize T.E.L.L. for vacated role: {role}",
+            base_dc=dc,
+            modifiers=mods,
+        )
+        result["roll"] = rr.roll
+        result["modifier"] = rr.modifier
+        result["total"] = rr.total
+        ok = bool(rr.success)
+    else:
+        raw = random.randint(1, 20)
+        bonus = sum(mods.values())
+        total = raw + bonus
+        result["roll"] = raw
+        result["modifier"] = bonus
+        result["total"] = total
+        ok = total >= dc
+
+    log.append(
+        f"   🎲 Director replacement check ({role}): d20 {result['roll']}"
+        + (f" + {result['modifier']} = {result['total']} vs DC {dc}" if result.get("modifier") is not None else "")
+        + f" → {'AUTHORIZED' if ok else 'DENIED'}"
+    )
+
+    if not ok:
+        log.append(f"   ⛔ No replacement consciousness cleared for {role}. The slot stays empty until another window opens.")
+        result["reason"] = "roll_failed"
+        return result
+
+    import traveler_character as tc
+
+    new_m = tc.Traveler()
+    new_m.role = role
+    new_m.alive = True
+    new_m.wound_level = 0
+    new_m.consciousness_stability = 0.82
+    team.members[idx] = new_m
+    if hasattr(team, "roles") and isinstance(team.roles, dict):
+        team.roles[role] = new_m
+    try:
+        tc = float(getattr(team, "team_cohesion", 0.75))
+        setattr(team, "team_cohesion", max(0.22, min(1.0, tc - 0.07 + 0.05)))
+    except Exception:
+        pass
+
+    log.append(
+        f"   ✅ Replacement authorized: Traveler {new_m.designation} ({new_m.name}) — {new_m.occupation} — "
+        f"fills the {role} slot."
+    )
+    result["authorized"] = True
+    result["new_designation"] = new_m.designation
+    result["new_name"] = new_m.name
+    return result
+
+
+def _resolve_director_support_replacements(game: Any, team: Any, log: List[str], summary: Dict[str, Any]) -> None:
+    if summary.get("game_over"):
+        return
+    fallen_list = summary.get("fallen_support") or []
+    if not fallen_list:
+        return
+    log.append("")
+    log.append("   ═══ Director — vacated role assessment (d20) ═══")
+    results: List[Dict[str, Any]] = []
+    seen_ids = set()
+    for fallen in fallen_list:
+        fid = id(fallen)
+        if fid in seen_ids:
+            continue
+        seen_ids.add(fid)
+        if fallen is getattr(team, "leader", None):
+            continue
+        results.append(_try_director_replace_support(game, team, fallen, log))
+    summary["director_replacements"] = results
 
 
 def _firefight_epilogue(log: List[str], outcome: str, summary: Dict[str, Any]) -> None:
@@ -451,6 +591,7 @@ def run_timeline_shear_firefight(
         "casualties_friendly": 0,
         "game_over": False,
         "shear_peak": 0,
+        "fallen_support": [],
     }
     log = summary["log"]
 
@@ -589,6 +730,7 @@ def run_timeline_shear_firefight(
                     battle_outcome = "leader_kia"
                     log.append(f"   💀 HOST TERMINATION: Team leader {defender_m.name} is KIA.")
                     break
+                _register_support_kia(summary, team, game, defender_m)
             log.append(
                 f"   Round {rnd} (enemy): {attacker_e['label']} → {getattr(defender_m, 'designation', '?')} | hit | wounds +{dmg2}"
             )
@@ -607,6 +749,8 @@ def run_timeline_shear_firefight(
         battle_outcome = "round_cap_snap"
         if summary.get("game_over"):
             battle_outcome = "leader_kia"
+
+    _resolve_director_support_replacements(game, team, log, summary)
 
     summary["outcome"] = battle_outcome or "unknown"
     _firefight_epilogue(log, summary["outcome"], summary)
@@ -716,6 +860,18 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
     for line in log:
         print(line)
     return {"log": log, "shear_peak": shear}
+
+
+def try_director_replace_support_member(game: Any, fallen: Any, log: Optional[List[str]] = None) -> Dict[str, Any]:
+    """
+    Run the Director d20 replacement check for a dead non-leader (e.g. if something outside
+    the firefight module kills a specialist). Appends to ``log`` when provided.
+    """
+    team = getattr(game, "team", None)
+    if not team or fallen is getattr(team, "leader", None):
+        return {"authorized": False, "reason": "no_team_or_leader"}
+    lg = log if log is not None else []
+    return _try_director_replace_support(game, team, fallen, lg)
 
 
 def ensure_host_combat_fields(host_life: Dict[str, Any]) -> None:
