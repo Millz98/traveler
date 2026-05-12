@@ -95,15 +95,22 @@ _MISSION_SKILL_EXTRACT_MOBILITY = (
     "aerospace",
 )
 
-# Phase performance uses d20 + modifier vs tiers below. Skill matching was uncapped and
-# cohesion/comms used large multipliers, which made missions almost always succeed.
-_MISSION_PHASE_MOD_MAX = 8  # hard cap on (cohesion + comms + phase-relevant skills)
-_MISSION_PHASE_SKILL_MAX = 5  # cap on points from the two skill lanes combined
-# Tier thresholds on (d20 + modifier); tuned so a strong team (~mod 7–8) still fails low rolls.
-_PHASE_T_CRITICAL_SUCCESS = 24
-_PHASE_T_SUCCESS = 19
-_PHASE_T_PARTIAL = 13
-_PHASE_T_FAILURE = 7  # totals below this are CRITICAL_FAILURE
+# Phase performance: d20 + modifier. Loosened from the ultra-hard band so typical teams see
+# a mix of partials and wins; d20 still matters.
+_MISSION_PHASE_MOD_MAX = 9
+_MISSION_PHASE_SKILL_MAX = 6
+_PHASE_T_CRITICAL_SUCCESS = 22
+_PHASE_T_SUCCESS = 17
+_PHASE_T_PARTIAL = 11
+_PHASE_T_FAILURE = 5
+
+# Final mission roll: d20 + momentum vs these bands. Momentum scales from phase scores.
+_MISSION_MOMENTUM_SCALE = 12  # was 10 — rewards decent phases a bit more on the closing die
+_MISSION_MOMENTUM_CAP = 8
+_FIN_COMPLETE = 24
+_FIN_SUCCESS = 19
+_FIN_PARTIAL = 14
+_FIN_FAILURE = 9
 
 
 class Game:
@@ -2447,7 +2454,7 @@ class Game:
         print(
             f"\n  ⚙️  Mission ruleset: phase modifier cap {_MISSION_PHASE_MOD_MAX}; "
             f"phase totals — crit ≥{_PHASE_T_CRITICAL_SUCCESS}, success ≥{_PHASE_T_SUCCESS}, "
-            f"partial ≥{_PHASE_T_PARTIAL}, failure ≥{_PHASE_T_FAILURE}; final momentum cap 7. "
+            f"partial ≥{_PHASE_T_PARTIAL}, failure ≥{_PHASE_T_FAILURE}; final momentum cap {_MISSION_MOMENTUM_CAP}. "
             f"If this banner is missing, a different `game.py` is running."
         )
 
@@ -2606,33 +2613,32 @@ class Game:
         
         total_score = sum(phase_scores.get(result, 0) for result in phase_results)
         max_possible = len(phase_results) * 5 if phase_results else 1
-        # Momentum from phases (was *10, dominated the final d20); cap so the last roll still matters.
-        raw_momentum = int((total_score / max_possible) * 10) if max_possible else 0
-        score_modifier = min(7, raw_momentum)
+        raw_momentum = int((total_score / max_possible) * _MISSION_MOMENTUM_SCALE) if max_possible else 0
+        score_modifier = min(_MISSION_MOMENTUM_CAP, raw_momentum)
 
         roll = random.randint(1, 20)
         raw_final = roll + score_modifier
 
-        _FIN_COMPLETE = 26
-        _FIN_SUCCESS = 21
-        _FIN_PARTIAL = 16
-        _FIN_FAILURE = 11
-
         final_total = raw_final
-        phase_record_floor = False
-        if total_score >= 13 and final_total < _FIN_PARTIAL:
+        floor_msgs: List[str] = []
+
+        no_phase_disaster = bool(phase_results) and all(
+            p in ("PARTIAL_SUCCESS", "SUCCESS", "CRITICAL_SUCCESS")
+            for p in phase_results
+        )
+        if no_phase_disaster and total_score >= 9 and final_total < _FIN_PARTIAL:
             final_total = _FIN_PARTIAL
-            phase_record_floor = True
+            floor_msgs.append(
+                f"no phase below partial (score {total_score}/15) — Director salvage: "
+                f"mission resolves no lower than partial success (effective total {final_total})"
+            )
 
         print(
             f"🎲 Phase momentum: scored {total_score} / {max_possible} from phase results "
-            f"→ d20 {roll} + momentum {score_modifier:+d} = {raw_final} (momentum capped at +7)"
+            f"→ d20 {roll} + momentum {score_modifier:+d} = {raw_final} (momentum cap {_MISSION_MOMENTUM_CAP})"
         )
-        if phase_record_floor:
-            print(
-                f"   📌 Phase aggregate floor: totals {total_score}/15 or better keep the mission "
-                f"from resolving below partial success (effective total {final_total})."
-            )
+        if floor_msgs:
+            print(f"   📌 {' | '.join(floor_msgs)}")
         print(
             f"   Final tiers: {_FIN_COMPLETE}+ complete success | {_FIN_SUCCESS}–{_FIN_COMPLETE - 1} success | "
             f"{_FIN_PARTIAL}–{_FIN_SUCCESS - 1} partial | {_FIN_FAILURE}–{_FIN_PARTIAL - 1} failure | "
