@@ -2458,6 +2458,8 @@ class Game:
             f"If this banner is missing, a different `game.py` is running."
         )
 
+        had_combat = False
+
         for phase in phases:
             print(f"\n🔄 Executing {phase.upper()} phase...")
             
@@ -2477,24 +2479,58 @@ class Game:
             try:
                 from combat_death_system import (
                     maybe_mission_timeline_firefight,
+                    mission_combat_probability,
                     medic_post_combat_triage,
                     print_firefight_report,
                 )
 
                 if getattr(self, "team", None) and getattr(self, "player_alive", True):
                     combat_summary = maybe_mission_timeline_firefight(self, mission, phase, performance)
-                    if combat_summary:
+                    if combat_summary and combat_summary.get("occurred"):
+                        had_combat = True
                         self.last_combat_summary = combat_summary
                         print_firefight_report(combat_summary)
                         medic_post_combat_triage(self, combat_summary)
                     if not getattr(self, "player_alive", True):
                         print("\n🛑 Mission aborted — team leader lost.")
                         break
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"\n  ⚠️ Timeline combat error (non-fatal): {e}")
             
             # Brief pause between phases
             time.sleep(1)
+
+        # If this mission type can generate combat but every probabilistic check missed,
+        # still resolve one egress firefight so timeline shear remains a real risk.
+        if (
+            not had_combat
+            and getattr(self, "team", None)
+            and getattr(self, "player_alive", True)
+        ):
+            try:
+                from combat_death_system import (
+                    mission_combat_probability,
+                    run_timeline_shear_firefight,
+                    medic_post_combat_triage,
+                    print_firefight_report,
+                )
+
+                p_any = max(
+                    mission_combat_probability(mission, ph, "PARTIAL_SUCCESS")
+                    for ph in ("infiltration", "execution", "extraction")
+                )
+                if p_any > 0.0:
+                    print(
+                        "\n  ⚡ Timeline shear — opposing fighters pin you during egress "
+                        "(fallback: random checks never triggered combat this mission)."
+                    )
+                    combat_summary = run_timeline_shear_firefight(self, mission, "extraction")
+                    if combat_summary and combat_summary.get("occurred"):
+                        self.last_combat_summary = combat_summary
+                        print_firefight_report(combat_summary)
+                        medic_post_combat_triage(self, combat_summary)
+            except Exception as e:
+                print(f"\n  ⚠️ Fallback timeline combat error (non-fatal): {e}")
         
         return phase_results
 
