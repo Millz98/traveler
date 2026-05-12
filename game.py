@@ -27,6 +27,75 @@ from d20_decision_system import CharacterDecision
 from world_generation import World
 from turn_narrative_engine import get_turn_narrative_engine, reset_turn_narrative_engine
 
+# Substrings matched against lowercased traveler skills for mission phase modifiers.
+# Kept in sync with `travelers/data/skills.json` naming (e.g. "Medicine" not "medical").
+_MISSION_SKILL_INFIL_COVERT = (
+    "stealth",
+    "decept",
+    "lockpick",
+    "safecrack",
+    "track",
+    "acrobatic",
+    "snip",
+    "marksmanship",
+    "intimidation",
+)
+_MISSION_SKILL_INFIL_TECH = (
+    "hack",
+    "crypt",
+    "cyber",
+    "penetration",
+    "vulnerab",
+    "forensic",
+    "computer sci",
+    "networking",
+    "algorithm",
+    "data analysis",
+    "network security",
+    "machine learning",
+    "robotics",
+)
+_MISSION_SKILL_EXEC_ACTION = (
+    "combat",
+    "demolition",
+    "snip",
+    "marksmanship",
+    "hand-to-hand",
+    "martial",
+    "sword",
+    "archery",
+    "gunnery",
+    "acrobatic",
+    "athletic",
+)
+_MISSION_SKILL_EXEC_COMMAND = (
+    "leadership",
+    "management",
+    "persuasion",
+)
+_MISSION_SKILL_EXTRACT_CARE = (
+    "medicine",
+    "first aid",
+    "surgery",
+    "pharmacology",
+    "toxicology",
+    "veterinary",
+    "dietetic",
+    "nutrition",
+    "nursing",
+)
+_MISSION_SKILL_EXTRACT_MOBILITY = (
+    "pilot",
+    "navigation",
+    "survival",
+    "athletic",
+    "acrobatic",
+    "engineering",
+    "mechanical",
+    "aerospace",
+)
+
+
 class Game:
     def __init__(self, seed=None):
         # Generate procedural world first (shared across systems that support it)
@@ -598,7 +667,13 @@ class Game:
 
             self.player_alive = save_data.get("player_alive", True)
             self.director_reinforcement_pending = save_data.get("director_reinforcement_pending", False)
-            
+            try:
+                from combat_death_system import sync_director_reinforcement_pending
+
+                sync_director_reinforcement_pending(self, self.team)
+            except Exception:
+                pass
+
             # Restore US Political System state if available
             if "us_political_system" in save_data and save_data["us_political_system"] and hasattr(self, 'us_political_system') and self.us_political_system:
                 self._restore_us_political_system_state(save_data["us_political_system"])
@@ -2461,9 +2536,17 @@ class Game:
         # Calculate team modifier based on skills and cohesion
         team_modifier = self.calculate_team_modifier(phase)
         
-        # Roll D20 (hidden from player)
         roll = random.randint(1, 20)
         total = roll + team_modifier
+        
+        print(
+            f"🎲 d20 {roll} + team modifier {team_modifier:+d} = {total} "
+            f"(cohesion, comms, and phase-relevant skills)"
+        )
+        print(
+            "   Tiers: 20+ critical success | 15–19 success | 10–14 partial | "
+            "5–9 failure | below 5 critical failure"
+        )
         
         # Determine success level based on total
         if total >= 20:
@@ -2482,7 +2565,6 @@ class Game:
             success_level = "CRITICAL_FAILURE"
             result_text = "Catastrophic failure! The mission is severely compromised."
         
-        # Show narrative result (not the dice roll)
         print(f"📊 Performance Result: {success_level}")
         print(f"💬 {result_text}")
         
@@ -2505,14 +2587,20 @@ class Game:
         }
         
         total_score = sum(phase_scores.get(result, 0) for result in phase_results)
-        max_possible = len(phase_results) * 5
-        
-        # Roll D20 for final outcome (hidden from player)
+        max_possible = len(phase_results) * 5 if phase_results else 1
+        score_modifier = int((total_score / max_possible) * 10) if max_possible else 0
+
         roll = random.randint(1, 20)
-        
-        # Add score modifier
-        score_modifier = int((total_score / max_possible) * 10)
         final_total = roll + score_modifier
+
+        print(
+            f"🎲 Phase momentum: scored {total_score} / {max_possible} from phase results "
+            f"→ d20 {roll} + momentum {score_modifier:+d} = {final_total}"
+        )
+        print(
+            "   Final tiers: 25+ complete success | 20–24 success | 15–19 partial | "
+            "10–14 failure | below 10 critical failure"
+        )
         
         # Determine final outcome
         if final_total >= 25:
@@ -2531,7 +2619,6 @@ class Game:
             outcome = "CRITICAL_FAILURE"
             outcome_text = "Mission failed catastrophically!"
         
-        # Show narrative outcome (not the dice roll)
         print(f"📊 Mission Outcome: {outcome}")
         print(f"💬 {outcome_text}")
         
@@ -3136,7 +3223,7 @@ class Game:
         print(f"Team Cohesion: {self.team.team_cohesion:.2f}")
         print(f"Communication Level: {self.team.communication_level:.2f}")
         if getattr(self, "director_reinforcement_pending", False):
-            print("\n📡 Director: replacement operatives pending — T.E.L.L. alignment in progress.")
+            print("\n📡 Director: vacant specialist slot(s) — you can request a new d20 replacement at the end of this screen.")
         
         self.print_separator()
         
@@ -3172,7 +3259,51 @@ class Game:
                     print(f"   Host Status: Happiness {host.happiness:.2f}, Stress {host.stress_level:.2f}")
         
         self.print_separator()
-        input("Press Enter to continue...")
+        dead_support = [m for m in self.team.members[1:] if not getattr(m, "alive", True)]
+        if dead_support:
+            print(f"\n📡 {len(dead_support)} specialist slot(s) are KIA (host terminated).")
+            print("   [R] + Enter — request Director T.E.L.L. authorization (d20) for each vacant slot")
+            print("   [Enter] — return to menu")
+            choice = input("\n> ").strip().lower()
+            if choice == "r":
+                self.request_director_support_replacements()
+        else:
+            input("Press Enter to continue...")
+
+    def request_director_support_replacements(self):
+        """Player-initiated Director d20 rolls to replace dead non-leader specialists (same rules as post-combat)."""
+        from combat_death_system import sync_director_reinforcement_pending, try_director_replace_support_member
+
+        self.clear_screen()
+        self.print_header("DIRECTOR — T.E.L.L. REPLACEMENT WINDOW")
+
+        if not getattr(self, "team", None) or not getattr(self.team, "members", None):
+            print("\n⚠️  No team roster loaded.")
+            input("\nPress Enter to continue...")
+            return
+
+        leader = getattr(self.team, "leader", None)
+        if (
+            leader is None
+            or not getattr(leader, "alive", True)
+            or not getattr(self, "player_alive", True)
+        ):
+            print("\n⚠️  Replacement channel is closed while the team leader's host is offline.")
+            input("\nPress Enter to continue...")
+            return
+
+        log: list = []
+        for m in list(self.team.members[1:]):
+            if not getattr(m, "alive", True):
+                try_director_replace_support_member(self, m, log)
+
+        if log:
+            print("\n" + "\n".join(log))
+        else:
+            print("\n📡 No vacant specialist slots — full roster.")
+
+        sync_director_reinforcement_pending(self, self.team)
+        input("\nPress Enter to continue...")
 
     def view_protocols(self):
         """View Traveler protocols"""
@@ -5659,37 +5790,50 @@ class Game:
         communication_bonus = int(self.team.communication_level * 3)
         base_modifier += communication_bonus
         
-        # Phase-specific skill bonuses
+        def _skills_lower(member):
+            if not hasattr(member, "skills") or not member.skills:
+                return []
+            return [str(s).lower() for s in member.skills]
+
+        def _any_needle(skills_l, needles):
+            return any(
+                needle in s for s in skills_l for needle in needles
+            )
+
+        # Phase-specific skill bonuses (two independent +1 lanes per living member, max +2 each)
         if phase == "infiltration":
-            # Infiltration benefits from stealth and technical skills
             for member in self.team.members:
                 if not getattr(member, "alive", True):
                     continue
-                if hasattr(member, 'skills') and member.skills:
-                    if any('stealth' in skill.lower() for skill in member.skills):
-                        base_modifier += 1
-                    if any('technical' in skill.lower() for skill in member.skills):
-                        base_modifier += 1
+                sl = _skills_lower(member)
+                if not sl:
+                    continue
+                if _any_needle(sl, _MISSION_SKILL_INFIL_COVERT):
+                    base_modifier += 1
+                if _any_needle(sl, _MISSION_SKILL_INFIL_TECH):
+                    base_modifier += 1
         elif phase == "execution":
-            # Execution benefits from combat and leadership skills
             for member in self.team.members:
                 if not getattr(member, "alive", True):
                     continue
-                if hasattr(member, 'skills') and member.skills:
-                    if any('combat' in skill.lower() for skill in member.skills):
-                        base_modifier += 1
-                    if any('leadership' in skill.lower() for skill in member.skills):
-                        base_modifier += 1
+                sl = _skills_lower(member)
+                if not sl:
+                    continue
+                if _any_needle(sl, _MISSION_SKILL_EXEC_ACTION):
+                    base_modifier += 1
+                if _any_needle(sl, _MISSION_SKILL_EXEC_COMMAND):
+                    base_modifier += 1
         elif phase == "extraction":
-            # Extraction benefits from medical and technical skills
             for member in self.team.members:
                 if not getattr(member, "alive", True):
                     continue
-                if hasattr(member, 'skills') and member.skills:
-                    if any('medical' in skill.lower() for skill in member.skills):
-                        base_modifier += 1
-                    if any('technical' in skill.lower() for skill in member.skills):
-                        base_modifier += 1
+                sl = _skills_lower(member)
+                if not sl:
+                    continue
+                if _any_needle(sl, _MISSION_SKILL_EXTRACT_CARE):
+                    base_modifier += 1
+                if _any_needle(sl, _MISSION_SKILL_EXTRACT_MOBILITY):
+                    base_modifier += 1
         
         return base_modifier
 

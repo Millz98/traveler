@@ -400,6 +400,22 @@ def _replacement_dc_and_mods(game: Any) -> Tuple[int, Dict[str, int]]:
     return max(9, min(20, dc)), mods
 
 
+def sync_director_reinforcement_pending(game: Any, team: Any) -> None:
+    """
+    True when the leader still lives but at least one non-leader roster slot is KIA
+    (replacement denied or not yet attempted). Drives save/UI hints for retry windows.
+    """
+    if not team or not getattr(team, "members", None):
+        setattr(game, "director_reinforcement_pending", False)
+        return
+    leader = getattr(team, "leader", None)
+    if not getattr(game, "player_alive", True) or leader is None or not getattr(leader, "alive", True):
+        setattr(game, "director_reinforcement_pending", False)
+        return
+    dead_support = [m for m in team.members[1:] if not getattr(m, "alive", True)]
+    setattr(game, "director_reinforcement_pending", bool(dead_support))
+
+
 def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[str]) -> Dict[str, Any]:
     """
     Director rolls d20 vs DC to authorize a new consciousness into the vacated role slot.
@@ -472,8 +488,8 @@ def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[s
     if hasattr(team, "roles") and isinstance(team.roles, dict):
         team.roles[role] = new_m
     try:
-        tc = float(getattr(team, "team_cohesion", 0.75))
-        setattr(team, "team_cohesion", max(0.22, min(1.0, tc - 0.07 + 0.05)))
+        coh = float(getattr(team, "team_cohesion", 0.75))
+        setattr(team, "team_cohesion", max(0.22, min(1.0, coh - 0.07 + 0.05)))
     except Exception:
         pass
 
@@ -489,9 +505,11 @@ def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[s
 
 def _resolve_director_support_replacements(game: Any, team: Any, log: List[str], summary: Dict[str, Any]) -> None:
     if summary.get("game_over"):
+        sync_director_reinforcement_pending(game, team)
         return
     fallen_list = summary.get("fallen_support") or []
     if not fallen_list:
+        sync_director_reinforcement_pending(game, team)
         return
     log.append("")
     log.append("   ═══ Director — vacated role assessment (d20) ═══")
@@ -506,6 +524,7 @@ def _resolve_director_support_replacements(game: Any, team: Any, log: List[str],
             continue
         results.append(_try_director_replace_support(game, team, fallen, log))
     summary["director_replacements"] = results
+    sync_director_reinforcement_pending(game, team)
 
 
 def _firefight_epilogue(log: List[str], outcome: str, summary: Dict[str, Any]) -> None:
@@ -755,14 +774,13 @@ def run_timeline_shear_firefight(
     summary["outcome"] = battle_outcome or "unknown"
     _firefight_epilogue(log, summary["outcome"], summary)
 
-    # Reinforcement narrative
-    support_members = team.members[1:]
-    support_dead = bool(support_members) and all(not getattr(m, "alive", True) for m in support_members)
-    leader_ok = getattr(game, "player_alive", True) and getattr(team.leader, "alive", True)
-    if leader_ok and support_dead and len(team.members) > 1:
-        setattr(game, "director_reinforcement_pending", True)
+    # Reinforcement narrative (flag already synced in _resolve_director_support_replacements)
+    if getattr(game, "director_reinforcement_pending", False) and not summary.get("game_over"):
         log.append("")
-        log.append("   📡 Director channel — standby for replacement operatives from the future once T.E.L.L. windows align.")
+        log.append(
+            "   📡 Director channel — vacated specialist slot(s) on roster. "
+            "Open Team Status from the main menu and request a T.E.L.L. replacement window to roll again."
+        )
 
     if summary["game_over"]:
         log.append("")
