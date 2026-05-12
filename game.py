@@ -95,6 +95,16 @@ _MISSION_SKILL_EXTRACT_MOBILITY = (
     "aerospace",
 )
 
+# Phase performance uses d20 + modifier vs tiers below. Skill matching was uncapped and
+# cohesion/comms used large multipliers, which made missions almost always succeed.
+_MISSION_PHASE_MOD_MAX = 8  # hard cap on (cohesion + comms + phase-relevant skills)
+_MISSION_PHASE_SKILL_MAX = 5  # cap on points from the two skill lanes combined
+# Tier thresholds on (d20 + modifier); tuned so a strong team (~mod 7–8) still fails low rolls.
+_PHASE_T_CRITICAL_SUCCESS = 24
+_PHASE_T_SUCCESS = 19
+_PHASE_T_PARTIAL = 13
+_PHASE_T_FAILURE = 7  # totals below this are CRITICAL_FAILURE
+
 
 class Game:
     def __init__(self, seed=None):
@@ -2433,7 +2443,14 @@ class Game:
         """Execute mission phases and return results"""
         phases = ["infiltration", "execution", "extraction"]
         phase_results = []
-        
+
+        print(
+            f"\n  ⚙️  Mission ruleset: phase modifier cap {_MISSION_PHASE_MOD_MAX}; "
+            f"phase totals — crit ≥{_PHASE_T_CRITICAL_SUCCESS}, success ≥{_PHASE_T_SUCCESS}, "
+            f"partial ≥{_PHASE_T_PARTIAL}, failure ≥{_PHASE_T_FAILURE}; final momentum cap 7. "
+            f"If this banner is missing, a different `game.py` is running."
+        )
+
         for phase in phases:
             print(f"\n🔄 Executing {phase.upper()} phase...")
             
@@ -2541,24 +2558,25 @@ class Game:
         
         print(
             f"🎲 d20 {roll} + team modifier {team_modifier:+d} = {total} "
-            f"(cohesion, comms, and phase-relevant skills)"
+            f"(cohesion, comms, and phase-relevant skills; modifier capped at {_MISSION_PHASE_MOD_MAX})"
         )
         print(
-            "   Tiers: 20+ critical success | 15–19 success | 10–14 partial | "
-            "5–9 failure | below 5 critical failure"
+            f"   Tiers: {_PHASE_T_CRITICAL_SUCCESS}+ critical success | {_PHASE_T_SUCCESS}–{_PHASE_T_CRITICAL_SUCCESS - 1} success | "
+            f"{_PHASE_T_PARTIAL}–{_PHASE_T_SUCCESS - 1} partial | {_PHASE_T_FAILURE}–{_PHASE_T_PARTIAL - 1} failure | "
+            f"below {_PHASE_T_FAILURE} critical failure"
         )
         
         # Determine success level based on total
-        if total >= 20:
+        if total >= _PHASE_T_CRITICAL_SUCCESS:
             success_level = "CRITICAL_SUCCESS"
             result_text = "Outstanding performance! The team executes flawlessly."
-        elif total >= 15:
+        elif total >= _PHASE_T_SUCCESS:
             success_level = "SUCCESS"
             result_text = "Good performance. The team accomplishes their objective."
-        elif total >= 10:
+        elif total >= _PHASE_T_PARTIAL:
             success_level = "PARTIAL_SUCCESS"
             result_text = "Adequate performance. Some objectives met with minor complications."
-        elif total >= 5:
+        elif total >= _PHASE_T_FAILURE:
             success_level = "FAILURE"
             result_text = "Poor performance. The team struggles and objectives are compromised."
         else:
@@ -2588,31 +2606,50 @@ class Game:
         
         total_score = sum(phase_scores.get(result, 0) for result in phase_results)
         max_possible = len(phase_results) * 5 if phase_results else 1
-        score_modifier = int((total_score / max_possible) * 10) if max_possible else 0
+        # Momentum from phases (was *10, dominated the final d20); cap so the last roll still matters.
+        raw_momentum = int((total_score / max_possible) * 10) if max_possible else 0
+        score_modifier = min(7, raw_momentum)
 
         roll = random.randint(1, 20)
-        final_total = roll + score_modifier
+        raw_final = roll + score_modifier
+
+        _FIN_COMPLETE = 26
+        _FIN_SUCCESS = 21
+        _FIN_PARTIAL = 16
+        _FIN_FAILURE = 11
+
+        final_total = raw_final
+        phase_record_floor = False
+        if total_score >= 13 and final_total < _FIN_PARTIAL:
+            final_total = _FIN_PARTIAL
+            phase_record_floor = True
 
         print(
             f"🎲 Phase momentum: scored {total_score} / {max_possible} from phase results "
-            f"→ d20 {roll} + momentum {score_modifier:+d} = {final_total}"
+            f"→ d20 {roll} + momentum {score_modifier:+d} = {raw_final} (momentum capped at +7)"
         )
+        if phase_record_floor:
+            print(
+                f"   📌 Phase aggregate floor: totals {total_score}/15 or better keep the mission "
+                f"from resolving below partial success (effective total {final_total})."
+            )
         print(
-            "   Final tiers: 25+ complete success | 20–24 success | 15–19 partial | "
-            "10–14 failure | below 10 critical failure"
+            f"   Final tiers: {_FIN_COMPLETE}+ complete success | {_FIN_SUCCESS}–{_FIN_COMPLETE - 1} success | "
+            f"{_FIN_PARTIAL}–{_FIN_SUCCESS - 1} partial | {_FIN_FAILURE}–{_FIN_PARTIAL - 1} failure | "
+            f"below {_FIN_FAILURE} critical failure"
         )
         
         # Determine final outcome
-        if final_total >= 25:
+        if final_total >= _FIN_COMPLETE:
             outcome = "COMPLETE_SUCCESS"
             outcome_text = "Mission accomplished with exceptional results!"
-        elif final_total >= 20:
+        elif final_total >= _FIN_SUCCESS:
             outcome = "SUCCESS"
             outcome_text = "Mission completed successfully."
-        elif final_total >= 15:
+        elif final_total >= _FIN_PARTIAL:
             outcome = "PARTIAL_SUCCESS"
             outcome_text = "Mission partially successful with some complications."
-        elif final_total >= 10:
+        elif final_total >= _FIN_FAILURE:
             outcome = "FAILURE"
             outcome_text = "Mission failed to achieve primary objectives."
         else:
@@ -5779,17 +5816,11 @@ class Game:
         input("Press Enter to continue...")
 
     def calculate_team_modifier(self, phase):
-        """Calculate team modifier for D20 rolls based on skills and cohesion"""
-        base_modifier = 0
-        
-        # Team cohesion bonus
-        cohesion_bonus = int(self.team.team_cohesion * 4)
-        base_modifier += cohesion_bonus
-        
-        # Communication bonus
-        communication_bonus = int(self.team.communication_level * 3)
-        base_modifier += communication_bonus
-        
+        """Calculate team modifier for D20 rolls based on skills and cohesion."""
+        cohesion_bonus = min(3, int(self.team.team_cohesion * 3))
+        communication_bonus = min(2, int(self.team.communication_level * 2))
+        base_modifier = cohesion_bonus + communication_bonus
+
         def _skills_lower(member):
             if not hasattr(member, "skills") or not member.skills:
                 return []
@@ -5800,7 +5831,7 @@ class Game:
                 needle in s for s in skills_l for needle in needles
             )
 
-        # Phase-specific skill bonuses (two independent +1 lanes per living member, max +2 each)
+        skill_pts = 0
         if phase == "infiltration":
             for member in self.team.members:
                 if not getattr(member, "alive", True):
@@ -5809,9 +5840,9 @@ class Game:
                 if not sl:
                     continue
                 if _any_needle(sl, _MISSION_SKILL_INFIL_COVERT):
-                    base_modifier += 1
+                    skill_pts += 1
                 if _any_needle(sl, _MISSION_SKILL_INFIL_TECH):
-                    base_modifier += 1
+                    skill_pts += 1
         elif phase == "execution":
             for member in self.team.members:
                 if not getattr(member, "alive", True):
@@ -5820,9 +5851,9 @@ class Game:
                 if not sl:
                     continue
                 if _any_needle(sl, _MISSION_SKILL_EXEC_ACTION):
-                    base_modifier += 1
+                    skill_pts += 1
                 if _any_needle(sl, _MISSION_SKILL_EXEC_COMMAND):
-                    base_modifier += 1
+                    skill_pts += 1
         elif phase == "extraction":
             for member in self.team.members:
                 if not getattr(member, "alive", True):
@@ -5831,11 +5862,13 @@ class Game:
                 if not sl:
                     continue
                 if _any_needle(sl, _MISSION_SKILL_EXTRACT_CARE):
-                    base_modifier += 1
+                    skill_pts += 1
                 if _any_needle(sl, _MISSION_SKILL_EXTRACT_MOBILITY):
-                    base_modifier += 1
-        
-        return base_modifier
+                    skill_pts += 1
+
+        skill_pts = min(_MISSION_PHASE_SKILL_MAX, skill_pts)
+        base_modifier += skill_pts
+        return min(_MISSION_PHASE_MOD_MAX, base_modifier)
 
     def apply_phase_consequences(self, mission, phase, success_level):
         """Apply consequences based on phase performance"""

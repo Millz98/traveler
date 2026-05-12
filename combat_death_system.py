@@ -249,6 +249,31 @@ def _apply_shear_narrative(shear: int, log: List[str]) -> int:
     return skew
 
 
+def _strike_log_suffix(rr: Any, hit: bool, target_ac: int) -> str:
+    """Human-readable attack resolution for combat transcripts (move-for-move)."""
+    if rr is None:
+        return f" vs AC {target_ac} → {'HIT' if hit else 'miss'}"
+    roll = getattr(rr, "roll", None)
+    mod = getattr(rr, "modifier", 0)
+    tot = getattr(rr, "total", None)
+    crit_s = bool(getattr(rr, "critical_success", False))
+    crit_f = bool(getattr(rr, "critical_failure", False))
+    tag = ""
+    if crit_s:
+        tag = " [critical hit]"
+    elif crit_f:
+        tag = " [critical miss]"
+    if roll is not None and tot is not None:
+        try:
+            mi = int(mod)
+            return f" | d20 {roll}{mi:+d} = {tot} vs AC {target_ac}{tag} → {'HIT' if hit else 'MISS'}"
+        except (TypeError, ValueError):
+            return f" | total {tot} vs AC {target_ac}{tag} → {'HIT' if hit else 'MISS'}"
+    if tot is not None:
+        return f" | total {tot} vs AC {target_ac}{tag} → {'HIT' if hit else 'MISS'}"
+    return f" | vs AC {target_ac}{tag} → {'HIT' if hit else 'MISS'}"
+
+
 def _strike(
     attacker_label: str,
     attacker_type: str,
@@ -312,10 +337,9 @@ def _timeline_snap_casualty(
     if not living_e or not living_a:
         return
 
-    # Total absorbed damage on each side (full roster so spread fire still counts).
-    roster = list(getattr(team, "members", []) or [])
-    e_pressure = sum(int(e.get("wound_level", 0) or 0) for e in enemies)
-    a_pressure = sum(int(getattr(m, "wound_level", 0) or 0) for m in roster)
+    # Pressure from fighters still standing when the window closes (excludes already-KIA roster slots).
+    e_pressure = sum(int(e.get("wound_level", 0) or 0) for e in living_e)
+    a_pressure = sum(int(getattr(m, "wound_level", 0) or 0) for m in living_a)
 
     log.append("")
     log.append("   — **Engagement limit** — window closing: heat, shear, or Director risk tolerance.")
@@ -332,6 +356,10 @@ def _timeline_snap_casualty(
         victim["wound_level"] = max(int(victim.get("wound_level", 0) or 0), 3)
         summary["casualties_enemy"] = summary.get("casualties_enemy", 0) + 1
         log.append(f"   💀 {victim['label']}: KIA as overlapping timelines collapse onto one outcome.")
+        log.append(
+            "   📎 Shear resolves against the opposition only — allied losses this engagement, if any, "
+            "are logged above under hostile fire."
+        )
     else:
         pool = [m for m in living_a if m is not getattr(team, "leader", None)]
         if not pool:
@@ -352,8 +380,8 @@ def _timeline_snap_casualty(
             )
         else:
             log.append(
-                f"   💀 {getattr(victim, 'designation', '?')} ({getattr(victim, 'name', '?')}): "
-                f"KIA — already critical; the snap collapses their host line."
+                f"   💀 {getattr(victim, 'designation', '?')} ({getattr(victim, 'name', '?')}), "
+                f"{getattr(victim, 'role', 'support')}: KIA — shear collapse; host line ends."
             )
             _register_support_kia(summary, team, game, victim)
     try:
@@ -637,8 +665,11 @@ def run_timeline_shear_firefight(
     log.append("══════════════════════════════════════════════════════════")
     log.append(f"  Opposition: {foe.replace('_', ' ').title()} — {enemy_count} fighter(s)")
     log.append(f"  Phase context: {phase} at {mission.get('location', 'unknown')}")
-
-    shear = 0
+    log.append(
+        f"  Transcript: {len(allies)} allied combatant(s) vs {enemy_count} hostile(s). "
+        f"Each round = Move 1 (ally strike) + Move 2 (enemy return fire), with dice when available, "
+        f"damage, wound totals, and an explicit line for every KIA."
+    )
     lockstep_used = False
     rounds_max = 10  # Hard ceiling; unresolved fights close via timeline snap + epilogue
     ally_type = "traveler"
@@ -660,18 +691,26 @@ def run_timeline_shear_firefight(
             break
         if _morale_break(living_enemies, True):
             battle_outcome = "enemy_morale"
-            log.append(f"   — Round {rnd}: Opposing force breaks contact and withdraws.")
+            log.append(f"   ══ Round {rnd}/{rounds_max} — enemy morale break (no further exchange this round) ══")
+            log.append(f"      Opposing force breaks contact and withdraws.")
             break
         if _morale_break(living_allies, False):
             battle_outcome = "ally_morale"
-            log.append(f"   — Round {rnd}: Your team breaks contact to preserve hosts.")
+            log.append(f"   ══ Round {rnd}/{rounds_max} — allied morale break (no further exchange this round) ══")
+            log.append(f"      Your team breaks contact to preserve hosts.")
             break
 
         shear += random.randint(6, 14)
         summary["shear_peak"] = max(summary["shear_peak"], shear)
         shear_skew = _apply_shear_narrative(shear, log)
 
-        # Ally strikes
+        log.append(
+            f"   ══ Round {rnd}/{rounds_max} — allies {len(living_allies)} standing · "
+            f"hostiles {len(living_enemies)} standing ══"
+        )
+
+        # Move 1 — Ally strikes
+        log.append(f"      Move 1 — Ally strike")
         attacker = random.choice(living_allies)
         defender = random.choice(living_enemies)
         atk_mods = _traveler_combat_mods(attacker)
@@ -699,29 +738,38 @@ def run_timeline_shear_firefight(
             except Exception:
                 pass
 
+        atk_note = _strike_log_suffix(rr, hit, ac)
         dmg = _damage_from_hit(hit, rr)
         if hit:
-            defender["wound_level"] = int(defender.get("wound_level", 0) or 0) + dmg
-            if defender["wound_level"] >= 3:
+            prev_w = int(defender.get("wound_level", 0) or 0)
+            defender["wound_level"] = prev_w + dmg
+            nw = int(defender["wound_level"])
+            killed = nw >= 3
+            if killed:
                 defender["alive"] = False
                 summary["casualties_enemy"] += 1
             log.append(
-                f"   Round {rnd} (ally): {label} → {defender['label']} | {'HIT' if hit else 'MISS'}"
-                + (f" | wounds +{dmg}" if dmg else "")
+                f"         {label} → {defender['label']}{atk_note} | damage +{dmg} | hostile wounds {prev_w}→{nw}"
             )
+            if killed:
+                log.append(
+                    f"         💀 HOSTILE KIA: {defender['label']} — eliminated by allied fire this exchange."
+                )
         else:
-            log.append(f"   Round {rnd} (ally): {label} → {defender['label']} | miss")
+            log.append(f"         {label} → {defender['label']}{atk_note}")
 
         living_enemies = [e for e in enemies if e.get("alive")]
         living_allies = [m for m in allies if getattr(m, "alive", True)]
         if not living_enemies:
             battle_outcome = "enemy_eliminated"
+            log.append("      …Opposition routed; no enemy return fire.")
             break
         if not living_allies:
             battle_outcome = "ally_eliminated"
             break
 
-        # Enemy strikes back
+        # Move 2 — Enemy strikes back
+        log.append(f"      Move 2 — Enemy return fire")
         attacker_e = random.choice(living_enemies)
         defender_m = _pick_enemy_victim(living_allies, team)
         e_mods = {"tactical_pressure": random.randint(0, 1), "shear": -shear_skew}
@@ -730,16 +778,22 @@ def run_timeline_shear_firefight(
         hit2, rr2 = _strike(attacker_e["label"], enemy_type, f"suppress {getattr(defender_m, 'designation', '?')}", ac_m, e_mods)
         if hit2 and rr2 and getattr(rr2, "critical_failure", False):
             hit2 = False
-            log.append(f"      (Enemy fumble — shot goes wide.)")
+            log.append(f"         (Enemy fumble — shot discarded.)")
         dmg2 = _damage_from_hit_vs_ally(hit2, rr2)
+        def_label = f"{getattr(defender_m, 'designation', '?')} ({defender_m.name})"
         if hit2:
-            wl = int(getattr(defender_m, "wound_level", 0) or 0) + dmg2
+            wl_prev = int(getattr(defender_m, "wound_level", 0) or 0)
+            wl = wl_prev + dmg2
             setattr(defender_m, "wound_level", wl)
             if wl >= 1:
                 cs = float(getattr(defender_m, "consciousness_stability", 1.0) or 1.0)
                 setattr(defender_m, "consciousness_stability", max(0.0, cs - 0.08 * dmg2))
             # Leader needs one more wound tier than specialists (plot + doctrine: not on the X).
             lethal = 4 if is_ldr else 3
+            en_note = _strike_log_suffix(rr2, hit2, ac_m)
+            log.append(
+                f"         {attacker_e['label']} → {def_label}{en_note} | damage +{dmg2} | ally wounds {wl_prev}→{wl} (lethal at {lethal})"
+            )
             if wl >= lethal:
                 setattr(defender_m, "alive", False)
                 summary["casualties_friendly"] += 1
@@ -747,14 +801,20 @@ def run_timeline_shear_firefight(
                     setattr(game, "player_alive", False)
                     summary["game_over"] = True
                     battle_outcome = "leader_kia"
-                    log.append(f"   💀 HOST TERMINATION: Team leader {defender_m.name} is KIA.")
+                    log.append(
+                        f"         💀 TEAM LEADER KIA: {defender_m.name} ({getattr(defender_m, 'designation', '?')}) "
+                        f"— host terminated; primary consciousness lost."
+                    )
                     break
                 _register_support_kia(summary, team, game, defender_m)
-            log.append(
-                f"   Round {rnd} (enemy): {attacker_e['label']} → {getattr(defender_m, 'designation', '?')} | hit | wounds +{dmg2}"
-            )
+                log.append(
+                    f"         💀 SPECIALIST KIA: {defender_m.name} ({getattr(defender_m, 'designation', '?')}) "
+                    f"— role {getattr(defender_m, 'role', 'support')}; hostile fire terminates the host."
+                )
         else:
-            log.append(f"   Round {rnd} (enemy): {attacker_e['label']} → {getattr(defender_m, 'designation', '?')} | miss")
+            log.append(
+                f"         {attacker_e['label']} → {def_label}{_strike_log_suffix(rr2, hit2, ac_m)}"
+            )
     else:
         # Completed every round without breaking — timeboxed stalemate
         battle_outcome = "round_cap"
@@ -930,9 +990,14 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
     enemies = _synthetic_enemy_fighters(foe, random.randint(1, 4))
     log: List[str] = []
     log.append(f"\n    ⚔️  AI Team {getattr(ai_team, 'team_id', '?')} — timeline shear skirmish vs {foe}.")
+    log.append(
+        f"    Order of battle: {len(hosts)} AI host(s) vs {len(enemies)} hostile fighter(s); "
+        f"each round is Move 1 (AI strike) then Move 2 (enemy return fire)."
+    )
 
     shear = 0
-    for rnd in range(1, 7):
+    rounds_max_ai = 6
+    for rnd in range(1, rounds_max_ai + 1):
         living_h = [h for h in hosts if h.get("alive", True)]
         living_e = [e for e in enemies if e.get("alive")]
         if not living_h or not living_e:
@@ -940,6 +1005,12 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
         shear += random.randint(5, 12)
         _apply_shear_narrative(shear, log)
 
+        log.append(
+            f"    ══ Round {rnd}/{rounds_max_ai} — AI hosts {len(living_h)} standing · "
+            f"hostiles {len(living_e)} standing ══"
+        )
+
+        log.append("       Move 1 — AI / Traveler-aligned strike")
         h = random.choice(living_h)
         e = random.choice(living_e)
         fake_member = type("M", (), {})()
@@ -951,27 +1022,62 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
         fake_member.name = h.get("name", "Host")
         fake_member.alive = True
         atk_mods = _traveler_combat_mods(fake_member)
-        hit, _ = _strike(h.get("name", "Host"), "traveler", f"AI op vs {e['label']}", _enemy_ac(e), atk_mods)
+        ac_en = _enemy_ac(e)
+        hit, rr = _strike(h.get("name", "Host"), "traveler", f"AI op vs {e['label']}", ac_en, atk_mods)
         if hit:
-            e["wound_level"] = int(e.get("wound_level", 0) or 0) + random.randint(1, 2)
+            dmg_ai = random.randint(1, 2)
+            ew0 = int(e.get("wound_level", 0) or 0)
+            e["wound_level"] = ew0 + dmg_ai
+            ew1 = int(e["wound_level"])
+            log.append(
+                f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)} "
+                f"| damage +{dmg_ai} | hostile wounds {ew0}→{ew1}"
+            )
             if e["wound_level"] >= 3:
                 e["alive"] = False
-                log.append(f"       Hostile down: {e['label']}")
+                log.append(f"         💀 HOSTILE KIA: {e['label']} — down during AI skirmish.")
+        else:
+            log.append(
+                f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)}"
+            )
 
         living_e = [x for x in enemies if x.get("alive")]
         living_h = [x for x in hosts if x.get("alive", True)]
         if not living_e or not living_h:
+            if not living_e:
+                log.append("       …Hostiles eliminated; no return fire.")
             break
+
+        log.append("       Move 2 — Enemy return fire")
         e2 = random.choice(living_e)
         h2 = random.choice(living_h)
         ac = 11 + int(h2.get("wound_level", 0) or 0)
-        hit2, _ = _strike(e2["label"], "faction" if foe == FACTION_THE_FACTION else "government", "return fire", ac, {"pressure": 1})
+        hit2, rr2 = _strike(
+            e2["label"],
+            "faction" if foe == FACTION_THE_FACTION else "government",
+            "return fire",
+            ac,
+            {"pressure": 1},
+        )
         if hit2:
-            h2["wound_level"] = int(h2.get("wound_level", 0) or 0) + random.randint(1, 2)
+            dmg_h = random.randint(1, 2)
+            hw0 = int(h2.get("wound_level", 0) or 0)
+            h2["wound_level"] = hw0 + dmg_h
+            hw1 = int(h2["wound_level"])
             h2["stress_level"] = min(1.0, float(h2.get("stress_level", 0.3)) + 0.2)
+            log.append(
+                f"         {e2['label']} → {h2.get('name', 'Unknown')}{_strike_log_suffix(rr2, hit2, ac)} "
+                f"| damage +{dmg_h} | host wounds {hw0}→{hw1} (KIA at wound level 3+)"
+            )
             if h2["wound_level"] >= 3:
                 h2["alive"] = False
-                log.append(f"       💀 AI host KIA: {h2.get('name', 'Unknown')}")
+                log.append(
+                    f"         💀 AI HOST KIA: {h2.get('name', 'Unknown')} — hostile fire ends this host during skirmish."
+                )
+        else:
+            log.append(
+                f"         {e2['label']} → {h2.get('name', 'Unknown')}{_strike_log_suffix(rr2, hit2, ac)}"
+            )
         try:
             world_state["timeline_stability"] = max(0.0, float(world_state.get("timeline_stability", 0.8)) - 0.01)
         except Exception:
