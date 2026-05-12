@@ -1,0 +1,46 @@
+{
+  "traveler_abilities": [
+    "Multilingualism", "Photographic Memory", "Exceptional Hearing", "Enhanced Vision", "Peak Physical Conditioning",
+    "Master Martial Artist", "Expert Marksmanship", "Skilled Hacker", "Genius-Level Intellect", "Charismatic Leader",
+    "Master Strategist", "Expert Tactician", "Skilled Negotiator", "Exceptional Persuader", "Gifted Orator",
+    "Talented Artist", "Skilled Musician", "Exceptional Athlete", "Master Chef", "Expert Sommelier",
+    "Skilled Engineer", "Gifted Mathematician", "Exceptional Scientist", "Master Historian", "Skilled Linguist",
+    "Expert Cryptologist", "Master Codebreaker", "Skilled Spy", "Exceptional Detective", "Gifted Investigator",
+    "Master of Disguise", "Expert Forger", "Skilled Thief", "Exceptional Lockpick", "Master of Escape",
+    "Skilled Driver", "Exceptional Pilot", "Master Sailor", "Gifted Navigator", "Exceptional Cartographer",
+    "Skilled Survivalist", "Expert Tracker", "Master Hunter", "Gifted Fisherman", "Exceptional Camper",
+    "Skilled First Responder", "Expert Medic", "Master Surgeon", "Gifted Scientist", "Exceptional Researcher",
+    "Skilled Teacher", "Expert Professor", "Master Mentor", "Gifted Coach", "Exceptional Trainer",
+    "Skilled Leader", "Expert Manager", "Master Entrepreneur", "Gifted Businessperson", "Exceptional Executive",
+    "Skilled Diplomat", "Expert Negotiator", "Master Mediator", "Gifted Arbitrator", "Exceptional Peacemaker",
+    "Skilled Writer", "Expert Journalist", "Master Author", "Gifted Poet", "Exceptional Storyteller",
+    "Skilled Artist", "Expert Designer", "Master Craftsman", "Gifted Inventor", "Exceptional Engineer",
+    "Skilled Musician", "Expert Composer", "Master Conductor", "Gifted Singer", "Exceptional Dancer",
+    "Skilled Athlete", "Expert Coach", "Master Trainer", "Gifted Sportsman", "Exceptional Competitor"
+  ],
+  "host_body_abilities": [
+    "Bilingual (English/Spanish)", "Bilingual (English/French)", "Bilingual (English/German)",
+    "Sign Language", "Musical Instrument", "Athletic", "Artistic", "Craftsmanship",
+    "Public Speaking", "Negotiation", "Conflict Resolution", "Mentoring", "Training",
+    "Problem Analysis", "Strategic Planning", "Risk Assessment", "Quality Assurance",
+    "Safety Compliance", "Regulatory Knowledge", "Industry Expertise", "Technical Knowledge",
+    "Research Skills", "Analytical Thinking", "Creative Problem Solving", "Innovation",
+    "Change Management", "Process Improvement", "Efficiency Optimization", "Cost Control",
+    "Performance Management", "Team Building", "Cross-functional Collaboration", "Stakeholder Management"
+  ],
+  "traveler_occupations": [
+    "Soldier", "Scientist", "Engineer", "Medic", "Hacker", "Historian", "Tactician", "Leader"
+  ],
+  "host_body_occupations": [
+    "Software Engineer", "Teacher", "Nurse", "Police Officer", "Accountant",
+    "Sales Representative", "Manager", "Administrative Assistant", "Customer Service",
+    "Truck Driver", "Construction Worker", "Electrician", "Plumber", "Mechanic",
+    "Chef", "Waiter/Waitress", "Cashier", "Janitor", "Security Guard",
+    "Librarian", "Social Worker", "Counselor", "Paralegal", "Real Estate Agent",
+    "Insurance Agent", "Bank Teller", "Receptionist", "Data Entry Clerk",
+    "Maintenance Worker", "Housekeeper", "Delivery Driver", "Factory Worker",
+    "Warehouse Worker", "Retail Sales", "Marketing Specialist", "Human Resources",
+    "Financial Analyst", "Project Manager", "Business Analyst", "Systems Administrator",
+    "Network Engineer", "Database Administrator", "Quality Assurance", "Product Manager"
+  ]
+}

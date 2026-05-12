@@ -1,11 +1,19 @@
-# mission_generation.py
+"""
+Mission Generation module for Travelers game.
+
+Handles dynamic generation of missions for Travelers teams based on
+world state, threat assessment, and timeline conditions.
+"""
+
 import random
+from typing import Any, Dict, List, Optional, Tuple
+
 
 class MissionGenerator:
-    def __init__(self, world):
+    def __init__(self, world: Optional[Any] = None) -> None:
         self.world = world
-        self.time_system = None  # Will be set by the game
-        self.mission = {
+        self.time_system: Optional[Any] = None
+        self.mission: Dict[str, Any] = {
             "type": "",
             "location": "",
             "npc": "",
@@ -16,7 +24,7 @@ class MissionGenerator:
             "time_limit": "",
             "consequences": []
         }
-        self.mission_types = {
+        self.mission_types: Dict[str, Dict[str, List[str]]] = {
             "prevent_traveler_exposure": {
                 "descriptions": [
                     "A Traveler team has been discovered by FBI Agent Grant MacLaren - contain the situation",
@@ -88,7 +96,11 @@ class MissionGenerator:
                     "A Faction cell has infiltrated the power grid to accelerate the collapse",
                     "Faction Travelers are recruiting host families to their cause",
                     "Faction operatives have captured Director communication equipment",
-                    "A Faction leader is planning to expose the Traveler program publicly"
+                    "A Faction leader is planning to expose the Traveler program publicly",
+                    "Faction operatives are using space-time attenuators to block Director communications",
+                    "Traveler 001 has been spotted in your operational area",
+                    "Faction is attempting to hijack the quantum frame for their own missions",
+                    "Biological weapon deployment detected - Faction attempting to cull humanity"
                 ],
                 "objectives": [
                     "Identify and neutralize Faction operatives",
@@ -144,80 +156,52 @@ class MissionGenerator:
                     "Host body personality takes over, Traveler consciousness lost",
                     "Team dynamics permanently altered by the experience"
                 ]
-            },
-            "faction_interference": {
-                "descriptions": [
-                    "Faction operatives are using space-time attenuators to block Director communications",
-                    "Traveler 001 has been spotted in your operational area",
-                    "Faction is attempting to hijack the quantum frame for their own missions",
-                    "Biological weapon deployment detected - Faction attempting to cull humanity",
-                    "Faction is recruiting disillusioned Travelers to their cause",
-                    "Space-time attenuator signals are interfering with local quantum signatures"
-                ],
-                "objectives": [
-                    "Neutralize Faction operatives without timeline contamination",
-                    "Restore Director communications in the area",
-                    "Prevent Faction from achieving their objectives",
-                    "Maintain cover while countering Faction influence"
-                ],
-                "consequences": [
-                    "Faction influence reduced, Director control restored",
-                    "Timeline contamination increases, future becomes more unstable",
-                    "Faction operatives escape, threat level increases",
-                    "Direct confrontation leads to public exposure risk"
-                ]
             }
         }
 
-    def generate_mission(self):
-        """Generate a complete mission with all details"""
-        # Select mission type
+    def generate_mission(self) -> None:
         mission_type = random.choice(list(self.mission_types.keys()))
         mission_data = self.mission_types[mission_type]
-        
-        # Generate mission details
+
         self.mission["type"] = mission_type
         self.mission["location"] = self.generate_location()
         npc_display, npc_id = self.generate_npc()
         self.mission["npc"] = npc_display
-        # Optional: used when missions need to reference a concrete NPC entity
         self.mission["npc_id"] = npc_id
         self.mission["resource"] = self.generate_resource()
         self.mission["challenge"] = self.generate_challenge()
         base_description = random.choice(mission_data["descriptions"])
         self.mission["description"] = self.get_time_appropriate_description(mission_type, base_description)
-        self.mission["objectives"] = random.sample(mission_data["objectives"], 
-                                                 min(3, len(mission_data["objectives"])))
+        self.mission["objectives"] = random.sample(
+            mission_data["objectives"],
+            min(3, len(mission_data["objectives"]))
+        )
         self.mission["time_limit"] = self.generate_time_limit()
-        self.mission["consequences"] = random.sample(mission_data["consequences"], 
-                                                   min(2, len(mission_data["consequences"])))
+        self.mission["consequences"] = random.sample(
+            mission_data["consequences"],
+            min(2, len(mission_data["consequences"]))
+        )
 
-    def generate_location(self):
-        """Generate a realistic mission location from rich world data"""
-        # Try to use rich world data if available
+    def generate_location(self) -> str:
         if hasattr(self.world, 'get_locations_by_type'):
-            from world_generation import LocationType
-            # Get appropriate locations based on mission type
             location_types = [
-                LocationType.GOVERNMENT_FACILITY,
-                LocationType.RESEARCH_LAB,
-                LocationType.CORPORATE_HQ,
-                LocationType.SAFE_HOUSE,
-                LocationType.MEDICAL_FACILITY,
-                LocationType.INDUSTRIAL_SITE
+                "GOVERNMENT_FACILITY",
+                "RESEARCH_LAB",
+                "CORPORATE_HQ",
+                "SAFE_HOUSE",
+                "MEDICAL_FACILITY",
+                "INDUSTRIAL_SITE"
             ]
-            
-            # Collect all locations
             all_locations = []
             for loc_type in location_types:
                 locations = self.world.get_locations_by_type(loc_type)
-                all_locations.extend(locations)
-            
+                if locations:
+                    all_locations.extend(locations)
+
             if all_locations:
                 loc = random.choice(all_locations)
                 return f"{loc.name} - {loc.address}"
-        
-        # Fallback to hardcoded list if world data not available
+
         locations = [
             "New York City, NY - Financial District",
             "Los Angeles, CA - Downtown",
@@ -237,17 +221,8 @@ class MissionGenerator:
         ]
         return random.choice(locations)
 
-    def generate_npc(self):
-        """Generate a mission-related NPC from rich world data.
-
-        Returns: (display_string, npc_id)
-        """
-        # Try to use rich world data if available
+    def generate_npc(self) -> Tuple[str, Optional[str]]:
         if hasattr(self.world, 'get_npcs_by_faction'):
-            # Get NPCs from different factions
-            all_npcs = []
-            
-            # Government NPCs (most common for missions)
             gov_npcs = self.world.get_npcs_by_faction('government')
             if gov_npcs:
                 npc = random.choice(gov_npcs)
@@ -255,20 +230,17 @@ class MissionGenerator:
                     f"{npc.name} - {npc.occupation} at {npc.work_location} (Security Clearance: Level {npc.security_clearance})",
                     getattr(npc, "id", None)
                 )
-            
-            # Faction NPCs
+
             faction_npcs = self.world.get_npcs_by_faction('faction')
             if faction_npcs:
                 npc = random.choice(faction_npcs)
                 return (f"{npc.name} - {npc.occupation} (Faction Operative)", getattr(npc, "id", None))
-            
-            # Civilian NPCs
+
             civilian_npcs = self.world.get_npcs_by_faction('civilian')
             if civilian_npcs:
                 npc = random.choice(civilian_npcs)
                 return (f"{npc.name} - {npc.occupation} at {npc.work_location}", getattr(npc, "id", None))
-        
-        # Fallback to hardcoded list if world data not available
+
         npcs = [
             "The Director - Quantum AI from 2045",
             "Agent Grant MacLaren (3468) - FBI Special Agent / Team Leader",
@@ -286,77 +258,64 @@ class MissionGenerator:
             "Yates - FBI Section Chief investigating Travelers"
         ]
         return (random.choice(npcs), None)
-    
-    def get_time_appropriate_description(self, mission_type, base_description):
-        """Generate time-appropriate mission descriptions based on current date"""
+
+    def get_time_appropriate_description(self, mission_type: str, base_description: str) -> str:
         if not self.time_system:
             return base_description
-        
+
         current_date = self.time_system.current_date
         month = current_date.month
-        day = current_date.day
-        
-        # Create seasonal and date-appropriate variations
-        time_variations = {
+
+        time_variations: Dict[str, List[str]] = {
             "terrorist attack on a major city landmark": [
-                f"Avert the terrorist attack on the Seattle Space Needle planned for this weekend",
-                f"Stop the bombing planned for the downtown financial district",
-                f"Prevent the attack on the sports stadium during the upcoming game",
-                f"Avert the planned assault on the government building"
+                "Avert the terrorist attack on the Seattle Space Needle planned for this weekend",
+                "Stop the bombing planned for the downtown financial district",
+                "Prevent the attack on the sports stadium during the upcoming game",
+                "Avert the planned assault on the government building"
             ],
             "transportation disaster at the airport": [
-                f"Prevent the plane crash scheduled for tomorrow morning",
-                f"Stop the sabotage of the air traffic control system",
-                f"Avert the terrorist attack on Terminal 3",
-                f"Prevent the runway collision during rush hour"
+                "Prevent the plane crash scheduled for tomorrow morning",
+                "Stop the sabotage of the air traffic control system",
+                "Avert the terrorist attack on Terminal 3",
+                "Prevent the runway collision during rush hour"
             ],
             "cyber attack on critical infrastructure": [
-                f"Stop the hacking of the power grid scheduled for this week",
-                f"Prevent the cyber attack on the water treatment facility",
-                f"Avert the digital assault on the hospital network",
-                f"Stop the malware attack on emergency services"
+                "Stop the hacking of the power grid scheduled for this week",
+                "Prevent the cyber attack on the water treatment facility",
+                "Avert the digital assault on the hospital network",
+                "Stop the malware attack on emergency services"
             ]
         }
-        
-        # Check if this description has time variations
+
         for key, variations in time_variations.items():
             if key in base_description:
                 return random.choice(variations)
-        
-        # For seasonal events
-        if month in [11, 12, 1, 2]:  # Winter
+
+        if month in [11, 12, 1, 2]:
             if "landmark" in base_description:
                 return "Avert the terrorist attack planned for the winter festival"
-        elif month in [3, 4, 5]:  # Spring
+        elif month in [3, 4, 5]:
             if "landmark" in base_description:
                 return "Stop the bombing planned for the spring parade"
-        elif month in [6, 7, 8]:  # Summer
+        elif month in [6, 7, 8]:
             if "landmark" in base_description:
                 return "Prevent the attack on the summer music festival"
-        elif month in [9, 10]:  # Fall
+        elif month in [9, 10]:
             if "landmark" in base_description:
                 return "Avert the terrorist attack on the harvest festival"
-        
+
         return base_description
 
-    def generate_resource(self):
-        """Generate required resources for the mission"""
+    def generate_resource(self) -> str:
         resources = [
-            "Advanced Technology",
-            "Intelligence Data",
-            "Key Personnel",
-            "Critical Documents",
-            "Experimental Equipment",
-            "Classified Information",
-            "Prototype Device",
-            "Research Materials",
-            "Security Clearance",
+            "Advanced Technology", "Intelligence Data", "Key Personnel",
+            "Critical Documents", "Experimental Equipment", "Classified Information",
+            "Prototype Device", "Research Materials", "Security Clearance",
             "Transportation Assets"
         ]
         return random.choice(resources)
 
-    def generate_challenge(self):
-        """Generate mission challenge level and type"""
+    def generate_challenge(self) -> str:
         challenges = [
             "High-risk - Heavy security, multiple threats",
             "Medium-risk - Moderate security, limited threats",
@@ -369,8 +328,7 @@ class MissionGenerator:
         ]
         return random.choice(challenges)
 
-    def generate_time_limit(self):
-        """Generate a realistic time limit for the mission"""
+    def generate_time_limit(self) -> str:
         time_limits = [
             "Immediate - Must be completed within hours",
             "24 hours - One day to complete mission",
@@ -381,17 +339,12 @@ class MissionGenerator:
         ]
         return random.choice(time_limits)
 
-    def update_mission_status(self):
-        """Update the mission status"""
-        pass
-
-    def get_mission_briefing(self):
-        """Return a comprehensive mission briefing"""
+    def get_mission_briefing(self) -> str:
         if not self.mission["type"]:
             return "No mission available. Generate a mission first."
-        
+
         briefing = f"""MISSION BRIEFING
-================
+===============
 Type: {self.mission['type'].title()}
 Location: {self.mission['location']}
 NPC Contact: {self.mission['npc']}
@@ -406,25 +359,20 @@ OBJECTIVES:
 """
         for i, objective in enumerate(self.mission['objectives'], 1):
             briefing += f"{i}. {objective}\n"
-        
-        briefing += f"""
-CONSEQUENCES:
-"""
+
+        briefing += "\nCONSEQUENCES:\n"
         for i, consequence in enumerate(self.mission['consequences'], 1):
             briefing += f"{i}. {consequence}\n"
-        
+
         return briefing
 
-    def get_mission_summary(self):
-        """Get a brief mission summary"""
+    def get_mission_summary(self) -> str:
         if not self.mission["type"]:
             return "No active mission"
-        
         return f"{self.mission['type'].title()} mission in {self.mission['location']} - {self.mission['challenge']}"
 
-# Example usage:
+
 if __name__ == "__main__":
-    world = None  # Placeholder for world object
-    generator = MissionGenerator(world)
+    generator = MissionGenerator(None)
     generator.generate_mission()
     print(generator.get_mission_briefing())

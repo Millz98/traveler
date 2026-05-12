@@ -152,6 +152,15 @@ class Game:
         if hasattr(self.messenger_system, 'dynamic_world_events'):
             self.messenger_system.dynamic_world_events.initialize_npc_mission_system()
         
+        # Initialize Living World Events System (weather, economy, media, encounters, etc.)
+        try:
+            from living_world_events import get_living_world_events
+            self.living_world_events = get_living_world_events(self)
+            print("✅ Living World Events System initialized - World feels more alive!")
+        except Exception as e:
+            print(f"⚠️  Living World Events System not available: {e}")
+            self.living_world_events = None
+        
         self.timeline = self.game_world.integrate_with_gameplay()
         self.randomized_events = self.game_world.randomize_events(self.timeline)
         self.consequences = self.game_world.implement_consequences(self.timeline)
@@ -3837,6 +3846,61 @@ class Game:
             else:
                 print("\n🦹 Traveler 001 System not initialized - skipping 001 processing")
 
+        # NINTH: Process Living World Events (weather, economy, media, encounters, etc.)
+        if hasattr(self, 'living_world_events') and self.living_world_events:
+            print("\n🌍 Processing Living World Events...")
+            world_state = self.get_game_state()
+            
+            # Gather player performance data for feedback
+            player_performance = {
+                "mission_success_rate": self._calculate_mission_success_rate(),
+                "protocol_violations": getattr(self.team.leader if self.team else None, "protocol_violations", 0) if self.team else 0,
+                "detection_level": world_state.get("detection_level", 0),
+                "timeline_stability": world_state.get("timeline_stability", 0.85),
+                "actions": self._get_player_action_counts(),
+                "mission_results": self._get_recent_mission_results()
+            }
+            
+            living_results = self.living_world_events.process_turn(world_state, player_performance)
+            
+            # Print living world summary
+            living_summary = self.living_world_events.generate_turn_summary(living_results)
+            if living_summary:
+                print(f"\n{'='*50}")
+                print("🌍 THE WORLD AROUND YOU")
+                print("="*50)
+                print(living_summary)
+            
+            # Print dramatic D20 moments
+            if living_results.get("encounters"):
+                print(f"\n🎲 RANDOM ENCOUNTERS:")
+                for enc in living_results["encounters"]:
+                    roll_result = {
+                        "roll": enc.d20_roll,
+                        "modifier": 0,
+                        "total": enc.d20_roll,
+                        "target": 10,
+                        "actor": "Civilian",
+                        "action": enc.description
+                    }
+                    dramatic = self.living_world_events.drama.record_roll(roll_result)
+                    if dramatic:
+                        print(f"  {dramatic}")
+                    else:
+                        print(f"  {enc.description} - {enc.outcome.replace('_', ' ').title()}")
+            
+            # Print Director feedback
+            if living_results.get("director_feedback"):
+                print(f"\n📡 DIRECTOR: \"{living_results['director_feedback']}\"")
+            
+            # Print dynamic difficulty info
+            if living_results.get("difficulty"):
+                diff = living_results["difficulty"]
+                if diff.get("modifier", 0) != 0:
+                    print(f"\n⚔️  WORLD ADAPTATION: Faction has adjusted tactics (DC {diff['current_dc']})")
+            
+            print("✅ Living World Events processed - The world feels more alive!")
+        
         # EIGHTH: Emergent narrative - record what actually happened and generate story
         if getattr(self, "narrative", None) and hasattr(self, "ai_world_controller"):
             agents = getattr(self.ai_world_controller, "government_agents", []) or []
@@ -5895,6 +5959,35 @@ class Game:
         print(f"• Director Control: {status['director_control']:.1%}")
         print(f"{'='*60}")
         input("Press Enter to continue...")
+
+    def _calculate_mission_success_rate(self) -> float:
+        """Calculate player's mission success rate"""
+        if not self.completed_missions:
+            return 0.5  # Default
+        successes = sum(1 for m in self.completed_missions if m.get("success", False))
+        return successes / len(self.completed_missions)
+    
+    def _get_player_action_counts(self) -> Dict[str, int]:
+        """Get counts of player actions for pattern analysis"""
+        actions = {"stealth": 0, "aggressive": 0, "technical": 0, "social": 0}
+        for mission in self.completed_missions[-20:]:
+            mission_type = mission.get("type", "").lower()
+            if "stealth" in mission_type or "infiltration" in mission_type:
+                actions["stealth"] += 1
+            elif "combat" in mission_type or "assault" in mission_type:
+                actions["aggressive"] += 1
+            elif "hack" in mission_type or "technical" in mission_type:
+                actions["technical"] += 1
+            else:
+                actions["social"] += 1
+        return actions
+    
+    def _get_recent_mission_results(self) -> List[Dict]:
+        """Get recent mission results for difficulty scaling"""
+        return [
+            {"success": m.get("success", False), "type": m.get("type", "")}
+            for m in self.completed_missions[-10:]
+        ]
 
     def get_game_state(self):
         """Get current game state for systems to check"""

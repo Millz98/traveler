@@ -1,0 +1,38 @@
+{
+  "game": {
+    "save_file": "travelers_save.json",
+    "default_seed": null,
+    "timeline_initial_fragility": 0.3,
+    "timeline_initial_stability": 0.85
+  },
+  "traveler": {
+    "age_min": 25,
+    "age_max": 55,
+    "designation_low_probability": 0.01,
+    "designation_medium_probability": 0.05,
+    "skills_min": 3,
+    "skills_max": 5,
+    "abilities_min": 2,
+    "abilities_max": 4
+  },
+  "host_body": {
+    "age_min": 18,
+    "age_max": 65,
+    "skills_min": 3,
+    "skills_max": 6,
+    "abilities_min": 1,
+    "abilities_max": 3
+  },
+  "mission": {
+    "difficulty_levels": ["Easy", "Medium", "Hard", "Extreme"],
+    "phases": ["Infiltration", "Execution", "Extraction"]
+  },
+  "detection": {
+    "agencies": ["FBI", "CIA", "NSA", "DHS", "Secret Service", "Local Police"],
+    "surveillance_types": ["CCTV", "Digital", "Human Intelligence", "Satellite"]
+  },
+  "faction": {
+    "influence_min": 0.0,
+    "influence_max": 100.0
+  }
+}

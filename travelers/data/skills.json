@@ -1,0 +1,36 @@
+{
+  "traveler_skills": [
+    "Combat", "Stealth", "Hacking", "Medicine", "Engineering",
+    "Acrobatics", "Athletics", "Persuasion", "Deception", "Intimidation",
+    "Lockpicking", "Safecracking", "Demolitions", "Sniping", "Marksmanship",
+    "Hand-to-Hand", "Martial Arts", "Sword Fighting", "Archery", "Gunnery",
+    "Piloting", "Navigation", "Cartography", "Survival", "Tracking",
+    "First Aid", "Surgery", "Pharmacology", "Toxicology", "Forensics",
+    "Computer Science", "Networking", "Cryptography", "Algorithm Design", "Data Analysis",
+    "Mechanical Engineering", "Electrical Engineering", "Civil Engineering", "Aerospace Engineering", "Chemical Engineering",
+    "Biology", "Chemistry", "Physics", "Mathematics", "Statistics",
+    "Psychology", "Sociology", "Anthropology", "Economics", "Politics",
+    "History", "Geography", "Philosophy", "Linguistics", "Literature",
+    "Music", "Art", "Dance", "Theater", "Film",
+    "Cooking", "Culinary Arts", "Food Science", "Nutrition", "Dietetics",
+    "Fashion Design", "Textile Science", "Interior Design", "Architecture", "Landscape Architecture",
+    "Agriculture", "Horticulture", "Animal Science", "Veterinary Medicine", "Environmental Science",
+    "Meteorology", "Oceanography", "Geology", "Seismology", "Volcanology",
+    "Astronomy", "Astrophysics", "Cosmology", "Planetary Science", "Space Exploration",
+    "Robotics", "Artificial Intelligence", "Machine Learning", "Natural Language Processing", "Computer Vision",
+    "Cybersecurity", "Network Security", "Cryptography", "Penetration Testing", "Vulnerability Assessment",
+    "Data Mining", "Data Warehousing", "Business Intelligence", "Marketing", "Finance",
+    "Accounting", "Human Resources", "Management", "Leadership", "Entrepreneurship"
+  ],
+  "host_body_skills": [
+    "Communication", "Problem Solving", "Teamwork", "Leadership", "Time Management",
+    "Customer Service", "Microsoft Office", "Data Entry", "Typing", "Organization",
+    "Attention to Detail", "Critical Thinking", "Creativity", "Adaptability", "Initiative",
+    "Technical Writing", "Project Management", "Budgeting", "Sales", "Marketing",
+    "Social Media", "Graphic Design", "Video Editing", "Photography", "Cooking",
+    "Driving", "First Aid", "CPR", "Basic Computer Skills", "Internet Research",
+    "Email Management", "Calendar Management", "Event Planning", "Inventory Management",
+    "Quality Control", "Safety Procedures", "Equipment Operation", "Maintenance",
+    "Troubleshooting", "Installation", "Repair", "Assembly", "Inspection"
+  ]
+}
