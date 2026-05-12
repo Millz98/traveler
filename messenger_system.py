@@ -379,11 +379,11 @@ class MessengerSystem:
         message_templates = {
             "DIRECTOR_ORDER": director_orders,
             "MISSION_UPDATE": [
-                "Mission parameters have changed. New objective: Prevent assassination of Dr. Delaney.",
+                "Mission parameters have changed. New objective: Prevent the assassination of a timeline-critical principal.",
                 "Timeline deviation detected. Abort current mission and report to safe house.",
                 "Mission success probability has dropped to 23%. Consider requesting backup.",
                 "Target has moved to new location. Intercept before they escape.",
-                "Assassination plot confirmed. Target: Dr. Marcy. Location: University Hospital.",
+                "Assassination plot confirmed. A principal target requires immediate protection.",
                 "Faction operatives attempting to kill witness. Protect at all costs."
             ],
         }

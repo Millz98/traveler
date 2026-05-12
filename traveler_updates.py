@@ -1,6 +1,19 @@
 # traveler_updates.py
 import random
 
+
+def _is_assassination_prevention_message(message: str) -> bool:
+    """True for generic assassination-prevention briefing lines (not a specific hardcoded NPC)."""
+    if not message:
+        return False
+    m = message.lower()
+    if "timeline-critical principal" in m:
+        return True
+    return "assassination" in m and any(
+        w in m for w in ("prevent", "intercept", "protect", "stop", "save")
+    )
+
+
 class TravelerUpdate:
     def __init__(self, update_type, message, priority, requires_response=False, context_data=None):
         self.update_type = update_type
@@ -16,7 +29,7 @@ class UpdateSystem:
             {
                 "type": "MISSION_UPDATE",
                 "messages": [
-                    "Mission parameters have changed. New objective: Prevent the assassination of Dr. Delaney at 14:30 today.",
+                    "Mission parameters have changed. New objective: Prevent the assassination of a timeline-critical principal at 14:30 today.",
                     "Timeline deviation detected. Abort current mission and report to safe house immediately.",
                     "Additional resources being deployed to your location. Grace Day (0027) will arrive within the hour.",
                     "Mission success probability has dropped to 23%. Consider requesting backup or mission abort."
@@ -433,9 +446,9 @@ class UpdateSystem:
                 }
             },
             "MISSION_UPDATE": {
-                "Prevent the assassination of Dr. Delaney": {
-                    "objective": "Locate and protect Dr. Delaney from assassination attempt",
-                    "description": "Critical scientist targeted by unknown hostiles.",
+                "timeline-critical principal": {
+                    "objective": "Locate and protect the timeline-critical principal from the assassination attempt",
+                    "description": "A politically or operationally exposed figure is being targeted.",
                     "difficulty": "HIGH"
                 },
                 "Timeline deviation detected": {
@@ -569,9 +582,9 @@ class UpdateSystem:
                     self.game_ref.living_world.faction_influence = max(0.0, self.game_ref.living_world.faction_influence - 0.10)
                     self.game_ref.living_world.director_control = min(1.0, self.game_ref.living_world.director_control + 0.08)
                     
-            elif "Dr. Delaney" in update.message:
-                print(f"• Dr. Delaney protected successfully")
-                print(f"• Critical research preserved for timeline")
+            elif _is_assassination_prevention_message(update.message):
+                print(f"• Timeline-critical principal protected successfully")
+                print(f"• High-stakes political / operational continuity preserved")
                 print(f"• Assassination plot thwarted")
                 if hasattr(self.game_ref, 'living_world'):
                     self.game_ref.living_world.timeline_stability = min(1.0, self.game_ref.living_world.timeline_stability + 0.10)
@@ -599,10 +612,10 @@ class UpdateSystem:
                     self.game_ref.living_world.timeline_stability = max(0.0, self.game_ref.living_world.timeline_stability - 0.10)
                     self.game_ref.living_world.faction_influence = min(1.0, self.game_ref.living_world.faction_influence + 0.08)
                     
-            elif "Dr. Delaney" in update.message:
-                print(f"• Dr. Delaney assassination successful")
-                print(f"• Critical research lost to timeline")
-                print(f"• Future technology development compromised")
+            elif _is_assassination_prevention_message(update.message):
+                print(f"• Assassination attempt succeeded against the principal")
+                print(f"• Timeline continuity at elevated risk")
+                print(f"• Director response and cover integrity under strain")
                 if hasattr(self.game_ref, 'living_world'):
                     self.game_ref.living_world.timeline_stability = max(0.0, self.game_ref.living_world.timeline_stability - 0.15)
                     
@@ -643,9 +656,9 @@ class UpdateSystem:
                     self.game_ref.living_world.faction_influence = max(0.0, self.game_ref.living_world.faction_influence - 0.10)
                     self.game_ref.living_world.director_control = min(1.0, self.game_ref.living_world.director_control + 0.08)
                     
-            elif "Dr. Delaney" in update.message:
-                print(f"• Dr. Delaney protected successfully")
-                print(f"• Critical research preserved for timeline")
+            elif _is_assassination_prevention_message(update.message):
+                print(f"• Timeline-critical principal protected successfully")
+                print(f"• High-stakes political / operational continuity preserved")
                 print(f"• Assassination plot thwarted")
                 if hasattr(self.game_ref, 'living_world'):
                     self.game_ref.living_world.timeline_stability = min(1.0, self.game_ref.living_world.timeline_stability + 0.10)
@@ -682,10 +695,10 @@ class UpdateSystem:
                     self.game_ref.living_world.timeline_stability = max(0.0, self.game_ref.living_world.timeline_stability - 0.10)
                     self.game_ref.living_world.faction_influence = min(1.0, self.game_ref.living_world.faction_influence + 0.08)
                     
-            elif "Dr. Delaney" in update.message:
-                print(f"• Dr. Delaney assassination successful")
-                print(f"• Critical research lost to timeline")
-                print(f"• Future technology development compromised")
+            elif _is_assassination_prevention_message(update.message):
+                print(f"• Assassination attempt succeeded against the principal")
+                print(f"• Timeline continuity at elevated risk")
+                print(f"• Director response and cover integrity under strain")
                 if hasattr(self.game_ref, 'living_world'):
                     self.game_ref.living_world.timeline_stability = max(0.0, self.game_ref.living_world.timeline_stability - 0.15)
                     

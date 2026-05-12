@@ -790,6 +790,108 @@ def print_firefight_report(summary: Dict[str, Any]) -> None:
         print(line)
 
 
+def _traveler_is_medic(traveler: Any) -> bool:
+    role = (getattr(traveler, "role", None) or "").strip().lower()
+    if role == "medic":
+        return True
+    occ = (getattr(traveler, "occupation", None) or "").strip().lower()
+    return occ == "medic"
+
+
+def _medic_skill_bonus(traveler: Any) -> int:
+    skills = getattr(traveler, "skills", None) or []
+    if isinstance(skills, str):
+        skills = [skills]
+    best = 0
+    needles = (
+        "medicine",
+        "first aid",
+        "surgery",
+        "pharmacology",
+        "toxicology",
+        "forensics",
+        "veterinary",
+    )
+    for sk in skills:
+        sl = (sk or "").lower()
+        if any(n in sl for n in needles):
+            best = max(best, 2)
+    return best
+
+
+def medic_post_combat_triage(game: Any, combat_summary: Optional[Dict[str, Any]]) -> None:
+    """
+    After a timeline firefight, a living Medic may treat wounded teammates using d20 checks.
+    Mutates wound_level / consciousness_stability on Traveler objects.
+    """
+    if not combat_summary or not combat_summary.get("occurred"):
+        return
+    team = getattr(game, "team", None)
+    if not team or not getattr(game, "player_alive", True):
+        return
+
+    medics = [m for m in (getattr(team, "members", None) or []) if getattr(m, "alive", True) and _traveler_is_medic(m)]
+    if not medics:
+        return
+
+    roster = [m for m in (getattr(team, "members", None) or []) if getattr(m, "alive", True)]
+    wounded = [t for t in roster if int(getattr(t, "wound_level", 0) or 0) > 0]
+    if not wounded:
+        return
+
+    medic = medics[0]
+    bonus = _medic_skill_bonus(medic)
+    lines: List[str] = [
+        "",
+        "────────────────────────────────────────",
+        "  POST-COMBAT TRIAGE (Medic)",
+        "────────────────────────────────────────",
+        f"  {medic.name} ({getattr(medic, 'designation', '?')}) — field treatment for {len(wounded)} wounded (d20 + skill {bonus} vs DC).",
+    ]
+
+    triage_log: List[Dict[str, Any]] = []
+    for patient in wounded:
+        wl = int(getattr(patient, "wound_level", 0) or 0)
+        if wl <= 0:
+            continue
+        dc = 10 + wl * 2
+        die = random.randint(1, 20)
+        total = die + bonus
+        label = f"{patient.name} ({getattr(patient, 'designation', '?')})"
+        if patient is medic:
+            label += " [self-triage]"
+
+        if total >= dc:
+            drop = 2 if (die == 20 and wl >= 2) else 1
+            new_wl = max(0, wl - drop)
+            setattr(patient, "wound_level", new_wl)
+            nat = " natural 20 — " if die == 20 else " "
+            lines.append(
+                f"  ✅ {label}: success{nat}(d20 {die}+{bonus}={total} vs DC {dc}) — wounds {wl} → {new_wl}"
+            )
+            triage_log.append({"patient": patient.name, "result": "healed", "from": wl, "to": new_wl, "roll": total, "dc": dc})
+        elif total >= dc - 2:
+            lines.append(
+                f"  ⚠️  {label}: stabilized only (d20 {die}+{bonus}={total} vs DC {dc}) — wound level stays {wl}"
+            )
+            cs = float(getattr(patient, "consciousness_stability", 1.0) or 1.0)
+            setattr(patient, "consciousness_stability", min(1.0, cs + 0.02))
+            triage_log.append({"patient": patient.name, "result": "stabilized", "wound_level": wl, "roll": total, "dc": dc})
+        else:
+            cs = float(getattr(patient, "consciousness_stability", 1.0) or 1.0)
+            setattr(patient, "consciousness_stability", max(0.55, cs - 0.03))
+            lines.append(
+                f"  ❌ {label}: treatment insufficient (d20 {die}+{bonus}={total} vs DC {dc}) — still at wound {wl}; host under extra strain"
+            )
+            triage_log.append({"patient": patient.name, "result": "failed", "wound_level": wl, "roll": total, "dc": dc})
+
+    combat_summary["medic_triage"] = triage_log
+    for line in lines:
+        print(line)
+    log = combat_summary.setdefault("log", [])
+    log.extend(lines)
+
+
 def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Simulated firefight for AI Traveler teams vs Faction or Government opposition.

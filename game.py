@@ -19,9 +19,10 @@ import time
 import json
 import os
 import random
+import re
 import textwrap
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict, List, Optional, Tuple
 from d20_decision_system import CharacterDecision
 from world_generation import World
 from turn_narrative_engine import get_turn_narrative_engine, reset_turn_narrative_engine
@@ -1308,6 +1309,31 @@ class Game:
         except Exception:
             pass
 
+    @staticmethod
+    def _mission_is_protect_from_assassination(mission: dict) -> bool:
+        if mission.get("protect_target_from_assassination"):
+            return True
+        parts = [
+            str(mission.get("description", "") or ""),
+            str(mission.get("objective", "") or ""),
+            " ".join(mission.get("objectives") or []),
+        ]
+        blob = " ".join(parts).lower()
+        if "assassination" not in blob:
+            return False
+        if "prevent" in blob and "assassination" in blob:
+            return True
+        return any(
+            phrase in blob
+            for phrase in (
+                "prevent the assassination",
+                "stop the assassination",
+                "intercept assassination",
+                "intercept the assassination",
+                "protect the president",
+            )
+        )
+
     def _apply_mission_entity_consequences(self, mission: dict, final_outcome: str):
         """Apply consequences that affect concrete entities (NPC death, etc.)."""
         # Any "protect a target" mission: if mission fails, target rolls a D20 to survive (50% chance).
@@ -1316,6 +1342,34 @@ class Game:
         target_name = mission.get("target_npc_name") or mission.get("assassination_target_name")
         target_role = mission.get("target_npc_role") or mission.get("assassination_target_office") or "Public Official"
         target_can_die = mission.get("target_can_die", True)
+
+        protect = self._mission_is_protect_from_assassination(mission)
+        success_like = final_outcome in ("COMPLETE_SUCCESS", "SUCCESS", "PARTIAL_SUCCESS")
+
+        if protect and target_id and target_can_die and success_like:
+            self.npc_status[target_id] = True
+            try:
+                if getattr(self, "world", None):
+                    npc = self.world.get_npc_by_id(target_id)
+                    if npc:
+                        npc.background["alive"] = True
+            except Exception:
+                pass
+            try:
+                from government_news_system import report_political_assassination
+
+                report_political_assassination(
+                    target_name=target_name or "Unknown",
+                    office=target_role,
+                    location=mission.get("location", "Unknown Location"),
+                    survived=True,
+                    method=mission.get("assassination_method", mission.get("target_threat_method", "unknown")),
+                )
+            except Exception:
+                pass
+            print("\n🗞️  INCIDENT UPDATE:")
+            print(f"✅ {target_name or 'Protected principal'} is secure — the assassination was prevented.")
+            return
 
         if not target_id or not target_can_die:
             return
@@ -2086,7 +2140,8 @@ class Game:
             mission["target_npc_role"] = "President of the United States"
             mission["target_can_die"] = True
             mission["is_presidential_assassination"] = True  # Flag for special handling
-            
+            mission["protect_target_from_assassination"] = True
+
             # Create president NPC if needed (for tracking death/consequences)
             target_id = None
             try:
@@ -2182,6 +2237,7 @@ class Game:
             mission["target_npc_name"] = target_name
             mission["target_npc_role"] = "U.S. Senator"
             mission["target_can_die"] = True
+            mission["protect_target_from_assassination"] = True
 
             target_id = None
             try:
@@ -2249,6 +2305,32 @@ class Game:
             if target_id and target_id not in self.npc_status:
                 self.npc_status[target_id] = True
 
+        elif (
+            ("assassination" in content or ("kill" in content and "witness" in content))
+            and getattr(self, "world", None)
+        ):
+            mission["type"] = "prevent_historical_disaster"
+            mission["objectives"] = ["Locate the target", "Intercept the threat", "Prevent assassination", "Avoid exposure"]
+            mission["npc"] = "Protective Detail Liaison"
+            mission["challenge"] = mission.get("challenge") or "High-risk - Principal protection under active threat"
+            mission["assassination_method"] = "unknown"
+            picked = self.pick_story_significant_protection_target()
+            target_id, target_name, target_role = self._resolve_protection_target_from_pick(picked)
+            if not target_id or not target_name:
+                return None
+            mission["assassination_target_office"] = target_role
+            mission["assassination_target_name"] = target_name
+            mission["assassination_target_npc_id"] = target_id
+            mission["target_npc_name"] = target_name
+            mission["target_npc_role"] = target_role
+            mission["target_npc_id"] = target_id
+            mission["target_can_die"] = True
+            mission["protect_target_from_assassination"] = True
+            if target_id not in self.npc_status:
+                self.npc_status[target_id] = True
+            raw = getattr(messenger, "message_content", "") or ""
+            mission["description"] = f"MESSENGER DIRECTIVE: Prevent the assassination of {target_name}. {raw}"
+
         # Queue mission without requiring interactive input (unlike accept_mission)
         mission_execution = {
             "mission": dict(mission),
@@ -2285,13 +2367,18 @@ class Game:
 
             # Timeline shear combat (fighters only — Travelers / Feds / Faction)
             try:
-                from combat_death_system import maybe_mission_timeline_firefight, print_firefight_report
+                from combat_death_system import (
+                    maybe_mission_timeline_firefight,
+                    medic_post_combat_triage,
+                    print_firefight_report,
+                )
 
                 if getattr(self, "team", None) and getattr(self, "player_alive", True):
                     combat_summary = maybe_mission_timeline_firefight(self, mission, phase, performance)
                     if combat_summary:
                         self.last_combat_summary = combat_summary
                         print_firefight_report(combat_summary)
+                        medic_post_combat_triage(self, combat_summary)
                     if not getattr(self, "player_alive", True):
                         print("\n🛑 Mission aborted — team leader lost.")
                         break
@@ -4366,83 +4453,34 @@ class Game:
             looks_like_protection = any(k in lower_msg for k in protect_keywords) and any(k in lower_msg for k in assassination_keywords)
 
             if looks_like_protection and getattr(self, "world", None):
-                # Best-effort extraction: use a simple heuristic for a titled target
-                # Example: "Assassination attempt on Senator Johnson..."
-                target_name = None
-                target_role = "Public Official"
-                if "senator" in lower_msg:
-                    target_role = "U.S. Senator"
-                    # naive parse: pick the word after "senator"
-                    parts = message.split("Senator", 1)
-                    if len(parts) == 2:
-                        candidate = parts[1].strip().split(" ")[0:2]
-                        if candidate:
-                            target_name = ("Senator " + " ".join(candidate)).strip()
+                time_m = re.search(r"\bat\s+[\d:]+\s*(?:\b(?:am|pm)\b)?(?:\s+today)?", message or "", re.I)
+                time_frag = time_m.group(0).strip() if time_m else ""
 
-                if not target_name:
-                    # fallback: we can still assign a random government NPC as a named protect target
-                    gov = self.world.get_npcs_by_faction("government")
-                    if gov:
-                        npc = random.choice(gov)
-                        target_name = npc.name
-                        target_role = npc.occupation
-
-                # Resolve/create NPC id
-                target_id = None
-                for npc in (self.world.npcs or []):
-                    # Skip dead NPCs
-                    npc_alive = True
-                    try:
-                        npc_alive = bool(npc.background.get("alive", True))
-                    except Exception:
-                        npc_alive = True
-                    if not npc_alive:
-                        continue
-                    if getattr(npc, "name", "").lower() == (target_name or "").lower():
-                        target_id = npc.id
-                        break
-                if not target_id and target_name:
-                    from world_generation import TravelersNPC
-                    new_id = f"NPC_{len(self.world.npcs) + 1:03d}"
-                    new_npc = TravelersNPC(
-                        id=new_id,
-                        name=target_name,
-                        age=random.randint(35, 75),
-                        occupation=target_role,
-                        faction="government",
-                        background={"education": "Unknown", "years_experience": random.randint(5, 30), "previous_roles": random.randint(1, 4), "alive": True},
-                        education="Unknown",
-                        work_location="Public Office",
-                        home_address=f"{random.randint(100, 9999)} {random.choice(['Oak St', 'Pine Ave', 'Cedar Ln', 'Maple Dr'])}, {getattr(self.world, 'region', 'Unknown')}",
-                        personality_traits=["Cautious"],
-                        paranoia_level=random.uniform(0.2, 0.6),
-                        observation_skills=random.uniform(0.2, 0.8),
-                        cooperation_level=random.uniform(0.2, 0.7),
-                        security_clearance=random.randint(1, 3),
-                        contacts=[],
-                        secrets=["Threat assessment pending"],
-                        valuable_information=["Schedule", "Security routines"],
-                        daily_routine={"weekday": ["Meetings", "Briefings"], "weekend": ["Events", "Family time"]},
-                        schedule_reliability=random.uniform(0.6, 0.9),
-                        social_habits=["Public appearances"],
-                        threat_to_travelers=random.uniform(0.2, 0.5),
-                        usefulness_to_travelers=random.uniform(0.2, 0.5),
-                        current_awareness=random.uniform(0.1, 0.3),
-                    )
-                    self.world.npcs.append(new_npc)
-                    target_id = new_id
+                picked = self.pick_story_significant_protection_target()
+                target_id, target_name, target_role = self._resolve_protection_target_from_pick(picked)
 
                 if target_id:
                     mission["target_npc_id"] = target_id
                     mission["target_npc_name"] = target_name
                     mission["target_npc_role"] = target_role
                     mission["target_can_die"] = True
-                    # Keep legacy keys if it looks like an assassination prevention scenario
                     mission["assassination_target_npc_id"] = target_id
                     mission["assassination_target_name"] = target_name
                     mission["assassination_target_office"] = target_role
+                    mission["protect_target_from_assassination"] = True
                     if target_id not in self.npc_status:
                         self.npc_status[target_id] = True
+
+                    nm = mission["target_npc_name"] or "the principal"
+                    tail = f" {time_frag}." if time_frag else " today."
+                    mission["description"] = (
+                        f"DIRECTOR DIRECTIVE ({update_type}, {priority}): "
+                        f"Prevent the assassination of {nm}{tail}"
+                    )
+                    objs = list(mission.get("objectives") or [])
+                    if objs:
+                        objs[0] = f"Prevent the assassination of {nm}"
+                        mission["objectives"] = objs
         except Exception:
             pass
         return mission
@@ -5977,6 +6015,194 @@ class Game:
                 pass
         
         return targets
+
+    def _find_living_world_npc_by_name(self, name: str) -> Optional[Any]:
+        """Return a living procedural-world NPC matching name (case-insensitive), or None."""
+        if not name or not getattr(self, "world", None):
+            return None
+        key = name.strip().lower()
+        for npc in self.world.npcs or []:
+            if (getattr(npc, "name", "") or "").strip().lower() != key:
+                continue
+            try:
+                if not bool(npc.background.get("alive", True)):
+                    continue
+            except Exception:
+                pass
+            return npc
+        return None
+
+    def pick_story_significant_protection_target(self) -> Optional[Dict[str, Any]]:
+        """Pick a weighted-random NPC that matters to the current story (political stakes + world + emergent hooks)."""
+        options: List[Dict[str, Any]] = []
+        seen_lower: set = set()
+
+        def add_option(name: str, role: str, world_npc: Optional[Any], base_score: float) -> None:
+            if not name:
+                return
+            nm = name.strip()
+            if not nm:
+                return
+            key = nm.lower()
+            if key in seen_lower:
+                return
+            seen_lower.add(key)
+            options.append(
+                {
+                    "name": nm,
+                    "role": (role or "Public Official").strip(),
+                    "world_npc": world_npc,
+                    "score": float(base_score),
+                }
+            )
+
+        for t in self.get_available_targets_for_mission("political"):
+            name = t.get("name")
+            role = t.get("role") or "Public Official"
+            if not name or not self.is_npc_available_for_mission(name, role):
+                continue
+            wnpc = self._find_living_world_npc_by_name(name)
+            role_s = str(role)
+            if "President" in role_s and "Vice" not in role_s:
+                sc = 42.0
+            elif "Vice President" in role_s:
+                sc = 55.0
+            elif "Senator" in role_s:
+                sc = 68.0
+            else:
+                sc = 62.0
+            add_option(name, role_s, wnpc, sc)
+
+        try:
+            from game_entity_tracker import get_entity_tracker
+
+            tracker = get_entity_tracker(self)
+            tracker.initialize_from_game(self)
+            for e in tracker.get_alive_entities():
+                if e.entity_type != "political":
+                    continue
+                name = e.name
+                if not name:
+                    continue
+                role = str((e.metadata or {}).get("role", "Public Official"))
+                if not self.is_npc_available_for_mission(name, role):
+                    continue
+                wnpc = self._find_living_world_npc_by_name(name)
+                add_option(name, role, wnpc, 64.0)
+        except Exception:
+            pass
+
+        narrative_core = getattr(getattr(self, "narrative", None), "narrative", None)
+        if getattr(self, "world", None) and self.world.npcs:
+            for npc in self.world.npcs or []:
+                try:
+                    alive = bool(npc.background.get("alive", True))
+                except Exception:
+                    alive = True
+                if not alive:
+                    continue
+                name = getattr(npc, "name", None)
+                if not name:
+                    continue
+                key = name.strip().lower()
+                if key in seen_lower:
+                    continue
+                faction = (getattr(npc, "faction", "") or "").lower()
+                clearance = int(getattr(npc, "security_clearance", 0) or 0)
+                useful = float(getattr(npc, "usefulness_to_travelers", 0.0) or 0.0)
+                threat = float(getattr(npc, "threat_to_travelers", 0.0) or 0.0)
+                aware = float(getattr(npc, "current_awareness", 0.0) or 0.0)
+                score = clearance * 6.0 + useful * 38.0 + threat * 22.0 + aware * 12.0
+                nid = getattr(npc, "id", None)
+                if narrative_core and nid and len(narrative_core.character_involvement.get(nid, [])) >= 1:
+                    score += 44.0
+                if faction == "government":
+                    score += 16.0
+                elif faction == "faction":
+                    score += 12.0
+                min_score = 36.0
+                if score < min_score:
+                    continue
+                occ = getattr(npc, "occupation", "Public Figure") or "Public Figure"
+                role = occ if not faction or faction in occ.lower() else f"{occ} ({faction})"
+                add_option(name, role, npc, score)
+
+        if not options:
+            return None
+        weights = [max(0.5, o["score"]) for o in options]
+        return random.choices(options, weights=weights, k=1)[0]
+
+    def _resolve_protection_target_from_pick(
+        self, picked: Optional[Dict[str, Any]]
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """Bind protectee to a living world NPC (or create one). Returns (target_id, target_name, target_role)."""
+        if not getattr(self, "world", None):
+            return None, None, None
+
+        target_name: Optional[str] = None
+        target_role = "Public Official"
+        target_id: Optional[str] = None
+
+        if picked:
+            target_name = picked.get("name")
+            target_role = picked.get("role") or "Public Official"
+            wnpc = picked.get("world_npc")
+            if wnpc is not None:
+                target_id = getattr(wnpc, "id", None)
+            else:
+                for npc in (self.world.npcs or []):
+                    npc_alive = True
+                    try:
+                        npc_alive = bool(npc.background.get("alive", True))
+                    except Exception:
+                        npc_alive = True
+                    if not npc_alive:
+                        continue
+                    if getattr(npc, "name", "").lower() == (target_name or "").lower():
+                        target_id = npc.id
+                        break
+
+        if not target_name:
+            gov = self.world.get_npcs_by_faction("government")
+            if gov:
+                npc = random.choice(gov)
+                target_name = npc.name
+                target_role = npc.occupation
+                target_id = getattr(npc, "id", None)
+
+        if not target_id and target_name:
+            from world_generation import TravelersNPC
+
+            new_id = f"NPC_{len(self.world.npcs) + 1:03d}"
+            new_npc = TravelersNPC(
+                id=new_id,
+                name=target_name,
+                age=random.randint(35, 75),
+                occupation=target_role,
+                faction="government",
+                background={"education": "Unknown", "years_experience": random.randint(5, 30), "previous_roles": random.randint(1, 4), "alive": True},
+                education="Unknown",
+                work_location="Public Office",
+                home_address=f"{random.randint(100, 9999)} {random.choice(['Oak St', 'Pine Ave', 'Cedar Ln', 'Maple Dr'])}, {getattr(self.world, 'region', 'Unknown')}",
+                personality_traits=["Cautious"],
+                paranoia_level=random.uniform(0.2, 0.6),
+                observation_skills=random.uniform(0.2, 0.8),
+                cooperation_level=random.uniform(0.2, 0.7),
+                security_clearance=random.randint(1, 3),
+                contacts=[],
+                secrets=["Threat assessment pending"],
+                valuable_information=["Schedule", "Security routines"],
+                daily_routine={"weekday": ["Meetings", "Briefings"], "weekend": ["Events", "Family time"]},
+                schedule_reliability=random.uniform(0.6, 0.9),
+                social_habits=["Public appearances"],
+                threat_to_travelers=random.uniform(0.2, 0.5),
+                usefulness_to_travelers=random.uniform(0.2, 0.5),
+                current_awareness=random.uniform(0.1, 0.3),
+            )
+            self.world.npcs.append(new_npc)
+            target_id = new_id
+
+        return target_id, target_name, target_role
 
     def initialize_new_game(self):
         """Initialize a new authentic Travelers game experience"""
