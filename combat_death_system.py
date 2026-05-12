@@ -56,26 +56,111 @@ def infer_opponent_faction(mission_type: str, player_faction: str = FACTION_TRAV
     return FACTION_THE_FACTION
 
 
-def mission_combat_probability(mission_type: str, phase: str, success_level: str) -> float:
-    """Higher when missions are dangerous or a phase went badly."""
-    mt = (mission_type or "").lower()
-    base = 0.12
-    if any(k in mt for k in ("assault", "raid", "rescue", "extraction", "infiltration", "hostile", "intercept")):
-        base += 0.18
-    if any(k in mt for k in ("faction", "surveillance", "timeline", "covert", "intel")):
-        base += 0.08
-    if phase == "execution":
-        base += 0.1
-    if phase == "extraction":
-        base += 0.06
+def mission_combat_probability(mission: Dict[str, Any], phase: str, success_level: str) -> float:
+    """
+    Chance of a timeline-shear firefight this phase. Most missions are mostly *not* gunfights;
+    only some profiles meaningfully risk armed contact.
+
+    Uses mission ``type``, ``location``, and optional ``description`` — not the generic phase
+    names ``infiltration``/``execution``/``extraction`` alone (those apply to every mission).
+    """
+    mt = str(mission.get("type", "") or "").lower()
+    loc = str(mission.get("location", "") or "").lower()
+    desc = str(mission.get("description", "") or "").lower()
+    blob = f"{mt} {loc} {desc}"
+
+    def _hot_zone() -> bool:
+        return any(
+            k in loc or k in desc
+            for k in (
+                "military", "defense", "pentagon", "armory", "checkpoint", "border",
+                "compound", "prison", "detention", "police hq", "embassy siege", "base",
+            )
+        )
+
+    # --- Tier (explicit types first, then conservative defaults) ---
+    none_types = frozenset(
+        {
+            "host_body_crisis",
+            "maintenance_operation",
+            "preparation_mission",
+            "traveler_malfunction",
+        }
+    )
+    low_types = frozenset(
+        {
+            "prevent_traveler_exposure",
+            "protocol_violation_cleanup",
+            "intelligence_gathering",
+            "stealth_preparation",
+            "programmer",
+        }
+    )
+    high_types = frozenset(
+        {
+            "faction_interference",
+            "critical_threat",
+            "faction_operation",
+            "intercept_defected_programmer",
+            "assassination",
+            "host_body_termination",
+        }
+    )
+    medium_types = frozenset(
+        {
+            "timeline_correction",
+            "timeline_crisis",
+            "government_detection",
+            "counter_intelligence",
+            "prevent_historical_disaster",
+        }
+    )
+
+    tier = "low"
+    if mt in none_types:
+        tier = "none"
+    elif mt in high_types or any(k in blob for k in ("assault", "raid", "breach", "siege", "hostile_extraction")):
+        tier = "high"
+    elif mt in medium_types:
+        tier = "medium"
+    elif mt in low_types:
+        tier = "low"
+    else:
+        # Unknown mission strings: stay conservative unless text screams combat
+        if any(k in blob for k in ("assault", "raid", "firefight", "shootout", "armed assault")):
+            tier = "high"
+        elif any(k in blob for k in ("faction", "sabotage", "intercept")):
+            tier = "medium"
+        else:
+            tier = "low"
+
+    if tier == "none":
+        return 0.0
+
+    base_by_tier = {"low": 0.05, "medium": 0.14, "high": 0.32}
+    base = base_by_tier.get(tier, 0.08)
+
+    # Phase: extraction is inherently hotter; infiltration rarely devolves into sustained fire
+    if phase == "infiltration":
+        base += 0.02 if tier == "high" else (0.01 if tier == "medium" else 0.0)
+    elif phase == "execution":
+        base += 0.06 if tier == "high" else (0.04 if tier == "medium" else 0.02)
+    elif phase == "extraction":
+        base += 0.05 if tier == "high" else (0.035 if tier == "medium" else 0.015)
+        if _hot_zone() and tier != "low":
+            base += 0.08
+
     stress = {
-        "CRITICAL_SUCCESS": -0.06,
+        "CRITICAL_SUCCESS": -0.05,
         "SUCCESS": -0.02,
-        "PARTIAL_SUCCESS": 0.06,
-        "FAILURE": 0.14,
-        "CRITICAL_FAILURE": 0.22,
+        "PARTIAL_SUCCESS": 0.04,
+        "FAILURE": 0.08,
+        "CRITICAL_FAILURE": 0.14,
     }.get(success_level, 0.0)
-    return max(0.05, min(0.72, base + stress))
+    base += stress
+
+    cap = 0.52 if tier == "high" else (0.32 if tier == "medium" else 0.22)
+    return max(0.0, min(cap, base))
 
 
 def _traveler_combat_mods(member: Any) -> Dict[str, int]:
@@ -227,39 +312,49 @@ def _timeline_snap_casualty(
     if not living_e or not living_a:
         return
 
-    e_pressure = sum(int(e.get("wound_level", 0) or 0) for e in living_e)
-    a_pressure = sum(int(getattr(m, "wound_level", 0) or 0) for m in living_a)
+    # Total absorbed damage on each side (full roster so spread fire still counts).
+    roster = list(getattr(team, "members", []) or [])
+    e_pressure = sum(int(e.get("wound_level", 0) or 0) for e in enemies)
+    a_pressure = sum(int(getattr(m, "wound_level", 0) or 0) for m in roster)
 
     log.append("")
     log.append("   — **Engagement limit** — window closing: heat, shear, or Director risk tolerance.")
     log.append("   ⚡ **Timeline snap** — one last thread of violence resolves; not everyone exits the frame.")
 
-    # Side that has absorbed more punishment tends to pay the snap (still stochastic on ties).
-    if e_pressure > a_pressure or (e_pressure == a_pressure and random.random() < 0.58):
-        victim = random.choice(living_e)
+    # Side that has taken more cumulative punishment loses one fighter — the worst-hit survivor.
+    ally_pays = a_pressure > e_pressure or (a_pressure == e_pressure and random.random() < 0.45)
+
+    if not ally_pays:
+        mx = max(int(e.get("wound_level", 0) or 0) for e in living_e)
+        worst_e = [e for e in living_e if int(e.get("wound_level", 0) or 0) == mx]
+        victim = random.choice(worst_e)
         victim["alive"] = False
         victim["wound_level"] = max(int(victim.get("wound_level", 0) or 0), 3)
         summary["casualties_enemy"] = summary.get("casualties_enemy", 0) + 1
         log.append(f"   💀 {victim['label']}: KIA as overlapping timelines collapse onto one outcome.")
-        return
-
-    candidates = [m for m in living_a if m is not getattr(team, "leader", None)]
-    if not candidates:
-        candidates = list(living_a)
-    weights = [1.0 + int(getattr(m, "wound_level", 0) or 0) * 0.75 for m in candidates]
-    victim = random.choices(candidates, weights=weights, k=1)[0]
-    is_ldr = victim is getattr(team, "leader", None)
-    setattr(victim, "alive", False)
-    setattr(victim, "wound_level", max(int(getattr(victim, "wound_level", 0) or 0), 4 if is_ldr else 3))
-    summary["casualties_friendly"] = summary.get("casualties_friendly", 0) + 1
-    if is_ldr:
-        setattr(game, "player_alive", False)
-        summary["game_over"] = True
-        log.append(f"   💀 Team leader {getattr(victim, 'name', '?')} ({getattr(victim, 'designation', '?')}): KIA — snap-through (no escape vector).")
     else:
-        log.append(
-            f"   💀 {getattr(victim, 'designation', '?')} ({getattr(victim, 'name', '?')}): KIA — caught in the closing probability cone."
-        )
+        pool = [m for m in living_a if m is not getattr(team, "leader", None)]
+        if not pool:
+            pool = list(living_a)
+        mx = max(int(getattr(m, "wound_level", 0) or 0) for m in pool)
+        worst = [m for m in pool if int(getattr(m, "wound_level", 0) or 0) == mx]
+        victim = random.choice(worst)
+        is_ldr = victim is getattr(team, "leader", None)
+        setattr(victim, "alive", False)
+        setattr(victim, "wound_level", max(int(getattr(victim, "wound_level", 0) or 0), 4 if is_ldr else 3))
+        summary["casualties_friendly"] = summary.get("casualties_friendly", 0) + 1
+        if is_ldr:
+            setattr(game, "player_alive", False)
+            summary["game_over"] = True
+            log.append(
+                f"   💀 Team leader {getattr(victim, 'name', '?')} ({getattr(victim, 'designation', '?')}): "
+                f"KIA — snap-through (no escape vector)."
+            )
+        else:
+            log.append(
+                f"   💀 {getattr(victim, 'designation', '?')} ({getattr(victim, 'name', '?')}): "
+                f"KIA — already critical; the snap collapses their host line."
+            )
     try:
         from messenger_system import global_world_tracker
 
@@ -536,9 +631,9 @@ def run_timeline_shear_firefight(
 def maybe_mission_timeline_firefight(game: Any, mission: Dict[str, Any], phase: str, success_level: str) -> Optional[Dict[str, Any]]:
     if not getattr(game, "player_alive", True):
         return None
-    mt = str(mission.get("type", ""))
-    # Political elimination missions use other systems; still allow combat if team is opposed on site
-    p = mission_combat_probability(mt, phase, success_level)
+    p = mission_combat_probability(mission, phase, success_level)
+    if p <= 0.0:
+        return None
     if random.random() > p:
         return None
     return run_timeline_shear_firefight(game, mission, phase)
