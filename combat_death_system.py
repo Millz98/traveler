@@ -129,8 +129,9 @@ def _alive_team_members(team: Any) -> List[Any]:
     return out
 
 
-def _member_ac(member: Any) -> int:
-    base = 12
+def _member_ac(member: Any, *, is_team_leader: bool = False) -> int:
+    # Baseline tuned so typical Traveler is not dropped in one encounter (was too low vs d20+mods).
+    base = 14
     occ = str(getattr(member, "occupation", "") or "").lower()
     if "soldier" in occ or "police" in occ:
         base += 1
@@ -140,8 +141,10 @@ def _member_ac(member: Any) -> int:
     sk = " ".join(str(x).lower() for x in skills)
     if "combat" in sk or "acrobatics" in sk:
         base += 1
+    if is_team_leader:
+        base += 2  # Director / team lead — harder to isolate in a fireteam
     base -= int(getattr(member, "wound_level", 0) or 0)
-    return max(8, min(22, base))
+    return max(10, min(22, base))
 
 
 def _enemy_ac(fighter: Dict[str, Any]) -> int:
@@ -184,7 +187,7 @@ def _strike(
     return bool(rr.success), rr
 
 
-def _damage_from_hit(hit: bool, roll_result: Any) -> int:
+def _damage_from_hit(hit: bool, roll_result: Any, *, max_damage: int = 3) -> int:
     if not hit:
         return 0
     dmg = 1
@@ -198,7 +201,121 @@ def _damage_from_hit(hit: bool, roll_result: Any) -> int:
     else:
         if random.randint(1, 20) == 20:
             dmg += 2
-    return dmg
+    return min(max_damage, dmg)
+
+
+def _damage_from_hit_vs_ally(hit: bool, roll_result: Any) -> int:
+    """Host bodies absorb trauma; one volley should rarely stack multiple lethality tiers."""
+    d = _damage_from_hit(hit, roll_result, max_damage=2)
+    return min(2, d)
+
+
+def _timeline_snap_casualty(
+    enemies: List[Dict[str, Any]],
+    allies: List[Any],
+    team: Any,
+    game: Any,
+    log: List[str],
+    summary: Dict[str, Any],
+) -> None:
+    """
+    When the exchange hits the round ceiling with both sides still standing, the timeline
+    does not leave 'infinite' violence unresolved — one causal thread closes (someone dies).
+    """
+    living_e = [e for e in enemies if e.get("alive")]
+    living_a = [m for m in allies if getattr(m, "alive", True)]
+    if not living_e or not living_a:
+        return
+
+    e_pressure = sum(int(e.get("wound_level", 0) or 0) for e in living_e)
+    a_pressure = sum(int(getattr(m, "wound_level", 0) or 0) for m in living_a)
+
+    log.append("")
+    log.append("   — **Engagement limit** — window closing: heat, shear, or Director risk tolerance.")
+    log.append("   ⚡ **Timeline snap** — one last thread of violence resolves; not everyone exits the frame.")
+
+    # Side that has absorbed more punishment tends to pay the snap (still stochastic on ties).
+    if e_pressure > a_pressure or (e_pressure == a_pressure and random.random() < 0.58):
+        victim = random.choice(living_e)
+        victim["alive"] = False
+        victim["wound_level"] = max(int(victim.get("wound_level", 0) or 0), 3)
+        summary["casualties_enemy"] = summary.get("casualties_enemy", 0) + 1
+        log.append(f"   💀 {victim['label']}: KIA as overlapping timelines collapse onto one outcome.")
+        return
+
+    candidates = [m for m in living_a if m is not getattr(team, "leader", None)]
+    if not candidates:
+        candidates = list(living_a)
+    weights = [1.0 + int(getattr(m, "wound_level", 0) or 0) * 0.75 for m in candidates]
+    victim = random.choices(candidates, weights=weights, k=1)[0]
+    is_ldr = victim is getattr(team, "leader", None)
+    setattr(victim, "alive", False)
+    setattr(victim, "wound_level", max(int(getattr(victim, "wound_level", 0) or 0), 4 if is_ldr else 3))
+    summary["casualties_friendly"] = summary.get("casualties_friendly", 0) + 1
+    if is_ldr:
+        setattr(game, "player_alive", False)
+        summary["game_over"] = True
+        log.append(f"   💀 Team leader {getattr(victim, 'name', '?')} ({getattr(victim, 'designation', '?')}): KIA — snap-through (no escape vector).")
+    else:
+        log.append(
+            f"   💀 {getattr(victim, 'designation', '?')} ({getattr(victim, 'name', '?')}): KIA — caught in the closing probability cone."
+        )
+    try:
+        from messenger_system import global_world_tracker
+
+        global_world_tracker.apply_single_effect({
+            "type": "attribute_change",
+            "target": "timeline_stability",
+            "value": 0.03,
+            "operation": "subtract",
+        })
+    except Exception:
+        pass
+
+
+def _firefight_epilogue(log: List[str], outcome: str, summary: Dict[str, Any]) -> None:
+    log.append("")
+    if outcome == "enemy_eliminated":
+        log.append("   ✅ **Outcome:** hostile fighters down — your team still has shooters in the fight.")
+    elif outcome == "ally_eliminated":
+        log.append("   ❌ **Outcome:** team combat ineffective — survivors disengage under cover.")
+    elif outcome == "enemy_morale":
+        log.append("   ↩ **Outcome:** opposition breaks contact first — no full sweep, but you retain initiative.")
+    elif outcome == "ally_morale":
+        log.append("   ↩ **Outcome:** your team peels off under pressure — mission optics and wounds worsen.")
+    elif outcome == "round_cap_snap":
+        log.append("   ⏱ **Outcome:** timeboxed fight ended in a **timeline snap** (see casualty above).")
+    elif outcome == "round_cap":
+        log.append("   ⏱ **Outcome:** exchange timed out — both sides still had guns up (unexpected; report to Director).")
+    elif outcome == "mutual_collapse":
+        log.append("   ☠ **Outcome:** both sides collapse in the same shear fold — rare, catastrophic noise.")
+    elif outcome == "leader_kia":
+        log.append("   💀 **Outcome:** team leader's host line ended — primary consciousness lost.")
+    elif summary.get("game_over"):
+        pass  # already messaged
+    else:
+        log.append(f"   📋 **Outcome:** {outcome or 'engagement resolved'}.")
+
+    log.append("══════════════════════════════════════════════════════════")
+
+
+def _pick_enemy_victim(living_allies: List[Any], team: Any) -> Any:
+    """
+    Opposing shooters prioritize wounded / exposed operatives, not the team leader,
+    unless the leader is the only viable target.
+    """
+    if len(living_allies) == 1:
+        return living_allies[0]
+    leader = getattr(team, "leader", None)
+    weights: List[float] = []
+    for m in living_allies:
+        w = 1.0
+        wl = int(getattr(m, "wound_level", 0) or 0)
+        w += wl * 0.55  # already hurt — draws suppression / focus fire
+        if leader is not None and m is leader:
+            w *= 0.22  # leader is not usually on the point in Traveler doctrine
+        weights.append(max(0.05, w))
+    return random.choices(living_allies, weights=weights, k=1)[0]
 
 
 def _morale_break(side: List[Any], is_dict_fighters: bool) -> bool:
@@ -254,7 +371,8 @@ def run_timeline_shear_firefight(
         return summary
 
     foe = opponent_faction or infer_opponent_faction(str(mission.get("type", "")), FACTION_TRAVELER)
-    enemy_count = random.randint(2, min(5, max(2, len(allies) + 2)))
+    # Scale opposition to team size; avoid huge squads that statistically focus-fire the leader.
+    enemy_count = random.randint(2, min(4, max(2, len(allies) + 1)))
     enemies = _synthetic_enemy_fighters(foe, enemy_count)
 
     log.append("")
@@ -267,19 +385,30 @@ def run_timeline_shear_firefight(
 
     shear = 0
     lockstep_used = False
-    rounds_max = 10
+    rounds_max = 10  # Hard ceiling; unresolved fights close via timeline snap + epilogue
     ally_type = "traveler"
     enemy_type = "faction" if foe == FACTION_THE_FACTION else "government"
+    battle_outcome = ""
+    rnd = 0
 
     for rnd in range(1, rounds_max + 1):
         living_enemies = [e for e in enemies if e.get("alive")]
         living_allies = [m for m in allies if getattr(m, "alive", True)]
-        if not living_enemies or not living_allies:
+        if not living_enemies and not living_allies:
+            battle_outcome = "mutual_collapse"
+            break
+        if not living_enemies:
+            battle_outcome = "enemy_eliminated"
+            break
+        if not living_allies:
+            battle_outcome = "ally_eliminated"
             break
         if _morale_break(living_enemies, True):
+            battle_outcome = "enemy_morale"
             log.append(f"   — Round {rnd}: Opposing force breaks contact and withdraws.")
             break
         if _morale_break(living_allies, False):
+            battle_outcome = "ally_morale"
             log.append(f"   — Round {rnd}: Your team breaks contact to preserve hosts.")
             break
 
@@ -330,31 +459,39 @@ def run_timeline_shear_firefight(
 
         living_enemies = [e for e in enemies if e.get("alive")]
         living_allies = [m for m in allies if getattr(m, "alive", True)]
-        if not living_enemies or not living_allies:
+        if not living_enemies:
+            battle_outcome = "enemy_eliminated"
+            break
+        if not living_allies:
+            battle_outcome = "ally_eliminated"
             break
 
         # Enemy strikes back
         attacker_e = random.choice(living_enemies)
-        defender_m = random.choice(living_allies)
-        e_mods = {"tactical_pressure": random.randint(0, 2), "shear": -shear_skew}
-        ac_m = _member_ac(defender_m) + random.randint(0, 1)
+        defender_m = _pick_enemy_victim(living_allies, team)
+        e_mods = {"tactical_pressure": random.randint(0, 1), "shear": -shear_skew}
+        is_ldr = defender_m is team.leader
+        ac_m = _member_ac(defender_m, is_team_leader=is_ldr) + random.randint(0, 1)
         hit2, rr2 = _strike(attacker_e["label"], enemy_type, f"suppress {getattr(defender_m, 'designation', '?')}", ac_m, e_mods)
         if hit2 and rr2 and getattr(rr2, "critical_failure", False):
             hit2 = False
             log.append(f"      (Enemy fumble — shot goes wide.)")
-        dmg2 = _damage_from_hit(hit2, rr2)
+        dmg2 = _damage_from_hit_vs_ally(hit2, rr2)
         if hit2:
             wl = int(getattr(defender_m, "wound_level", 0) or 0) + dmg2
             setattr(defender_m, "wound_level", wl)
             if wl >= 1:
                 cs = float(getattr(defender_m, "consciousness_stability", 1.0) or 1.0)
                 setattr(defender_m, "consciousness_stability", max(0.0, cs - 0.08 * dmg2))
-            if wl >= 3:
+            # Leader needs one more wound tier than specialists (plot + doctrine: not on the X).
+            lethal = 4 if is_ldr else 3
+            if wl >= lethal:
                 setattr(defender_m, "alive", False)
                 summary["casualties_friendly"] += 1
                 if defender_m is team.leader:
                     setattr(game, "player_alive", False)
                     summary["game_over"] = True
+                    battle_outcome = "leader_kia"
                     log.append(f"   💀 HOST TERMINATION: Team leader {defender_m.name} is KIA.")
                     break
             log.append(
@@ -362,6 +499,22 @@ def run_timeline_shear_firefight(
             )
         else:
             log.append(f"   Round {rnd} (enemy): {attacker_e['label']} → {getattr(defender_m, 'designation', '?')} | miss")
+    else:
+        # Completed every round without breaking — timeboxed stalemate
+        battle_outcome = "round_cap"
+
+    summary["rounds_fought"] = rnd if rnd > 0 else rounds_max
+
+    living_e_end = [e for e in enemies if e.get("alive")]
+    living_a_end = [m for m in allies if getattr(m, "alive", True)]
+    if battle_outcome == "round_cap" and living_e_end and living_a_end:
+        _timeline_snap_casualty(enemies, allies, team, game, log, summary)
+        battle_outcome = "round_cap_snap"
+        if summary.get("game_over"):
+            battle_outcome = "leader_kia"
+
+    summary["outcome"] = battle_outcome or "unknown"
+    _firefight_epilogue(log, summary["outcome"], summary)
 
     # Reinforcement narrative
     support_members = team.members[1:]
