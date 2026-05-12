@@ -501,14 +501,19 @@ def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[s
         result["total"] = total
         ok = total >= dc
 
+    fn = getattr(fallen, "name", "?")
+    fd = getattr(fallen, "designation", "?")
     log.append(
-        f"   🎲 Director replacement check ({role}): d20 {result['roll']}"
+        f"   🎲 Director replacement ({role}) — vacated by {fn} ({fd}): d20 {result['roll']}"
         + (f" + {result['modifier']} = {result['total']} vs DC {dc}" if result.get("modifier") is not None else "")
         + f" → {'AUTHORIZED' if ok else 'DENIED'}"
     )
 
     if not ok:
-        log.append(f"   ⛔ No replacement consciousness cleared for {role}. The slot stays empty until another window opens.")
+        log.append(
+            f"   ⛔ No replacement cleared for {fn} ({fd}), {role} slot. "
+            f"Request another T.E.L.L. window from Team Status when ready."
+        )
         result["reason"] = "roll_failed"
         return result
 
@@ -530,7 +535,7 @@ def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[s
 
     log.append(
         f"   ✅ Replacement authorized: Traveler {new_m.designation} ({new_m.name}) — {new_m.occupation} — "
-        f"fills the {role} slot."
+        f"fills the {role} slot left by {fn} ({fd})."
     )
     result["authorized"] = True
     result["new_designation"] = new_m.designation
