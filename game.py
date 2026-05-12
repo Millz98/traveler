@@ -2452,10 +2452,9 @@ class Game:
         phase_results = []
 
         print(
-            f"\n  ⚙️  Mission ruleset: phase modifier cap {_MISSION_PHASE_MOD_MAX}; "
-            f"phase totals — crit ≥{_PHASE_T_CRITICAL_SUCCESS}, success ≥{_PHASE_T_SUCCESS}, "
-            f"partial ≥{_PHASE_T_PARTIAL}, failure ≥{_PHASE_T_FAILURE}; final momentum cap {_MISSION_MOMENTUM_CAP}. "
-            f"If this banner is missing, a different `game.py` is running."
+            f"\n  ⚙️  Mission checks use d20 + team modifier (max +{_MISSION_PHASE_MOD_MAX}); "
+            f"the closing roll adds momentum (max +{_MISSION_MOMENTUM_CAP}) from how the three phases went. "
+            f"Tier bands are printed on each roll."
         )
 
         had_combat = False
