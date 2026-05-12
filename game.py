@@ -172,6 +172,9 @@ class Game:
         self.player_character = None  # Individual player character
         self.team = None
         self.team_formed = False  # Track if team has been formed
+        self.player_alive = True
+        self.director_reinforcement_pending = False
+        self.last_combat_summary = None
 
     def clear_screen(self):
         """Clear the console screen for better readability"""
@@ -323,7 +326,10 @@ class Game:
                     "mission_count": self.team.leader.mission_count,
                     "success_rate": self.team.leader.success_rate,
                     "protocol_violations": self.team.leader.protocol_violations,
-                    "timeline_impact": self.team.leader.timeline_impact
+                    "timeline_impact": self.team.leader.timeline_impact,
+                    "alive": getattr(self.team.leader, "alive", True),
+                    "wound_level": getattr(self.team.leader, "wound_level", 0),
+                    "consciousness_stability": getattr(self.team.leader, "consciousness_stability", 1.0),
                 },
                 "team_members": [],
                 "mission_status": self.mission_status,
@@ -340,7 +346,9 @@ class Game:
                 "world_memory": self._serialize_world_memory() if getattr(self, "world_memory", None) else None,
                 "us_political_system": self._save_us_political_system_state() if hasattr(self, 'us_political_system') and self.us_political_system else None,
                 # Persist Traveler 001's history and patterns so his actions have lasting impact
-                "traveler_001_state": self._save_traveler_001_state() if hasattr(self, 'traveler_001_system') and self.traveler_001_system else None
+                "traveler_001_state": self._save_traveler_001_state() if hasattr(self, 'traveler_001_system') and self.traveler_001_system else None,
+                "player_alive": getattr(self, "player_alive", True),
+                "director_reinforcement_pending": getattr(self, "director_reinforcement_pending", False),
             }
             
             # Save team members
@@ -355,7 +363,10 @@ class Game:
                     "mission_count": member.mission_count,
                     "success_rate": member.success_rate,
                     "protocol_violations": member.protocol_violations,
-                    "timeline_impact": member.timeline_impact
+                    "timeline_impact": member.timeline_impact,
+                    "alive": getattr(member, "alive", True),
+                    "wound_level": getattr(member, "wound_level", 0),
+                    "consciousness_stability": getattr(member, "consciousness_stability", 1.0),
                 }
                 save_data["team_members"].append(member_data)
             
@@ -503,6 +514,10 @@ class Game:
             self.team.leader.success_rate = leader_data["success_rate"]
             self.team.leader.protocol_violations = leader_data["protocol_violations"]
             self.team.leader.timeline_impact = leader_data["timeline_impact"]
+            self.team.leader.alive = leader_data.get("alive", True)
+            self.team.leader.wound_level = leader_data.get("wound_level", 0)
+            if "consciousness_stability" in leader_data:
+                self.team.leader.consciousness_stability = leader_data["consciousness_stability"]
             
             # Restore team members
             for i, member_data in enumerate(save_data["team_members"]):
@@ -519,6 +534,10 @@ class Game:
                     member.success_rate = member_data["success_rate"]
                     member.protocol_violations = member_data["protocol_violations"]
                     member.timeline_impact = member_data["timeline_impact"]
+                    member.alive = member_data.get("alive", True)
+                    member.wound_level = member_data.get("wound_level", 0)
+                    if "consciousness_stability" in member_data:
+                        member.consciousness_stability = member_data["consciousness_stability"]
             
             # Restore game state
             self.mission_status = save_data["mission_status"]
@@ -566,6 +585,9 @@ class Game:
                 self.timeline_fragility = save_data["timeline_fragility"]
             if "timeline_events" in save_data:
                 self.timeline_events = save_data["timeline_events"]
+
+            self.player_alive = save_data.get("player_alive", True)
+            self.director_reinforcement_pending = save_data.get("director_reinforcement_pending", False)
             
             # Restore US Political System state if available
             if "us_political_system" in save_data and save_data["us_political_system"] and hasattr(self, 'us_political_system') and self.us_political_system:
@@ -723,6 +745,20 @@ class Game:
         # Main game loop
         while True:
             try:
+                if getattr(self, "team_formed", False) and not getattr(self, "player_alive", True):
+                    self.clear_screen()
+                    self.print_header("GAME OVER")
+                    print("\nThe team leader's host has been terminated.")
+                    print("Without a surviving primary consciousness, this timeline thread ends here.")
+                    print("\nThe Director cannot continue the Grand Plan through this team.")
+                    self.print_separator()
+                    try:
+                        self.save_game()
+                    except Exception:
+                        pass
+                    input("\nPress Enter to exit...")
+                    break
+
                 choice = self.show_main_menu()
                 
                 if not self.team_formed:
@@ -2246,6 +2282,21 @@ class Game:
             # Show consequences
             for effect in consequences["effects"]:
                 print(f"  • {effect}")
+
+            # Timeline shear combat (fighters only — Travelers / Feds / Faction)
+            try:
+                from combat_death_system import maybe_mission_timeline_firefight, print_firefight_report
+
+                if getattr(self, "team", None) and getattr(self, "player_alive", True):
+                    combat_summary = maybe_mission_timeline_firefight(self, mission, phase, performance)
+                    if combat_summary:
+                        self.last_combat_summary = combat_summary
+                        print_firefight_report(combat_summary)
+                    if not getattr(self, "player_alive", True):
+                        print("\n🛑 Mission aborted — team leader lost.")
+                        break
+            except Exception:
+                pass
             
             # Brief pause between phases
             time.sleep(1)
@@ -2973,6 +3024,8 @@ class Game:
             print(f"  • {member.name} ({member.designation}) - {role}")
         
         self.team_formed = True
+        self.player_alive = True
+        self.director_reinforcement_pending = False
         print(f"\n🎯 Your team has been formed and is ready for missions.")
         
         self.print_separator()
@@ -2986,6 +3039,8 @@ class Game:
         print(f"Team Leader: {self.team.leader.name} ({self.team.leader.designation})")
         print(f"Team Cohesion: {self.team.team_cohesion:.2f}")
         print(f"Communication Level: {self.team.communication_level:.2f}")
+        if getattr(self, "director_reinforcement_pending", False):
+            print("\n📡 Director: replacement operatives pending — T.E.L.L. alignment in progress.")
         
         self.print_separator()
         
@@ -2993,6 +3048,12 @@ class Game:
             print(f"\n👤 Member {i+1}: {member.name}")
             print(f"   Designation: {member.designation}")
             print(f"   Role: {member.role}")
+            if not getattr(member, "alive", True):
+                print("   Status: KIA (host terminated)")
+            else:
+                wl = int(getattr(member, "wound_level", 0) or 0)
+                if wl:
+                    print(f"   Wound level: {wl} (host under medical strain)")
             print(f"   Skills: {', '.join(member.skills) if hasattr(member, 'skills') else 'None'}")
             
             # Check for consciousness stability
@@ -5500,6 +5561,8 @@ class Game:
         if phase == "infiltration":
             # Infiltration benefits from stealth and technical skills
             for member in self.team.members:
+                if not getattr(member, "alive", True):
+                    continue
                 if hasattr(member, 'skills') and member.skills:
                     if any('stealth' in skill.lower() for skill in member.skills):
                         base_modifier += 1
@@ -5508,6 +5571,8 @@ class Game:
         elif phase == "execution":
             # Execution benefits from combat and leadership skills
             for member in self.team.members:
+                if not getattr(member, "alive", True):
+                    continue
                 if hasattr(member, 'skills') and member.skills:
                     if any('combat' in skill.lower() for skill in member.skills):
                         base_modifier += 1
@@ -5516,6 +5581,8 @@ class Game:
         elif phase == "extraction":
             # Extraction benefits from medical and technical skills
             for member in self.team.members:
+                if not getattr(member, "alive", True):
+                    continue
                 if hasattr(member, 'skills') and member.skills:
                     if any('medical' in skill.lower() for skill in member.skills):
                         base_modifier += 1

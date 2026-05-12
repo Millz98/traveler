@@ -17,6 +17,8 @@ class Traveler:
         self.timeline_impact = 0
         self.consciousness_stability = 1.0  # Track consciousness integrity
         self.timeline_contamination = 0.0   # Track how much they've altered history
+        self.alive = True
+        self.wound_level = 0  # 0=unharmed; 3+=lethal (host termination)
 
     def generate_name(self):
         """Generate a random name for the traveler"""

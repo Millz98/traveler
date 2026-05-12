@@ -1015,6 +1015,13 @@ class AITravelerTeam(AIEntity):
             
             phase_results.append(roll_result)
         
+        # Optional: opposing fighters engage the team on-site (D20 combat loop)
+        try:
+            from combat_death_system import ai_team_mission_combat
+            ai_team_mission_combat(self, mission, world_state)
+        except Exception:
+            pass
+
         # Determine overall mission success
         successes = sum(1 for r in phase_results if r.success)
         critical_failures = sum(1 for r in phase_results if r.critical_failure)
