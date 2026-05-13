@@ -1331,6 +1331,7 @@ def ai_team_mission_combat(
     world_state: Dict[str, Any],
     *,
     verbose: bool = False,
+    hot_mission: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """
     Simulated firefight for AI Traveler teams vs Faction or Government opposition.
@@ -1338,10 +1339,15 @@ def ai_team_mission_combat(
 
     verbose=True: full round-by-round transcript. verbose=False (default): same simulation,
     one compact outcome line plus structured return for post-combat recovery.
+
+    hot_mission: partial / messy ops or stressed hosts — much higher chance armed contact occurs
+    (still skipped rarely so not every run is identical).
     """
     if not d20_system:
         return None
-    if random.random() > 0.45:
+    # Skip probability: lower = more fights. Default ~25% skip; hot ~8% skip.
+    skip_p = 0.08 if hot_mission else 0.25
+    if random.random() < skip_p:
         return None
 
     hosts = getattr(ai_team, "host_lives", None) or []

@@ -1128,21 +1128,28 @@ class AITravelerTeam(AIEntity):
             print(f"       {roll_result.outcome_description}")
             
             phase_results.append(roll_result)
-        
+
+        successes = sum(1 for r in phase_results if r.success)
+        critical_failures = sum(1 for r in phase_results if r.critical_failure)
+        hot_mission = (
+            critical_failures > 0
+            or successes < 2
+            or self._ai_any_host_stress_above(0.72)
+        )
+
         # Optional: opposing fighters engage the team on-site (D20 combat loop)
         try:
             from combat_death_system import ai_team_mission_combat, ai_team_post_combat_recovery
 
-            combat_summary = ai_team_mission_combat(self, mission, world_state, verbose=False)
+            combat_summary = ai_team_mission_combat(
+                self, mission, world_state, verbose=False, hot_mission=hot_mission
+            )
             if combat_summary:
                 ai_team_post_combat_recovery(self, world_state, combat_summary)
         except Exception as ex:
             print(f"    ⚠️  AI team mission combat error: {ex}")
 
         # Determine overall mission success
-        successes = sum(1 for r in phase_results if r.success)
-        critical_failures = sum(1 for r in phase_results if r.critical_failure)
-        
         if critical_failures > 0:
             # Any critical failure = mission failure
             print(f"\n    💥 MISSION FAILED - Critical failure in one or more phases!")
