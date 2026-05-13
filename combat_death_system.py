@@ -983,14 +983,247 @@ def medic_post_combat_triage(game: Any, combat_summary: Optional[Dict[str, Any]]
     log.extend(lines)
 
 
-def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _government_believes_travelers_exist(
+    world_state: Dict[str, Any], investigation: Optional[Dict[str, Any]]
+) -> bool:
+    """True when agencies have enough evidence to treat Travelers as a real on-the-ground threat."""
+    inv = investigation or {}
+    if inv.get("triggered_by_player"):
+        return True
+    if float(world_state.get("traveler_exposure_risk", 0.0) or 0.0) >= 0.3:
+        return True
+    if int(world_state.get("mission_count", 0) or 0) >= 3:
+        return True
+    game = world_state.get("game_reference")
+    if game:
+        gds = getattr(game, "government_detection_system", None)
+        if gds and hasattr(gds, "exposure_risk"):
+            te = float(gds.exposure_risk.get("traveler_teams", 0.0) or 0.0)
+            if te >= 0.25:
+                return True
+    try:
+        from government_detection_system import government_detection
+
+        te = float(government_detection.exposure_risk.get("traveler_teams", 0.0) or 0.0)
+        if te >= 0.25:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _government_may_hit_faction_activity(world_state: Dict[str, Any]) -> bool:
+    """Faction cells are active enough that a field team could plausibly run into them."""
+    fi = float(world_state.get("faction_influence", world_state.get("faction_activity", 0.0)) or 0.0)
+    return fi >= 0.2
+
+
+def brief_mission_field_skirmish(
+    world_state: Dict[str, Any],
+    display_name: str,
+    kind: str,
+    *,
+    investigation: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    One-line field violence during faction operations or government investigations.
+    kind: 'faction' or 'government'. Keeps end-turn noise low while still showing outcomes.
+
+    Government agents only skirmish when they could be facing Faction assets or Travelers they
+    already suspect exist (see investigation / exposure / mission trail).
+    """
+    if kind == "government":
+        has_faction = _government_may_hit_faction_activity(world_state)
+        has_travelers = _government_believes_travelers_exist(world_state, investigation)
+        if not has_faction and not has_travelers:
+            return
+        if has_faction and has_travelers:
+            adversary = random.choice(["faction", "travelers"])
+        elif has_faction:
+            adversary = "faction"
+        else:
+            adversary = "travelers"
+        if random.random() > 0.38:
+            return
+        if adversary == "faction":
+            outcomes = [
+                "rolled a Faction cutout team; brief firefight, suspects slipped cordon",
+                "Faction overwatch engaged; agents broke contact with wounded",
+                "surveillance package compromised by Faction countermeasures; exchange of fire",
+                "raid hit Faction safehouse; armed resistance, partial evidence secured",
+            ]
+        else:
+            outcomes = [
+                "Traveler-aligned security ambushed the approach team; agents withdrew",
+                "parallel team engaged during surveillance; no arrests, one agent wounded",
+                "warrant service met Traveler counter-surveillance; pursuit broken off",
+                "stakeout burned when a Traveler cell ran interference; brief shootout",
+            ]
+    else:
+        if random.random() > 0.38:
+            return
+        outcomes = [
+            "brief exchange with security; withdrew with partial intel",
+            "ambushed by Traveler-aligned contacts; suppressed return fire",
+            "cover compromised; minor wounds evading response",
+            "sentries neutralized; no friendly casualties",
+        ]
+    print(f"    ⚔️  {display_name}: {random.choice(outcomes)}.")
+    try:
+        world_state["timeline_stability"] = max(0.0, float(world_state.get("timeline_stability", 0.8)) - 0.004)
+    except Exception:
+        pass
+
+
+def _ai_host_medic_bonus(host: Dict[str, Any]) -> int:
+    occ = (host.get("occupation") or "").lower()
+    if any(k in occ for k in ("surgeon", "physician")):
+        return 3
+    if any(k in occ for k in ("nurse", "doctor", "paramedic", "medic", "emt")):
+        return 2
+    return 0
+
+
+def _synthetic_replacement_ai_host(ai_team: Any) -> Dict[str, Any]:
+    """New host body for an AI Traveler team after a host is lost in the field."""
+    tid = getattr(ai_team, "team_id", "?")
+    gen_dr = getattr(ai_team, "generate_daily_routine", None)
+    daily = gen_dr() if callable(gen_dr) else "Routine day"
+    gen_rel = getattr(ai_team, "generate_relationships", None)
+    relationships = gen_rel() if callable(gen_rel) else {}
+    gen_goals = getattr(ai_team, "generate_life_goals", None)
+    goals = gen_goals() if callable(gen_goals) else ["Stability"]
+    return {
+        "name": f"Host-{tid}-R{random.randint(1000, 9999)}",
+        "age": random.randint(25, 52),
+        "occupation": random.choice(
+            [
+                "Software Engineer",
+                "Teacher",
+                "Nurse",
+                "Police Officer",
+                "Accountant",
+                "Sales Representative",
+                "Manager",
+                "Administrative Assistant",
+                "Customer Service",
+                "Truck Driver",
+                "Construction Worker",
+                "Electrician",
+                "Plumber",
+                "Mechanic",
+            ]
+        ),
+        "family_status": random.choice(
+            [
+                "Married with children",
+                "Single parent",
+                "Married no children",
+                "Single",
+                "Divorced",
+                "Widowed",
+            ]
+        ),
+        "daily_routine": daily,
+        "relationships": relationships,
+        "personal_challenges": [],
+        "life_goals": goals,
+        "stress_level": random.uniform(0.25, 0.85),
+        "happiness": random.uniform(0.35, 0.75),
+        "wound_level": 0,
+        "alive": True,
+    }
+
+
+def ai_team_post_combat_recovery(
+    ai_team: Any, world_state: Dict[str, Any], combat_summary: Optional[Dict[str, Any]]
+) -> None:
+    """
+    After an AI-team mission skirmish: Director-style host replacement and compact medic triage
+    on host_lives dicts (mirrors player medic flow without verbose logs).
+    """
+    if not combat_summary or not combat_summary.get("occurred") or not d20_system:
+        return
+    hosts = getattr(ai_team, "host_lives", None) or []
+    if not hosts:
+        return
+
+    out_lines: List[str] = []
+    replaced = 0
+    for i, h in enumerate(hosts):
+        if h.get("alive", True):
+            continue
+        hosts[i] = _synthetic_replacement_ai_host(ai_team)
+        replaced += 1
+    if replaced:
+        out_lines.append(
+            f"    📡 Director pool: AI Team {getattr(ai_team, 'team_id', '?')} stood in {replaced} replacement host(s)."
+        )
+
+    medics = [h for h in hosts if h.get("alive", True) and _ai_host_medic_bonus(h) >= 2]
+    if not medics:
+        for ln in out_lines:
+            print(ln)
+        return
+
+    medic = medics[0]
+    bonus = _ai_host_medic_bonus(medic)
+    patients = [h for h in hosts if h.get("alive", True) and int(h.get("wound_level", 0) or 0) > 0]
+    patients.sort(key=lambda p: 1 if p is medic else 0)
+    triage_parts: List[str] = []
+    for patient in patients:
+        wl = int(patient.get("wound_level", 0) or 0)
+        if wl <= 0:
+            continue
+        dc = 10 + wl * 2
+        die = random.randint(1, 20)
+        total = die + bonus
+        label = patient.get("name", "?")
+        if patient is medic:
+            label += " [self]"
+        if total >= dc:
+            drop = 2 if (die == 20 and wl >= 2) else 1
+            new_wl = max(0, wl - drop)
+            patient["wound_level"] = new_wl
+            triage_parts.append(f"{label} {wl}→{new_wl}")
+        elif total >= dc - 2:
+            patient["stress_level"] = min(1.0, float(patient.get("stress_level", 0.3)) + 0.05)
+            triage_parts.append(f"{label} stable @ {wl}")
+        else:
+            patient["stress_level"] = min(1.0, float(patient.get("stress_level", 0.3)) + 0.08)
+            triage_parts.append(f"{label} still @ {wl}")
+
+    if triage_parts:
+        out_lines.append(
+            f"    🩹 AI Team {getattr(ai_team, 'team_id', '?')} medic ({medic.get('occupation', 'medic')}): "
+            + "; ".join(triage_parts)
+        )
+
+    for ln in out_lines:
+        print(ln)
+    try:
+        world_state["director_control"] = min(1.0, float(world_state.get("director_control", 0.5)) + 0.01 * replaced)
+    except Exception:
+        pass
+
+
+def ai_team_mission_combat(
+    ai_team: Any,
+    mission: Dict[str, Any],
+    world_state: Dict[str, Any],
+    *,
+    verbose: bool = False,
+) -> Optional[Dict[str, Any]]:
     """
     Simulated firefight for AI Traveler teams vs Faction or Government opposition.
     Mutates host_lives entries with wound_level / alive=False on death.
+
+    verbose=True: full round-by-round transcript. verbose=False (default): same simulation,
+    one compact outcome line plus structured return for post-combat recovery.
     """
     if not d20_system:
         return None
-    if random.random() > 0.28:
+    if random.random() > 0.45:
         return None
 
     hosts = getattr(ai_team, "host_lives", None) or []
@@ -1002,28 +1235,34 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
     foe = infer_opponent_faction(str(mission.get("type", "")), FACTION_TRAVELER)
     enemies = _synthetic_enemy_fighters(foe, random.randint(1, 4))
     log: List[str] = []
-    log.append(f"\n    ⚔️  AI Team {getattr(ai_team, 'team_id', '?')} — timeline shear skirmish vs {foe}.")
-    log.append(
-        f"    Order of battle: {len(hosts)} AI host(s) vs {len(enemies)} hostile fighter(s); "
-        f"each round is Move 1 (AI strike) then Move 2 (enemy return fire)."
-    )
+    if verbose:
+        log.append(f"\n    ⚔️  AI Team {getattr(ai_team, 'team_id', '?')} — timeline shear skirmish vs {foe}.")
+        log.append(
+            f"    Order of battle: {len(hosts)} AI host(s) vs {len(enemies)} hostile fighter(s); "
+            f"each round is Move 1 (AI strike) then Move 2 (enemy return fire)."
+        )
 
     shear = 0
     rounds_max_ai = 6
+    rounds_fought = 0
+    host_kia_names: List[str] = []
+
     for rnd in range(1, rounds_max_ai + 1):
         living_h = [h for h in hosts if h.get("alive", True)]
         living_e = [e for e in enemies if e.get("alive")]
         if not living_h or not living_e:
             break
+        rounds_fought = rnd
         shear += random.randint(5, 12)
-        _apply_shear_narrative(shear, log)
+        if verbose:
+            _apply_shear_narrative(shear, log)
 
-        log.append(
-            f"    ══ Round {rnd}/{rounds_max_ai} — AI hosts {len(living_h)} standing · "
-            f"hostiles {len(living_e)} standing ══"
-        )
+            log.append(
+                f"    ══ Round {rnd}/{rounds_max_ai} — AI hosts {len(living_h)} standing · "
+                f"hostiles {len(living_e)} standing ══"
+            )
 
-        log.append("       Move 1 — AI / Traveler-aligned strike")
+            log.append("       Move 1 — AI / Traveler-aligned strike")
         h = random.choice(living_h)
         e = random.choice(living_e)
         fake_member = type("M", (), {})()
@@ -1042,26 +1281,27 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
             ew0 = int(e.get("wound_level", 0) or 0)
             e["wound_level"] = ew0 + dmg_ai
             ew1 = int(e["wound_level"])
-            log.append(
-                f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)} "
-                f"| damage +{dmg_ai} | hostile wounds {ew0}→{ew1}"
-            )
+            if verbose:
+                log.append(
+                    f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)} "
+                    f"| damage +{dmg_ai} | hostile wounds {ew0}→{ew1}"
+                )
             if e["wound_level"] >= 3:
                 e["alive"] = False
-                log.append(f"         💀 HOSTILE KIA: {e['label']} — down during AI skirmish.")
-        else:
-            log.append(
-                f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)}"
-            )
+                if verbose:
+                    log.append(f"         💀 HOSTILE KIA: {e['label']} — down during AI skirmish.")
+        elif verbose:
+            log.append(f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)}")
 
         living_e = [x for x in enemies if x.get("alive")]
         living_h = [x for x in hosts if x.get("alive", True)]
         if not living_e or not living_h:
-            if not living_e:
+            if verbose and not living_e:
                 log.append("       …Hostiles eliminated; no return fire.")
             break
 
-        log.append("       Move 2 — Enemy return fire")
+        if verbose:
+            log.append("       Move 2 — Enemy return fire")
         e2 = random.choice(living_e)
         h2 = random.choice(living_h)
         ac = 11 + int(h2.get("wound_level", 0) or 0)
@@ -1078,16 +1318,20 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
             h2["wound_level"] = hw0 + dmg_h
             hw1 = int(h2["wound_level"])
             h2["stress_level"] = min(1.0, float(h2.get("stress_level", 0.3)) + 0.2)
-            log.append(
-                f"         {e2['label']} → {h2.get('name', 'Unknown')}{_strike_log_suffix(rr2, hit2, ac)} "
-                f"| damage +{dmg_h} | host wounds {hw0}→{hw1} (KIA at wound level 3+)"
-            )
+            if verbose:
+                log.append(
+                    f"         {e2['label']} → {h2.get('name', 'Unknown')}{_strike_log_suffix(rr2, hit2, ac)} "
+                    f"| damage +{dmg_h} | host wounds {hw0}→{hw1} (KIA at wound level 3+)"
+                )
             if h2["wound_level"] >= 3:
                 h2["alive"] = False
-                log.append(
-                    f"         💀 AI HOST KIA: {h2.get('name', 'Unknown')} — hostile fire ends this host during skirmish."
-                )
-        else:
+                nm = h2.get("name", "Unknown")
+                host_kia_names.append(str(nm))
+                if verbose:
+                    log.append(
+                        f"         💀 AI HOST KIA: {nm} — hostile fire ends this host during skirmish."
+                    )
+        elif verbose:
             log.append(
                 f"         {e2['label']} → {h2.get('name', 'Unknown')}{_strike_log_suffix(rr2, hit2, ac)}"
             )
@@ -1096,9 +1340,42 @@ def ai_team_mission_combat(ai_team: Any, mission: Dict[str, Any], world_state: D
         except Exception:
             pass
 
-    for line in log:
-        print(line)
-    return {"log": log, "shear_peak": shear}
+    enemy_kia = sum(1 for e in enemies if not e.get("alive"))
+    living_hosts = [h for h in hosts if h.get("alive", True)]
+    wounded_ct = sum(1 for h in living_hosts if int(h.get("wound_level", 0) or 0) > 0)
+    max_w = max((int(h.get("wound_level", 0) or 0) for h in living_hosts), default=0)
+
+    summary = {
+        "foe": foe,
+        "rounds": rounds_fought,
+        "enemy_kia": enemy_kia,
+        "hostiles_start": len(enemies),
+        "hosts_alive": len(living_hosts),
+        "host_kia": len(host_kia_names),
+        "host_kia_names": list(host_kia_names),
+        "wounded_living": wounded_ct,
+        "max_host_wounds": max_w,
+    }
+
+    if verbose:
+        for line in log:
+            print(line)
+    else:
+        tid = getattr(ai_team, "team_id", "?")
+        kia_note = ""
+        if host_kia_names:
+            shown = ", ".join(host_kia_names[:2])
+            if len(host_kia_names) > 2:
+                shown += f" +{len(host_kia_names) - 2} more"
+            kia_note = f" | team KIA: {shown}"
+        w_note = f" | {wounded_ct} wounded (max wl {max_w})" if wounded_ct else ""
+        print(
+            f"\n    ⚔️  AI Team {tid} vs {foe}: {rounds_fought} round(s); "
+            f"{enemy_kia}/{len(enemies)} hostile(s) down; "
+            f"{len(living_hosts)}/{len(hosts)} host(s) up{kia_note}{w_note}."
+        )
+
+    return {"log": log, "shear_peak": shear, "occurred": True, "summary": summary}
 
 
 def try_director_replace_support_member(game: Any, fallen: Any, log: Optional[List[str]] = None) -> Dict[str, Any]:

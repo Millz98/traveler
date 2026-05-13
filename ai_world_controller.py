@@ -73,6 +73,12 @@ class AITravelerTeam(AIEntity):
         self.relationship_status = self.generate_relationship_status()
         self.personal_events = []
         self.life_balance_score = 1.0  # 1.0 = perfect balance, 0.0 = complete failure
+        # When False, routine host-life simulation prints are suppressed (end-turn noise).
+        self._ai_host_log_verbose = True
+
+    def _ai_host_log(self, *args, **kwargs):
+        if getattr(self, "_ai_host_log_verbose", True):
+            print(*args, **kwargs)
 
     def generate_host_lives_from_world(self):
         """Generate host lives using procedural NPCs when available (fallbacks to existing generation)."""
@@ -252,6 +258,7 @@ class AITravelerTeam(AIEntity):
     def take_turn(self, world_state, time_system):
         """AI Traveler team takes turn (reduced noise; only prints important events)."""
         show_output = (self.life_balance_score < 0.5) or bool(self.active_missions)
+        self._ai_host_log_verbose = show_output
         if show_output:
             print(f"\n🕵️ Team {self.team_id}:")
             print("  🏠 Managing host lives...")
@@ -349,7 +356,7 @@ class AITravelerTeam(AIEntity):
         
     def manage_host_lives(self, time_system):
         """Manage the daily lives of all host bodies"""
-        print(f"  🏠 Managing host body daily lives...")
+        self._ai_host_log(f"  🏠 Managing host body daily lives...")
         
         for i, host_life in enumerate(self.host_lives):
             # Execute daily routine
@@ -389,10 +396,10 @@ class AITravelerTeam(AIEntity):
             for activity in activities:
                 success = random.randint(1, 20) <= 16
                 if success:
-                    print(f"    ✅ {host_life['name']} completed {activity} successfully")
+                    self._ai_host_log(f"    ✅ {host_life['name']} completed {activity} successfully")
                     host_life['happiness'] = min(1.0, host_life.get('happiness', 0.5) + 0.05)
                 else:
-                    print(f"    ⚠️  {host_life['name']} struggled with {activity}")
+                    self._ai_host_log(f"    ⚠️  {host_life['name']} struggled with {activity}")
                     host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.1)
             return
         
@@ -441,20 +448,20 @@ class AITravelerTeam(AIEntity):
             roll_result = result['roll_result']
             
             if roll_result.critical_success:
-                print(f"    ⭐ {host_life.get('name', 'Unknown')}: {activity}")
-                print(f"       CRITICAL SUCCESS! [{roll_result.roll}] Exceptional day!")
+                self._ai_host_log(f"    ⭐ {host_life.get('name', 'Unknown')}: {activity}")
+                self._ai_host_log(f"       CRITICAL SUCCESS! [{roll_result.roll}] Exceptional day!")
                 host_life['happiness'] = min(1.0, host_life.get('happiness', 0.5) + 0.1)
             elif roll_result.critical_failure:
-                print(f"    💀 {host_life.get('name', 'Unknown')}: {activity}")
-                print(f"       CRITICAL FAILURE! [{roll_result.roll}] Disaster!")
+                self._ai_host_log(f"    💀 {host_life.get('name', 'Unknown')}: {activity}")
+                self._ai_host_log(f"       CRITICAL FAILURE! [{roll_result.roll}] Disaster!")
                 host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.2)
             elif roll_result.success:
-                print(f"    ✅ {host_life.get('name', 'Unknown')}: {activity}")
-                print(f"       Success [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
+                self._ai_host_log(f"    ✅ {host_life.get('name', 'Unknown')}: {activity}")
+                self._ai_host_log(f"       Success [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
                 host_life['happiness'] = min(1.0, host_life.get('happiness', 0.5) + 0.02)
             else:
-                print(f"    ❌ {host_life.get('name', 'Unknown')}: {activity}")
-                print(f"       Failed [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
+                self._ai_host_log(f"    ❌ {host_life.get('name', 'Unknown')}: {activity}")
+                self._ai_host_log(f"       Failed [{roll_result.roll}+{roll_result.modifier}={roll_result.total} vs DC{roll_result.target_number}]")
                 host_life['stress_level'] = min(1.0, host_life.get('stress_level', 0.3) + 0.05)
     
     def generate_life_event(self, host_life, member_index):
@@ -467,7 +474,7 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(events)
-        print(f"    📅 Life event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    📅 Life event for {host_life['name']}: {event}")
         
         # Handle the event
         if "Family" in event or "Social" in event:
@@ -491,14 +498,14 @@ class AITravelerTeam(AIEntity):
         ]
         
         complication = random.choice(complications)
-        print(f"    ⚠️  Random complication for {host_life['name']}: {complication}")
+        self._ai_host_log(f"    ⚠️  Random complication for {host_life['name']}: {complication}")
         
         # Handle the complication
         if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% success rate)
-            print(f"      ✅ Complication resolved")
+            self._ai_host_log(f"      ✅ Complication resolved")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.02)  # Relief
         else:
-            print(f"      ❌ Complication persists")
+            self._ai_host_log(f"      ❌ Complication persists")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
     
     def generate_relationship_event(self, host_life):
@@ -510,18 +517,18 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(events)
-        print(f"    👥 Relationship event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    👥 Relationship event for {host_life['name']}: {event}")
         
         # Handle relationship event
         if "conflict" in event.lower() or "argument" in event.lower() or "gossip" in event.lower():
             if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% success rate)
-                print(f"      ✅ Conflict resolved")
+                self._ai_host_log(f"      ✅ Conflict resolved")
                 host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
             else:
-                print(f"      ⚠️  Conflict continues")
+                self._ai_host_log(f"      ⚠️  Conflict continues")
                 host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.15)
         else:
-            print(f"      ✅ Positive relationship event")
+            self._ai_host_log(f"      ✅ Positive relationship event")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
     
     def generate_career_event(self, host_life):
@@ -534,57 +541,57 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(events)
-        print(f"    💼 Career event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    💼 Career event for {host_life['name']}: {event}")
         
         # Handle career event
         if "deadline" in event.lower() or "review" in event.lower() or "presentation" in event.lower():
             if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% success rate)
-                print(f"      ✅ Career challenge met")
+                self._ai_host_log(f"      ✅ Career challenge met")
                 host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
                 host_life['relationships']['work']['job_satisfaction'] = min(1.0, host_life['relationships']['work']['job_satisfaction'] + 0.05)
             else:
-                print(f"      ⚠️  Career challenge difficult")
+                self._ai_host_log(f"      ⚠️  Career challenge difficult")
                 host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.15)
         else:
-            print(f"      ✅ Positive career development")
+            self._ai_host_log(f"      ✅ Positive career development")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.08)
             host_life['relationships']['work']['job_satisfaction'] = min(1.0, host_life['relationships']['work']['job_satisfaction'] + 0.1)
     
     def handle_social_event(self, host_life, event):
         """Handle social and family events"""
         if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% positive outcome)
-            print(f"      ✅ Social event handled positively")
+            self._ai_host_log(f"      ✅ Social event handled positively")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.05)
         else:
-            print(f"      ⚠️  Social event caused some stress")
+            self._ai_host_log(f"      ⚠️  Social event caused some stress")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
     
     def handle_work_event(self, host_life, event):
         """Handle work and career events"""
         if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% positive outcome)
-            print(f"      ✅ Work event handled successfully")
+            self._ai_host_log(f"      ✅ Work event handled successfully")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         else:
-            print(f"      ⚠️  Work event caused stress")
+            self._ai_host_log(f"      ⚠️  Work event caused stress")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.15)
     
     def handle_health_event(self, host_life, event):
         """Handle health and medical events"""
         if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% positive outcome)
-            print(f"      ✅ Health concern addressed")
+            self._ai_host_log(f"      ✅ Health concern addressed")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         else:
-            print(f"      ⚠️  Health concern persists")
+            self._ai_host_log(f"      ⚠️  Health concern persists")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.2)
     
     def handle_general_event(self, host_life, event):
         """Handle general life events"""
         if random.random() < 0.7:  # 70% positive outcome
-            print(f"      ✅ General event handled well")
+            self._ai_host_log(f"      ✅ General event handled well")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         else:
-            print(f"      ⚠️  General event caused minor stress")
+            self._ai_host_log(f"      ⚠️  General event caused minor stress")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.05)
     
     def update_host_emotional_state(self, host_life):
@@ -600,7 +607,7 @@ class AITravelerTeam(AIEntity):
     
     def handle_personal_events(self, time_system):
         """Handle personal life events for the team"""
-        print(f"  📅 Managing personal life events...")
+        self._ai_host_log(f"  📅 Managing personal life events...")
         
         # Check for special dates
         current_date = time_system.current_date
@@ -637,7 +644,7 @@ class AITravelerTeam(AIEntity):
         ]
         
         celebration = random.choice(celebrations)
-        print(f"    🎉 {host_life['name']} celebrating: {celebration}")
+        self._ai_host_log(f"    🎉 {host_life['name']} celebrating: {celebration}")
         
         # Positive impact on happiness
         host_life['happiness'] = min(1.0, host_life['happiness'] + 0.2)
@@ -652,19 +659,19 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(events)
-        print(f"    🌟 Personal event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    🌟 Personal event for {host_life['name']}: {event}")
         
         # Handle personal event
         if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% positive outcome)
-            print(f"      ✅ Personal event was enjoyable")
+            self._ai_host_log(f"      ✅ Personal event was enjoyable")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
         else:
-            print(f"      ⚠️  Personal event was challenging")
+            self._ai_host_log(f"      ⚠️  Personal event was challenging")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.05)
     
     def manage_relationships(self):
         """Manage relationships and social interactions"""
-        print(f"  👥 Managing relationships and social connections...")
+        self._ai_host_log(f"  👥 Managing relationships and social connections...")
         
         for i, host_life in enumerate(self.host_lives):
             relationships = host_life['relationships']
@@ -696,13 +703,13 @@ class AITravelerTeam(AIEntity):
         interaction_quality = random.random()
         
         if interaction_quality > 0.7:
-            print(f"    ❤️  {host_life['name']} had positive {family_type} interaction")
+            self._ai_host_log(f"    ❤️  {host_life['name']} had positive {family_type} interaction")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.05)
         elif interaction_quality > 0.4:
-            print(f"    👨‍👩‍👧‍👦 {host_life['name']} had neutral {family_type} interaction")
+            self._ai_host_log(f"    👨‍👩‍👧‍👦 {host_life['name']} had neutral {family_type} interaction")
         else:
-            print(f"    ⚠️  {host_life['name']} had challenging {family_type} interaction")
+            self._ai_host_log(f"    ⚠️  {host_life['name']} had challenging {family_type} interaction")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
     
     def handle_work_relationships(self, host_life, member_index):
@@ -710,16 +717,16 @@ class AITravelerTeam(AIEntity):
         work_quality = random.random()
         
         if work_quality > 0.7:
-            print(f"    💼 {host_life['name']} had positive work interactions")
+            self._ai_host_log(f"    💼 {host_life['name']} had positive work interactions")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         elif work_quality < 0.3:
-            print(f"    ⚠️  {host_life['name']} had challenging work interactions")
+            self._ai_host_log(f"    ⚠️  {host_life['name']} had challenging work interactions")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
     
     def handle_social_connections(self, host_life, member_index):
         """Handle social connections and friendships"""
         if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% chance of social interaction)
-            print(f"    👥 {host_life['name']} had social interaction")
+            self._ai_host_log(f"    👥 {host_life['name']} had social interaction")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
     
     def handle_community_event(self, host_life, member_index):
@@ -732,7 +739,7 @@ class AITravelerTeam(AIEntity):
         
         if random.randint(1, 20) <= 4:  # D20 roll: 1-4 (20% chance of community event)
             event = random.choice(community_events)
-            print(f"    🏘️  Community event for {host_life['name']}: {event}")
+            self._ai_host_log(f"    🏘️  Community event for {host_life['name']}: {event}")
             
             # Community events are generally positive
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.08)
@@ -748,7 +755,7 @@ class AITravelerTeam(AIEntity):
         
         if random.randint(1, 20) <= 5:  # D20 roll: 1-5 (25% chance of hobby event)
             event = random.choice(hobby_events)
-            print(f"    🎨 Hobby event for {host_life['name']}: {event}")
+            self._ai_host_log(f"    🎨 Hobby event for {host_life['name']}: {event}")
             
             # Hobby events are very positive
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.12)
@@ -756,7 +763,7 @@ class AITravelerTeam(AIEntity):
     
     def manage_work_responsibilities(self):
         """Manage work and career responsibilities"""
-        print(f"  💼 Managing work responsibilities...")
+        self._ai_host_log(f"  💼 Managing work responsibilities...")
         
         for i, host_life in enumerate(self.host_lives):
             # Handle daily work tasks
@@ -784,15 +791,15 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(financial_events)
-        print(f"    💰 Financial event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    💰 Financial event for {host_life['name']}: {event}")
         
         # Financial events can be stressful but rewarding
         if random.randint(1, 20) <= 14:  # D20 roll: 1-14 (70% success rate)
-            print(f"      ✅ Financial event handled well")
+            self._ai_host_log(f"      ✅ Financial event handled well")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.03)
         else:
-            print(f"      ⚠️  Financial event caused stress")
+            self._ai_host_log(f"      ⚠️  Financial event caused stress")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
     
     def handle_health_event(self, host_life, member_index):
@@ -804,15 +811,15 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(health_events)
-        print(f"    🏥 Health event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    🏥 Health event for {host_life['name']}: {event}")
         
         # Health events are generally positive
         if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% success rate)
-            print(f"      ✅ Health event positive")
+            self._ai_host_log(f"      ✅ Health event positive")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.08)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.05)
         else:
-            print(f"      ⚠️  Health event challenging")
+            self._ai_host_log(f"      ⚠️  Health event challenging")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.08)
     
     def handle_work_task(self, host_life, member_index):
@@ -826,10 +833,10 @@ class AITravelerTeam(AIEntity):
         success = random.random() < 0.75  # 75% success rate
         
         if success:
-            print(f"    ✅ {host_life['name']} completed work task: {task}")
+            self._ai_host_log(f"    ✅ {host_life['name']} completed work task: {task}")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.03)
         else:
-            print(f"    ⚠️  {host_life['name']} struggled with work task: {task}")
+            self._ai_host_log(f"    ⚠️  {host_life['name']} struggled with work task: {task}")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
     
     def handle_career_event(self, host_life, member_index):
@@ -840,13 +847,13 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(events)
-        print(f"    📈 Career event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    📈 Career event for {host_life['name']}: {event}")
         
         if random.random() < 0.7:  # 70% positive outcome
-            print(f"      ✅ Career event was positive")
+            self._ai_host_log(f"      ✅ Career event was positive")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
         else:
-            print(f"      ⚠️  Career event was challenging")
+            self._ai_host_log(f"      ⚠️  Career event was challenging")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
     
     def update_life_balance(self):
@@ -861,14 +868,14 @@ class AITravelerTeam(AIEntity):
         stress_factor = (1.0 - avg_stress) * 0.4
         self.life_balance_score = happiness_factor + stress_factor
         
-        print(f"  📊 Team life balance score: {self.life_balance_score:.2f}")
-        print(f"    • Average happiness: {avg_happiness:.2f}")
-        print(f"    • Average stress: {avg_stress:.2f}")
+        self._ai_host_log(f"  📊 Team life balance score: {self.life_balance_score:.2f}")
+        self._ai_host_log(f"    • Average happiness: {avg_happiness:.2f}")
+        self._ai_host_log(f"    • Average stress: {avg_stress:.2f}")
     
     def generate_ai_mission(self, world_state):
         """Generate a mission for the AI team (only if life is stable)"""
         if self.life_balance_score < 0.4:
-            print(f"    ⚠️  Team too stressed for new missions")
+            self._ai_host_log(f"    ⚠️  Team too stressed for new missions")
             return
             
         mission_types = [
@@ -1017,10 +1024,13 @@ class AITravelerTeam(AIEntity):
         
         # Optional: opposing fighters engage the team on-site (D20 combat loop)
         try:
-            from combat_death_system import ai_team_mission_combat
-            ai_team_mission_combat(self, mission, world_state)
-        except Exception:
-            pass
+            from combat_death_system import ai_team_mission_combat, ai_team_post_combat_recovery
+
+            combat_summary = ai_team_mission_combat(self, mission, world_state, verbose=False)
+            if combat_summary:
+                ai_team_post_combat_recovery(self, world_state, combat_summary)
+        except Exception as ex:
+            print(f"    ⚠️  AI team mission combat error: {ex}")
 
         # Determine overall mission success
         successes = sum(1 for r in phase_results if r.success)
@@ -1070,7 +1080,7 @@ class AITravelerTeam(AIEntity):
     def handle_host_complication(self, world_state):
         """Handle host body complications for AI team"""
         if self.life_balance_score < 0.3:
-            print(f"    ⚠️  Team too stressed to handle complications effectively")
+            self._ai_host_log(f"    ⚠️  Team too stressed to handle complications effectively")
             return
             
         complications = [
@@ -1080,16 +1090,16 @@ class AITravelerTeam(AIEntity):
         ]
         
         complication = random.choice(complications)
-        print(f"    ⚠️  Host complication: {complication}")
+        self._ai_host_log(f"    ⚠️  Host complication: {complication}")
         
         # Resolve complication (AI teams are generally competent)
         if random.random() < 0.8:  # 80% success rate
-            print(f"      ✅ Complication resolved")
+            self._ai_host_log(f"      ✅ Complication resolved")
             # Success reduces stress
             for host_life in self.host_lives:
                 host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.05)
         else:
-            print(f"      ❌ Complication persists")
+            self._ai_host_log(f"      ❌ Complication persists")
             # Failure increases stress and protocol violations
             for host_life in self.host_lives:
                 host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.15)
@@ -1142,25 +1152,25 @@ class AITravelerTeam(AIEntity):
         day = current_date.day
         
         if (month, day) == (12, 25):  # Christmas
-            print(f"    🎄 {host_life['name']} celebrating Christmas with family")
+            self._ai_host_log(f"    🎄 {host_life['name']} celebrating Christmas with family")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.15)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.1)
             
         elif (month, day) == (12, 31):  # New Year's Eve
-            print(f"    🎆 {host_life['name']} celebrating New Year's Eve")
+            self._ai_host_log(f"    🎆 {host_life['name']} celebrating New Year's Eve")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.1)
             
         elif (month, day) == (7, 4):  # Independence Day
-            print(f"    🎇 {host_life['name']} celebrating Independence Day")
+            self._ai_host_log(f"    🎇 {host_life['name']} celebrating Independence Day")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.12)
             
         elif (month, day) == (11, 25):  # Thanksgiving
-            print(f"    🦃 {host_life['name']} celebrating Thanksgiving with family")
+            self._ai_host_log(f"    🦃 {host_life['name']} celebrating Thanksgiving with family")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.18)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.08)
             
         else:  # Other seasonal events
-            print(f"    🎉 {host_life['name']} participating in seasonal celebration")
+            self._ai_host_log(f"    🎉 {host_life['name']} participating in seasonal celebration")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.08)
 
     def handle_weekend_event(self, host_life, member_index):
@@ -1172,15 +1182,15 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(weekend_events)
-        print(f"    🎉 Weekend event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    🎉 Weekend event for {host_life['name']}: {event}")
         
         # Weekend events are generally positive
         if random.randint(1, 20) <= 16:  # D20 roll: 1-16 (80% positive outcome)
-            print(f"      ✅ Weekend event was enjoyable")
+            self._ai_host_log(f"      ✅ Weekend event was enjoyable")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.12)
             host_life['stress_level'] = max(0.0, host_life['stress_level'] - 0.08)
         else:
-            print(f"      ⚠️  Weekend event was challenging")
+            self._ai_host_log(f"      ⚠️  Weekend event was challenging")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.05)
 
     def handle_weekday_event(self, host_life, member_index):
@@ -1191,14 +1201,14 @@ class AITravelerTeam(AIEntity):
         ]
         
         event = random.choice(weekday_events)
-        print(f"    💼 Weekday event for {host_life['name']}: {event}")
+        self._ai_host_log(f"    💼 Weekday event for {host_life['name']}: {event}")
         
         # Weekday events can be more challenging
         if random.randint(1, 20) <= 12:  # D20 roll: 1-12 (60% positive outcome)
-            print(f"      ✅ Weekday event handled well")
+            self._ai_host_log(f"      ✅ Weekday event handled well")
             host_life['happiness'] = min(1.0, host_life['happiness'] + 0.05)
         else:
-            print(f"      ⚠️  Weekday event was challenging")
+            self._ai_host_log(f"      ⚠️  Weekday event was challenging")
             host_life['stress_level'] = min(1.0, host_life['stress_level'] + 0.1)
 
 class AIFactionOperative(AIEntity):
@@ -1260,7 +1270,15 @@ class AIFactionOperative(AIEntity):
         """Execute faction operation with D20 roll"""
         if not self.current_operation:
             return
-        
+
+        def _field_skirmish():
+            try:
+                from combat_death_system import brief_mission_field_skirmish
+
+                brief_mission_field_skirmish(world_state, f"Faction operative {self.operative_id}", "faction")
+            except Exception:
+                pass
+
         if not d20_system or not CharacterDecision:
             # Fallback to old system
             op = self.current_operation
@@ -1280,6 +1298,7 @@ class AIFactionOperative(AIEntity):
                 self.current_operation = None
             else:
                 print(f"  🔄 Operation {op['type']} in progress: {op.get('progress', 0)}%")
+            _field_skirmish()
             return
         
         op = self.current_operation
@@ -1332,24 +1351,29 @@ class AIFactionOperative(AIEntity):
             op['progress'] = 100  # Instant completion
             self.handle_operation_success(op, world_state)
             self.current_operation = None
-            
+            _field_skirmish()
+            return
+
         elif roll_result.success:
             print(f"     ✅ Progress made")
             op['progress'] = min(100, op.get('progress', 0) + 30)
-            
+
             if op['progress'] >= 100:
                 self.handle_operation_success(op, world_state)
                 self.current_operation = None
-                
+            _field_skirmish()
+
         elif roll_result.critical_failure:
             print(f"     💀 CRITICAL FAILURE! Operation exposed!")
             self.status = "captured"
             self.handle_operation_failure(op, world_state)
             self.current_operation = None
-            
+            _field_skirmish()
+
         else:
             print(f"     ❌ Setback encountered")
             op['progress'] = min(100, op.get('progress', 0) + 10)
+            _field_skirmish()
     
     def select_operation_target(self, world_state):
         """Select a target for Faction operations"""
@@ -1678,6 +1702,17 @@ class AIGovernmentAgent(AIEntity):
             investigation["progress"] += random.randint(10, 25)
             if investigation["progress"] >= 100:
                 self.complete_investigation(investigation, world_state)
+            try:
+                from combat_death_system import brief_mission_field_skirmish
+
+                brief_mission_field_skirmish(
+                    world_state,
+                    f"{self.agency} Agent {self.agent_id}",
+                    "government",
+                    investigation=investigation,
+                )
+            except Exception:
+                pass
             return
             
         investigation = self.current_investigation
@@ -1754,7 +1789,19 @@ class AIGovernmentAgent(AIEntity):
         # Check completion
         if investigation.get('progress', 0) >= 100:
             self.complete_investigation(investigation, world_state)
-    
+
+        try:
+            from combat_death_system import brief_mission_field_skirmish
+
+            brief_mission_field_skirmish(
+                world_state,
+                f"{self.agency} Agent {self.agent_id}",
+                "government",
+                investigation=investigation,
+            )
+        except Exception:
+            pass
+
     def gather_evidence(self, investigation):
         """Gather physical and digital evidence"""
         if random.random() < 0.6:  # 60% chance of finding evidence
