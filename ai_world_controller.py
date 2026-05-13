@@ -2,6 +2,7 @@
 import random
 import time
 from datetime import datetime, timedelta
+from typing import Optional
 
 # D20 Decision System Integration
 try:
@@ -79,6 +80,117 @@ class AITravelerTeam(AIEntity):
     def _ai_host_log(self, *args, **kwargs):
         if getattr(self, "_ai_host_log_verbose", True):
             print(*args, **kwargs)
+
+    def _ai_any_host_stress_above(self, threshold: float) -> bool:
+        try:
+            return any(float(h.get("stress_level", 0.0) or 0.0) > threshold for h in (self.host_lives or []))
+        except Exception:
+            return False
+
+    def _ai_support_peer_score(self, host_life: dict) -> int:
+        occ = (host_life.get("occupation") or "").lower()
+        if any(
+            x in occ
+            for x in (
+                "nurse",
+                "doctor",
+                "therapist",
+                "counselor",
+                "psychologist",
+                "social worker",
+                "medic",
+                "clergy",
+                "pastor",
+                "psychiatrist",
+            )
+        ):
+            return 4
+        if any(x in occ for x in ("teacher", "manager", "human resource", "coach")):
+            return 2
+        return 0
+
+    def _ai_pick_support_peer(self, target: dict) -> Optional[dict]:
+        """Pick another host to help during burnout (prefer medic-like, then calmest teammate)."""
+        hosts = [h for h in (self.host_lives or []) if h is not target and h.get("alive", True)]
+        if not hosts:
+            return None
+        hosts.sort(
+            key=lambda h: (
+                -self._ai_support_peer_score(h),
+                float(h.get("stress_level", 0.5) or 0.5),
+            )
+        )
+        return hosts[0]
+
+    def _ai_team_crisis_recovery(self, world_state) -> None:
+        """
+        When a host body is over ~80% stress, the team runs a real response: mandatory downtime,
+        peer support (medics/therapists prioritized), and an optional D20 wellness check.
+        Always prints (visible even in quiet host-life mode).
+        """
+        for h in list(self.host_lives or []):
+            if not h.get("alive", True):
+                continue
+            before = float(h.get("stress_level", 0.0) or 0.0)
+            if before <= 0.8:
+                continue
+
+            parts = []
+            # 1) Director-style stand-down: cover story + rest (always applied)
+            drop = random.uniform(0.07, 0.17)
+            h["stress_level"] = max(0.36, before - drop)
+            parts.append(f"mandatory downtime & cover story (−{drop:.0%})")
+
+            # 2) Peer support from another host (medic/therapist preferred)
+            peer = self._ai_pick_support_peer(h)
+            if peer:
+                extra = random.uniform(0.04, 0.12)
+                h["stress_level"] = max(0.30, float(h.get("stress_level", 0.5)) - extra)
+                peer["stress_level"] = max(0.0, float(peer.get("stress_level", 0.3) or 0.3) - 0.02)
+                occ = peer.get("occupation", "teammate")
+                parts.append(f"peer support from {peer.get('name', '?')} ({occ}) (−{extra:.0%})")
+
+            # 3) Optional D20 wellness / debrief (team cohesion helps)
+            if d20_system and CharacterDecision:
+                try:
+                    cohesion_mod = int(self.relationship_status.get("team_cohesion", 0.5) * 5)
+                    decision = CharacterDecision(
+                        character_name=str(h.get("name", "Host")),
+                        character_type="civilian",
+                        decision_type="social",
+                        context="post-crisis wellness check and debrief",
+                        difficulty_class=11,
+                        modifiers={"team_cohesion": cohesion_mod, "recovery_day": 2},
+                        consequences={},
+                    )
+                    rr = d20_system.resolve_character_decision(decision)["roll_result"]
+                    if rr.critical_success:
+                        b = 0.12
+                        h["stress_level"] = max(0.22, float(h.get("stress_level", 0.5)) - b)
+                        parts.append(f"wellness debrief critical success (−{b:.0%})")
+                    elif rr.success:
+                        b = 0.06
+                        h["stress_level"] = max(0.26, float(h.get("stress_level", 0.5)) - b)
+                        parts.append(f"wellness debrief succeeds (−{b:.0%})")
+                    elif rr.critical_failure:
+                        h["stress_level"] = min(1.0, float(h.get("stress_level", 0.5)) + 0.05)
+                        parts.append("debrief misfires (+5% stress)")
+                except Exception:
+                    pass
+
+            h["happiness"] = min(1.0, float(h.get("happiness", 0.5) or 0.5) + random.uniform(0.02, 0.07))
+            after = float(h.get("stress_level", 0.0) or 0.0)
+            print(
+                f"  ⚠️🩹 {h.get('name', '?')} was in crisis ({before:.0%}) — Team {self.team_id} responds: "
+                + "; ".join(parts)
+                + f" — now {after:.0%} stress."
+            )
+            try:
+                world_state["director_control"] = min(
+                    1.0, float(world_state.get("director_control", 0.5)) + 0.01
+                )
+            except Exception:
+                pass
 
     def generate_host_lives_from_world(self):
         """Generate host lives using procedural NPCs when available (fallbacks to existing generation)."""
@@ -268,12 +380,15 @@ class AITravelerTeam(AIEntity):
         self.handle_personal_events(time_system)
         self.manage_relationships()
         self.manage_work_responsibilities()
+
+        # Burnout protocol after routine life (before new ops)
+        self._ai_team_crisis_recovery(world_state)
         
         # NEW: Check for interception missions (defected programmers)
         self._check_and_attempt_interceptions(world_state)
         
-        # Check for new missions (only if life is stable)
-        if self.life_balance_score > 0.4:
+        # Check for new missions (only if life is stable and no host is near meltdown)
+        if self.life_balance_score > 0.4 and not self._ai_any_host_stress_above(0.78):
             if random.randint(1, 20) <= 6:  # D20 roll: 1-6 (30% chance of new mission)
                 self.generate_ai_mission(world_state)
         
@@ -291,18 +406,10 @@ class AITravelerTeam(AIEntity):
             for mission in self.active_missions[:]:
                 if self.execute_ai_mission(mission, world_state):
                     self.active_missions.remove(mission)
-        
-        # Only show critical problems
-        try:
-            critical_hosts = [h for h in (self.host_lives or []) if float(h.get('stress_level', 0.0) or 0.0) > 0.8]
-        except Exception:
-            critical_hosts = []
-        if critical_hosts:
-            for host in critical_hosts:
-                try:
-                    print(f"  ⚠️ {host.get('name','Unknown')} in crisis (stress: {float(host.get('stress_level',0.0) or 0.0):.0%})")
-                except Exception:
-                    pass
+
+        # Second burnout pass if missions (or life) pushed a host back into crisis
+        if self._ai_any_host_stress_above(0.8):
+            self._ai_team_crisis_recovery(world_state)
         
         # Handle host body complications (noisy only if already showing output)
         if random.randint(1, 20) <= 5:  # D20 roll: 1-5 (25% chance of complication)

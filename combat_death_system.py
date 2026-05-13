@@ -665,7 +665,8 @@ def run_timeline_shear_firefight(
         log.append("No combat-capable allies in the field.")
         return summary
 
-    foe = opponent_faction or infer_opponent_faction(str(mission.get("type", "")), FACTION_TRAVELER)
+    inferred = opponent_faction or infer_opponent_faction(str(mission.get("type", "")), FACTION_TRAVELER)
+    foe = resolve_player_firefight_opponent_faction(game, mission, inferred)
     # Scale opposition to team size; avoid huge squads that statistically focus-fire the leader.
     enemy_count = random.randint(2, min(4, max(2, len(allies) + 1)))
     enemies = _synthetic_enemy_fighters(foe, enemy_count)
@@ -676,6 +677,11 @@ def run_timeline_shear_firefight(
     log.append("  (Only trained combatants exchange fire; political targets are never in this exchange.)")
     log.append("══════════════════════════════════════════════════════════")
     log.append(f"  Opposition: {foe.replace('_', ' ').title()} — {enemy_count} fighter(s)")
+    if inferred == FACTION_GOVERNMENT and foe != FACTION_GOVERNMENT:
+        log.append(
+            "  Note: no federal field team tied to this site with an active Traveler file — "
+            "contact resolves against Faction muscle / deniable assets instead."
+        )
     log.append(f"  Phase context: {phase} at {mission.get('location', 'unknown')}")
     log.append(
         f"  Transcript: {len(allies)} allied combatant(s) vs {enemy_count} hostile(s). "
@@ -1018,6 +1024,118 @@ def _government_may_hit_faction_activity(world_state: Dict[str, Any]) -> bool:
     return fi >= 0.2
 
 
+def _mission_location_blob(mission: Dict[str, Any]) -> str:
+    return f"{mission.get('location', '')} {mission.get('description', '')}".lower()
+
+
+def _locations_text_overlap(a: str, b: str) -> bool:
+    """Loose match between two place strings (substring or shared significant tokens)."""
+    a = (a or "").strip().lower()
+    b = (b or "").strip().lower()
+    if not a or not b:
+        return False
+    if a in b or b in a:
+        return True
+    stop = frozenset(
+        {"the", "a", "an", "at", "in", "on", "of", "and", "or", "to", "for", "nw", "ne", "se", "sw", "wa"}
+    )
+
+    def tok(s: str) -> set:
+        s2 = "".join(ch if ch.isalnum() or ch.isspace() else " " for ch in s)
+        return {w for w in s2.split() if len(w) > 2 and w not in stop}
+
+    return bool(tok(a) & tok(b))
+
+
+def _mission_on_federal_hard_site(mission: Dict[str, Any]) -> bool:
+    """Mission card places the team at a site where federal/security shooters are plausibly posted."""
+    blob = _mission_location_blob(mission)
+    keys = (
+        "fbi",
+        "cia",
+        "federal building",
+        "courthouse",
+        "police headquarters",
+        "police hq",
+        "police station",
+        "sheriff",
+        "dhs",
+        "dea",
+        "atf",
+        "marshal",
+        "pentagon",
+        "military base",
+        "armory",
+        "border patrol",
+        "detention",
+        "prison",
+        "embassy",
+        "capitol",
+        "white house",
+        "nsa",
+    )
+    return any(k in blob for k in keys)
+
+
+def _government_agent_field_presence(game: Any, mission: Dict[str, Any]) -> bool:
+    """True if an active AI government agent is investigating or posted at this mission location."""
+    ai = getattr(game, "ai_world_controller", None)
+    if not ai:
+        return False
+    agents = getattr(ai, "government_agents", None) or []
+    mloc = str(mission.get("location", "") or "")
+    for agent in agents:
+        if getattr(agent, "status", "active") != "active":
+            continue
+        inv = getattr(agent, "current_investigation", None)
+        if isinstance(inv, dict):
+            iloc = str(inv.get("location") or "")
+            if iloc and _locations_text_overlap(iloc, mloc):
+                return True
+        for attr in ("location", "base_location"):
+            aloc = str(getattr(agent, attr, "") or "")
+            if aloc and _locations_text_overlap(aloc, mloc):
+                return True
+    return False
+
+
+def resolve_player_firefight_opponent_faction(game: Any, mission: Dict[str, Any], inferred: str) -> str:
+    """
+    Player timeline combat: government opposition only when agencies have Traveler signal *and*
+    plausible federal field presence (active investigation overlap with this site, or a hardened
+    federal/law-enforcement venue on the mission card). Otherwise use Faction/deniable shooters.
+    """
+    if inferred != FACTION_GOVERNMENT:
+        return inferred
+    world_state: Dict[str, Any] = {}
+    if hasattr(game, "get_game_state"):
+        try:
+            world_state = dict(game.get_game_state() or {})
+        except Exception:
+            world_state = {}
+    if not _government_believes_travelers_exist(world_state, None):
+        return FACTION_THE_FACTION
+    if _government_agent_field_presence(game, mission) or _mission_on_federal_hard_site(mission):
+        return FACTION_GOVERNMENT
+    return FACTION_THE_FACTION
+
+
+def resolve_ai_team_firefight_opponent(
+    inferred: str,
+    mission: Dict[str, Any],
+    world_state: Dict[str, Any],
+) -> str:
+    """AI Traveler team skirmishes: same government gating when game reference is available."""
+    if inferred != FACTION_GOVERNMENT:
+        return inferred
+    if not _government_believes_travelers_exist(world_state, None):
+        return FACTION_THE_FACTION
+    game = world_state.get("game_reference")
+    if game and (_government_agent_field_presence(game, mission) or _mission_on_federal_hard_site(mission)):
+        return FACTION_GOVERNMENT
+    return FACTION_THE_FACTION
+
+
 def brief_mission_field_skirmish(
     world_state: Dict[str, Any],
     display_name: str,
@@ -1232,7 +1350,11 @@ def ai_team_mission_combat(
     for h in hosts:
         ensure_host_combat_fields(h)
 
-    foe = infer_opponent_faction(str(mission.get("type", "")), FACTION_TRAVELER)
+    foe = resolve_ai_team_firefight_opponent(
+        infer_opponent_faction(str(mission.get("type", "")), FACTION_TRAVELER),
+        mission,
+        world_state,
+    )
     enemies = _synthetic_enemy_fighters(foe, random.randint(1, 4))
     log: List[str] = []
     if verbose:
