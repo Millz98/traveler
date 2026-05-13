@@ -220,24 +220,27 @@ class TurnNarrativeEngine:
                 lines.append(f"   • {mtype.title()} in {loc} ({prog}% complete)")
         
         # === SECTION 2: TEAM STATUS ===
+        # life_balance is host-body / cover-life strain (NOT roster size or deaths).
         if data["teams"]:
-            lines.append(f"\n👥 TEAM STATUS:")
+            lines.append(f"\n👥 TEAM STATUS: (host-life balance · host count)")
             for team in data["teams"][:3]:
                 balance = team["life_balance"]
                 members = team["member_count"]
                 if balance < 0.4:
-                    status = f"CRITICAL - {members} members, life balance {balance:.0%}"
+                    tier = "critical strain"
                     emoji = "🚨"
                 elif balance < 0.6:
-                    status = f"STRESSED - {members} members"
+                    tier = "stressed hosts"
                     emoji = "⚠️"
                 elif balance > 0.8:
-                    status = f"OPTIMAL - {members} members"
+                    tier = "optimal cover / life rhythm"
                     emoji = "✅"
                 else:
-                    status = f"NORMAL - {members} members"
+                    tier = "adequate (watch stress)"
                     emoji = "📋"
-                lines.append(f"   {emoji} Team {team['id']}: {status}")
+                lines.append(
+                    f"   {emoji} Team {team['id']}: {tier} — balance {balance:.0%} · {members} hosts"
+                )
         
         # === SECTION 3: GOVERNMENT ACTIVITY ===
         if data["investigations"]:

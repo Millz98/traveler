@@ -1576,7 +1576,7 @@ class AIGovernmentAgent(AIEntity):
             ]
         return random.choice(jurisdictions)
         
-    def take_turn(self, world_state, time_system, world_memory=None):
+    def take_turn(self, world_state, time_system, world_memory=None, peer_agents=None):
         """Government agent takes their turn"""
         print(f"\n🕵️ {self.agency} Agent {self.agent_id} ({self.specialization}) is investigating...")
         
@@ -1585,9 +1585,9 @@ class AIGovernmentAgent(AIEntity):
         
         # 2. Conduct investigations
         if not self.current_investigation:
-            self.start_investigation(world_state, world_memory=world_memory)
+            self.start_investigation(world_state, world_memory=world_memory, peer_agents=peer_agents)
         else:
-            self.conduct_investigation(world_state)
+            self.conduct_investigation(world_state, world_memory=world_memory, peer_agents=peer_agents)
         
         # 3. Coordinate with other agencies
         self.coordinate_with_agencies(world_state)
@@ -1690,40 +1690,71 @@ class AIGovernmentAgent(AIEntity):
                 print(f"    ✅ Closing low-priority case: {report['type']}")
                 self.suspicious_activity_reports.remove(report)
     
-    def start_investigation(self, world_state, world_memory=None):
+    def _pick_player_hotspot_investigation(self, hot_locations, peer_agents, max_agents_per_hotspot=3):
+        """Pick a player-heat location, spreading load across hotspots and capping dogpiles."""
+        if not hot_locations:
+            return None
+
+        def peer_count_on(loc):
+            if not peer_agents or not loc:
+                return 0
+            return sum(
+                1
+                for a in peer_agents
+                if (getattr(a, "current_investigation", None) or {}).get("location") == loc
+            )
+
+        scored = []
+        for h in hot_locations:
+            loc = h.get("location")
+            if not loc:
+                continue
+            load = peer_count_on(loc)
+            if load >= max_agents_per_hotspot:
+                continue
+            heat = float(h.get("heat_level", 0.0) or 0.0)
+            scored.append((load, -heat, h))
+
+        if not scored:
+            return None
+        scored.sort()
+        return scored[0][2]
+
+    def start_investigation(self, world_state, world_memory=None, peer_agents=None):
         """Start a new investigation (prefer targeting player activity via world_memory)"""
         # 0) If we have player-linked hot locations, investigate those FIRST
         try:
             if world_memory:
                 hot_locations = world_memory.get_hot_locations_for_government()
                 if hot_locations:
-                    target = hot_locations[0]
-                    target_loc = target.get("location")
-                    heat = float(target.get("heat_level", 0.0) or 0.0)
-                    self.current_investigation = {
-                        "type": f"🎯 FOLLOWING PLAYER TRAIL: Investigating {target_loc}",
-                        "location": target_loc,
-                        "progress": 0,
-                        "evidence": [],
-                        "suspects": [],
-                        "methods": self.generate_investigation_methods(),
-                        "threat_level": "HIGH" if heat > 0.7 else "MEDIUM",
-                        "credibility": min(1.0, 0.6 + heat * 0.4),
-                        "urgency": min(1.0, 0.5 + heat * 0.5),
-                        "timestamp": "current",
-                        "triggered_by_player": True,
-                        "heat_level": heat,
-                    }
-                    # Mark investigation active for that location (best-effort)
-                    try:
-                        if isinstance(getattr(world_memory, "hot_locations", None), dict) and target_loc in world_memory.hot_locations:
-                            world_memory.hot_locations[target_loc]["investigation_active"] = True
-                    except Exception:
-                        pass
+                    target = self._pick_player_hotspot_investigation(hot_locations, peer_agents)
+                    if target is not None:
+                        target_loc = target.get("location")
+                        heat = float(target.get("heat_level", 0.0) or 0.0)
+                        self.current_investigation = {
+                            "type": f"🎯 FOLLOWING PLAYER TRAIL: Investigating {target_loc}",
+                            "location": target_loc,
+                            "progress": 0,
+                            "evidence": [],
+                            "suspects": [],
+                            "methods": self.generate_investigation_methods(),
+                            "threat_level": "HIGH" if heat > 0.7 else "MEDIUM",
+                            "credibility": min(1.0, 0.6 + heat * 0.4),
+                            "urgency": min(1.0, 0.5 + heat * 0.5),
+                            "timestamp": "current",
+                            "triggered_by_player": True,
+                            "heat_level": heat,
+                        }
+                        # Mark investigation active for that location (best-effort)
+                        try:
+                            if isinstance(getattr(world_memory, "hot_locations", None), dict) and target_loc in world_memory.hot_locations:
+                                world_memory.hot_locations[target_loc]["investigation_active"] = True
+                        except Exception:
+                            pass
 
-                    print(f"    🚨 {self.agency} Agent {self.agent_id} assigned to player hotspot!")
-                    print(f"    📍 Target: {target_loc} (Heat: {heat:.0%})")
-                    return
+                        print(f"    🚨 {self.agency} Agent {self.agent_id} assigned to player hotspot!")
+                        print(f"    📍 Target: {target_loc} (Heat: {heat:.0%})")
+                        return
         except Exception:
             pass
 
@@ -1798,7 +1829,7 @@ class AIGovernmentAgent(AIEntity):
         
         return random.sample(methods, random.randint(2, 4))
     
-    def conduct_investigation(self, world_state):
+    def conduct_investigation(self, world_state, world_memory=None, peer_agents=None):
         """Conduct investigation with D20 rolls"""
         if not self.current_investigation:
             return
@@ -1815,7 +1846,9 @@ class AIGovernmentAgent(AIEntity):
             self.analyze_data(investigation)
             investigation["progress"] += random.randint(10, 25)
             if investigation["progress"] >= 100:
-                self.complete_investigation(investigation, world_state)
+                self.complete_investigation(
+                    investigation, world_state, world_memory=world_memory, peer_agents=peer_agents
+                )
             try:
                 from combat_death_system import brief_mission_field_skirmish
 
@@ -1902,7 +1935,9 @@ class AIGovernmentAgent(AIEntity):
         
         # Check completion
         if investigation.get('progress', 0) >= 100:
-            self.complete_investigation(investigation, world_state)
+            self.complete_investigation(
+                investigation, world_state, world_memory=world_memory, peer_agents=peer_agents
+            )
 
         try:
             from combat_death_system import brief_mission_field_skirmish
@@ -1961,7 +1996,7 @@ class AIGovernmentAgent(AIEntity):
             analysis_type = random.choice(analysis_types)
             print(f"      🧠 Analysis breakthrough: {analysis_type}")
     
-    def complete_investigation(self, investigation, world_state):
+    def complete_investigation(self, investigation, world_state, world_memory=None, peer_agents=None):
         """Complete the investigation and determine outcome"""
         # Safety checks
         if not isinstance(investigation, dict):
@@ -2002,7 +2037,23 @@ class AIGovernmentAgent(AIEntity):
             self.handle_investigation_failure(investigation, world_state)
         
         # Clear investigation
+        loc = investigation.get("location")
+        triggered = investigation.get("triggered_by_player")
         self.current_investigation = None
+
+        if world_memory and triggered and loc:
+            try:
+                others = 0
+                if peer_agents:
+                    for a in peer_agents:
+                        inv = getattr(a, "current_investigation", None) or {}
+                        if inv.get("location") == loc:
+                            others += 1
+                hl_dict = getattr(world_memory, "hot_locations", None) or {}
+                if isinstance(hl_dict, dict) and loc in hl_dict and others == 0:
+                    hl_dict[loc]["investigation_active"] = False
+            except Exception:
+                pass
     
     def handle_investigation_success(self, investigation, world_state):
         """Handle successful investigation"""
@@ -2221,9 +2272,14 @@ class AIWorldController:
         for agent in self.government_agents:
             if agent.status == "active":
                 try:
-                    agent.take_turn(world_state, time_system, world_memory=world_memory)
+                    agent.take_turn(
+                        world_state,
+                        time_system,
+                        world_memory=world_memory,
+                        peer_agents=self.government_agents,
+                    )
                 except TypeError:
-                    agent.take_turn(world_state, time_system)
+                    agent.take_turn(world_state, time_system, world_memory=world_memory)
                 time.sleep(0.5)
         
         # Generate world events
@@ -2704,7 +2760,12 @@ class AIWorldController:
         # Show current investigation
         if agent.current_investigation:
             investigation = agent.current_investigation
-            print(f"    🔍 Active Investigation: {investigation['type']} at {investigation['location']}")
+            type_s = investigation.get("type", "")
+            loc = investigation.get("location") or ""
+            if loc and isinstance(type_s, str) and type_s.rstrip().endswith(loc):
+                print(f"    🔍 Active Investigation: {type_s}")
+            else:
+                print(f"    🔍 Active Investigation: {type_s} at {loc}" if loc else f"    🔍 Active Investigation: {type_s}")
             print(f"      • Progress: {investigation.get('progress', 0)}%")
             print(f"      • Threat Level: {investigation['threat_level']}")
             print(f"      • Evidence: {len(investigation.get('evidence', []))} items")
