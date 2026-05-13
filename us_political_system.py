@@ -1712,9 +1712,15 @@ class LegislativeBranch:
         
     def process_turn(self, world_state, political_system):
         """Process legislative actions for one turn with D20 integration"""
-        self.senate.process_turn(world_state, political_system)
-        self.house.process_turn(world_state, political_system)
-        
+        senate_effective = self.senate.process_turn(world_state, political_system)
+        house_effective = self.house.process_turn(world_state, political_system)
+        if not senate_effective and not house_effective:
+            print("   🏛️  Legislature: quiet turn — no major House or Senate floor actions.")
+        elif not senate_effective:
+            print("   🏛️  Senate: quiet floor session (no significant actions).")
+        elif not house_effective:
+            print("   🏛️  House: quiet floor session (no significant actions).")
+
         # Process legislative coordination
         self.process_legislative_coordination(world_state, political_system)
         
@@ -1919,7 +1925,7 @@ class Senate:
         print(f"   🏛️  Senate: {self.majority_party} majority ({self.majority_seats}/100)")
     
     def process_turn(self, world_state, political_system):
-        """Process Senate actions for one turn with D20 integration"""
+        """Process Senate actions for one turn with D20 integration. Returns True if the chamber had an effective turn."""
         # Roll D20 for Senate effectiveness
         modifier = 2 if self.majority_seats > 55 else 0  # Supermajority bonus
         result, total, roll = political_system.roll_d20(
@@ -1942,8 +1948,8 @@ class Senate:
                     improvement = 0.005 * (1.0 + (result == D20Result.CRITICAL_SUCCESS) * 0.5)
                     world_state["government_control"] = min(1.0, world_state["government_control"] + improvement)
                     print(f"   🏛️  Republican Senate: Security focus, government control +{improvement:.3f}")
-        else:
-            print(f"   🏛️  Senate: Ineffective turn, no significant actions")
+            return True
+        return False
 
 class House:
     """US House of Representatives with D20 integration and random generation"""
@@ -2012,7 +2018,7 @@ class House:
         print(f"   🏛️  House: {self.majority_party} majority ({self.majority_seats}/435)")
     
     def process_turn(self, world_state, political_system):
-        """Process House actions for one turn with D20 integration"""
+        """Process House actions for one turn with D20 integration. Returns True if the chamber had an effective turn."""
         # Roll D20 for House effectiveness
         modifier = 1 if self.majority_seats > 250 else 0  # Large majority bonus
         result, total, roll = political_system.roll_d20(
@@ -2035,8 +2041,8 @@ class House:
                     improvement = 0.003 * (1.0 + (result == D20Result.CRITICAL_SUCCESS) * 0.5)
                     world_state["government_control"] = min(1.0, world_state["government_control"] + improvement)
                     print(f"   🏛️  Republican House: Security focus, government control +{improvement:.3f}")
-        else:
-            print(f"   🏛️  House: Ineffective turn, no significant actions")
+            return True
+        return False
 
 class JudicialBranch:
     """Judicial Branch of the US Government with D20 integration"""
