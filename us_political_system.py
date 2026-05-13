@@ -1337,9 +1337,8 @@ class President:
         # Respond to crises
         self.respond_to_crises(world_state, political_system)
         
-        # Generate random presidential events
-        if random.random() < 0.08:  # 8% chance per turn
-            self.generate_presidential_event(world_state, political_system)
+        # Presidential public / political beat — one headline event per turn (visibility for the player)
+        self.generate_presidential_event(world_state, political_system)
     
     def update_approval_rating(self, world_state, political_system):
         """Update presidential approval rating based on world state and D20 rolls"""
@@ -1473,6 +1472,15 @@ class President:
                     improvement = 0.02 * (1.0 + (result == D20Result.CRITICAL_SUCCESS) * 0.5)
                     world_state["timeline_stability"] = min(1.0, world_state["timeline_stability"] + improvement)
                     print(f"   🚨 President focusing on crisis management: Timeline stability +{improvement:.3f}")
+            else:
+                bump = 0.004 * (1.0 + (result == D20Result.CRITICAL_SUCCESS) * 0.5)
+                if "timeline_stability" in world_state:
+                    world_state["timeline_stability"] = min(1.0, world_state["timeline_stability"] + bump)
+                outcome_lbl = result.name.replace("_", " ").title() if hasattr(result, "name") else str(result)
+                print(
+                    f"   👑 President pushes {self.current_focus.replace('_', ' ')} agenda "
+                    f"({outcome_lbl}) — timeline stability +{bump:.3f}"
+                )
         else:
             print(f"   ⚠️  President's focus on {self.current_focus} is not effective this turn")
     

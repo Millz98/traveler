@@ -390,6 +390,10 @@ def _timeline_snap_casualty(
                 f"   💀 {getattr(victim, 'designation', '?')} ({getattr(victim, 'name', '?')}), "
                 f"{getattr(victim, 'role', 'support')}: KIA — shear collapse; host line ends."
             )
+            log.append(
+                f"   📎 Shear pressure: allied wound-total {a_pressure} vs hostile {e_pressure} "
+                f"— the heavier ledger pays the snap (worst-hit survivors at risk first)."
+            )
             _register_support_kia(summary, team, game, victim)
     try:
         from messenger_system import global_world_tracker
@@ -451,9 +455,13 @@ def sync_director_reinforcement_pending(game: Any, team: Any) -> None:
     setattr(game, "director_reinforcement_pending", bool(dead_support))
 
 
-def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[str]) -> Dict[str, Any]:
+def _try_director_replace_support(
+    game: Any, team: Any, fallen: Any, log: List[str], *, succession_relief: int = 0
+) -> Dict[str, Any]:
     """
     Director rolls d20 vs DC to authorize a new consciousness into the vacated role slot.
+    succession_relief: when multiple specialists die in one engagement, later slots get a slightly
+    easier DC (Director prioritizes roster continuity under mass shear).
     """
     result: Dict[str, Any] = {
         "fallen_designation": getattr(fallen, "designation", "?"),
@@ -478,6 +486,7 @@ def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[s
         return result
 
     dc, mods = _replacement_dc_and_mods(game)
+    dc = max(9, dc - min(3, int(succession_relief)))
     result["dc"] = dc
 
     if d20_system:
@@ -503,9 +512,10 @@ def _try_director_replace_support(game: Any, team: Any, fallen: Any, log: List[s
 
     fn = getattr(fallen, "name", "?")
     fd = getattr(fallen, "designation", "?")
+    relief_note = f" (succession relief −{min(3, int(succession_relief))} DC)" if succession_relief else ""
     log.append(
         f"   🎲 Director replacement ({role}) — vacated by {fn} ({fd}): d20 {result['roll']}"
-        + (f" + {result['modifier']} = {result['total']} vs DC {dc}" if result.get("modifier") is not None else "")
+        + (f" + {result['modifier']} = {result['total']} vs DC {dc}{relief_note}" if result.get("modifier") is not None else "")
         + f" → {'AUTHORIZED' if ok else 'DENIED'}"
     )
 
@@ -555,6 +565,7 @@ def _resolve_director_support_replacements(game: Any, team: Any, log: List[str],
     log.append("   ═══ Director — vacated role assessment (d20) ═══")
     results: List[Dict[str, Any]] = []
     seen_ids = set()
+    relief_i = 0
     for fallen in fallen_list:
         fid = id(fallen)
         if fid in seen_ids:
@@ -562,7 +573,8 @@ def _resolve_director_support_replacements(game: Any, team: Any, log: List[str],
         seen_ids.add(fid)
         if fallen is getattr(team, "leader", None):
             continue
-        results.append(_try_director_replace_support(game, team, fallen, log))
+        results.append(_try_director_replace_support(game, team, fallen, log, succession_relief=relief_i))
+        relief_i += 1
     summary["director_replacements"] = results
     sync_director_reinforcement_pending(game, team)
 
