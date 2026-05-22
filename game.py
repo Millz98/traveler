@@ -3982,7 +3982,19 @@ class Game:
                 self.consequence_system.target_government_agents(getattr(self.ai_world_controller, "government_agents", []) or [])
         except Exception:
             pass
-        
+
+        # Display consequence system summary for player feedback
+        try:
+            if getattr(self, "consequence_system", None):
+                consequence_summary = self.consequence_system.get_turn_summary()
+                if consequence_summary:
+                    print(f"\\n{'='*50}")
+                    print("⚠️  CONSEQUENCE SYSTEM FEEDBACK")
+                    print("="*50)
+                    print(consequence_summary)
+        except Exception as e:
+            print(f"⚠️  Error displaying consequence summary: {e}")
+
         # FIRST: Execute AI world turn
         if hasattr(self, 'ai_world_controller'):
             print("\n🤖 Processing AI World Controller...")

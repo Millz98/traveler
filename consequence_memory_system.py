@@ -300,17 +300,17 @@ class ConsequenceIntegrator:
     def target_government_agents(self, agents):
         """Direct agents to player locations"""
         hot = self.memory.get_hot_locations_for_government()
-        
+
         if not hot:
             return
-        
-        print(f"\n🎯 TARGETING INVESTIGATIONS:")
-        
+
+        print(f"\\n🎯 TARGETING INVESTIGATIONS:")
+
         assigned = 0
         for agent in agents:
             if agent.current_investigation or assigned >= len(hot):
                 continue
-            
+
             target = hot[assigned]
             agent.current_investigation = {
                 'type': f"Player activity at {target['location']}",
@@ -320,7 +320,67 @@ class ConsequenceIntegrator:
                 'evidence': [],
                 'triggered_by_player': True
             }
-            
+
             print(f"  🚨 {agent.agency}-{agent.agent_id} → {target['location']}")
             assigned += 1
+
+    def get_turn_summary(self):
+        """Get a formatted summary of the consequence system state for display to player"""
+        hot = self.memory.get_hot_locations_for_government()
+        scheduled = self.memory.scheduled_consequences
+        lines = []
+        
+        lines.append("⚠️  CONSEQUENCE SYSTEM STATUS")
+        lines.append("=" * 40)
+        
+        # Hot Locations
+        if hot:
+            lines.append("\\n📍 HOT LOCATIONS (Increased Government Attention):")
+            for loc in hot[:5]:  # Show top 5
+                heat_pct = int(loc['heat_level'] * 100)
+                incidents = loc['incident_count']
+                lines.append(f"   • {loc['location']}: {heat_pct}% risk ({incidents} incidents)")
+        else:
+            lines.append("\\n📍 HOT LOCATIONS: None (Low government attention)")
+            
+        # Scheduled Consequences
+        if scheduled:
+            lines.append("\\n⏰ UPCOMING CONSEQUENCES:")
+            # Sort by trigger turn
+            sorted_scheduled = sorted(scheduled, key=lambda x: x['trigger_turn'])
+            for cons in sorted_scheduled[:5]:  # Show next 5
+                turns_until = cons['trigger_turn'] - self.memory.turn_count
+                if turns_until < 0:
+                    turns_until = 0  # Shouldn't happen, but just in case
+                lines.append(f"   • Turn +{turns_until}: {cons['description']}")
+        else:
+            lines.append("\\n⏰ UPCOMING CONSEQUENCES: None")
+            
+        # Recent Action Trends (based on player actions)
+        if self.memory.player_actions:
+            lines.append("\\n📊 RECENT ACTION TRENDS:")
+            # Count mission types in last 5 actions
+            recent_actions = self.memory.player_actions[-5:]
+            type_counts = {}
+            for action in recent_actions:
+                mtype = action.get('type', 'unknown')
+                type_counts[mtype] = type_counts.get(mtype, 0) + 1
+            if type_counts:
+                for mtype, count in type_counts.items():
+                    lines.append(f"   • {mtype.title()} missions: {count} in last 5 actions")
+            else:
+                lines.append("   • No clear pattern in recent actions")
+        else:
+            lines.append("\\n📊 RECENT ACTION TRENDS: No actions recorded yet")
+            
+        # World Impact Summary
+        lines.append("\\n🌍 WORLD IMPACT INDICATORS:")
+        # Calculate overall heat
+        total_heat = sum(loc['heat_level'] for loc in self.memory.hot_locations.values())
+        avg_heat = total_heat / len(self.memory.hot_locations) if self.memory.hot_locations else 0
+        lines.append(f"   • Overall Alert Level: {int(avg_heat * 100)}%")
+        lines.append(f"   • Active Hotspots: {len([l for l in self.memory.hot_locations.values() if l['heat_level'] > 0.3])}")
+        lines.append(f"   • Total Missions Tracked: {len(self.memory.player_actions)}")
+        
+        return "\\n".join(lines)
 
