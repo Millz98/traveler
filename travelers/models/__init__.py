@@ -54,9 +54,13 @@ class Traveler:
     def complete_mission(self, success: bool, timeline_impact: int) -> None:
         self.mission_count += 1
         if success:
-            self.success_rate = (self.success_rate * (self.mission_count - 1) + 1) / self.mission_count
+            self.success_rate = (
+                self.success_rate * (self.mission_count - 1) + 1
+            ) / self.mission_count
         else:
-            self.success_rate = (self.success_rate * (self.mission_count - 1)) / self.mission_count
+            self.success_rate = (
+                self.success_rate * (self.mission_count - 1)
+            ) / self.mission_count
         self.timeline_impact += timeline_impact
 
     def violate_protocol(self) -> None:

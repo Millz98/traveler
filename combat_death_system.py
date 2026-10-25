@@ -43,11 +43,27 @@ def normalize_faction(raw: Optional[str]) -> str:
     return FACTION_TRAVELER
 
 
-def infer_opponent_faction(mission_type: str, player_faction: str = FACTION_TRAVELER) -> str:
+def infer_opponent_faction(
+    mission_type: str, player_faction: str = FACTION_TRAVELER
+) -> str:
     mt = (mission_type or "").lower()
     if any(k in mt for k in ("faction", "sabotage", "defector", "anti_director")):
-        return FACTION_THE_FACTION if player_faction != FACTION_THE_FACTION else FACTION_GOVERNMENT
-    if any(k in mt for k in ("government", "surveillance", "fed", "agency", "police", "investigation")):
+        return (
+            FACTION_THE_FACTION
+            if player_faction != FACTION_THE_FACTION
+            else FACTION_GOVERNMENT
+        )
+    if any(
+        k in mt
+        for k in (
+            "government",
+            "surveillance",
+            "fed",
+            "agency",
+            "police",
+            "investigation",
+        )
+    ):
         return FACTION_GOVERNMENT
     if player_faction == FACTION_TRAVELER:
         return random.choice([FACTION_THE_FACTION, FACTION_GOVERNMENT])
@@ -56,7 +72,9 @@ def infer_opponent_faction(mission_type: str, player_faction: str = FACTION_TRAV
     return FACTION_THE_FACTION
 
 
-def mission_combat_probability(mission: Dict[str, Any], phase: str, success_level: str) -> float:
+def mission_combat_probability(
+    mission: Dict[str, Any], phase: str, success_level: str
+) -> float:
     """
     Chance of a timeline-shear firefight this phase. Most missions are mostly *not* gunfights;
     only some profiles meaningfully risk armed contact.
@@ -73,8 +91,18 @@ def mission_combat_probability(mission: Dict[str, Any], phase: str, success_leve
         return any(
             k in loc or k in desc
             for k in (
-                "military", "defense", "pentagon", "armory", "checkpoint", "border",
-                "compound", "prison", "detention", "police hq", "embassy siege", "base",
+                "military",
+                "defense",
+                "pentagon",
+                "armory",
+                "checkpoint",
+                "border",
+                "compound",
+                "prison",
+                "detention",
+                "police hq",
+                "embassy siege",
+                "base",
             )
         )
 
@@ -119,7 +147,9 @@ def mission_combat_probability(mission: Dict[str, Any], phase: str, success_leve
     tier = "low"
     if mt in none_types:
         tier = "none"
-    elif mt in high_types or any(k in blob for k in ("assault", "raid", "breach", "siege", "hostile_extraction")):
+    elif mt in high_types or any(
+        k in blob for k in ("assault", "raid", "breach", "siege", "hostile_extraction")
+    ):
         tier = "high"
     elif mt in medium_types:
         tier = "medium"
@@ -127,7 +157,10 @@ def mission_combat_probability(mission: Dict[str, Any], phase: str, success_leve
         tier = "low"
     else:
         # Unknown mission strings: stay conservative unless text screams combat
-        if any(k in blob for k in ("assault", "raid", "firefight", "shootout", "armed assault")):
+        if any(
+            k in blob
+            for k in ("assault", "raid", "firefight", "shootout", "armed assault")
+        ):
             tier = "high"
         elif any(k in blob for k in ("faction", "sabotage", "intercept")):
             tier = "medium"
@@ -176,7 +209,12 @@ def _traveler_combat_mods(member: Any) -> Dict[str, int]:
     if isinstance(skills, dict):
         skills = list(skills.keys())
     sk = " ".join(str(x).lower() for x in skills)
-    if "combat" in sk or "marksmanship" in sk or "hand-to-hand" in sk or "martial" in sk:
+    if (
+        "combat" in sk
+        or "marksmanship" in sk
+        or "hand-to-hand" in sk
+        or "martial" in sk
+    ):
         mods["training"] = 2
     if "tactician" in sk or "soldier" in sk:
         mods["tactics"] = 1
@@ -193,7 +231,17 @@ def _traveler_combat_mods(member: Any) -> Dict[str, int]:
 
 def _enemy_label(faction: str, index: int) -> str:
     if faction == FACTION_GOVERNMENT:
-        return random.choice(["FBI SWAT element", "CIA field team", "Federal tac unit", "Agency response team"]) + f" #{index + 1}"
+        return (
+            random.choice(
+                [
+                    "FBI SWAT element",
+                    "CIA field team",
+                    "Federal tac unit",
+                    "Agency response team",
+                ]
+            )
+            + f" #{index + 1}"
+        )
     if faction == FACTION_THE_FACTION:
         return f"Faction operative cell #{index + 1}"
     return f"Hostile Traveler fireteam #{index + 1}"
@@ -202,14 +250,16 @@ def _enemy_label(faction: str, index: int) -> str:
 def _synthetic_enemy_fighters(faction: str, count: int) -> List[Dict[str, Any]]:
     fighters = []
     for i in range(count):
-        fighters.append({
-            "kind": "npc_fighter",
-            "label": _enemy_label(faction, i),
-            "faction": faction,
-            "wound_level": 0,
-            "alive": True,
-            "cover": random.randint(0, 2),
-        })
+        fighters.append(
+            {
+                "kind": "npc_fighter",
+                "label": _enemy_label(faction, i),
+                "faction": faction,
+                "wound_level": 0,
+                "alive": True,
+                "cover": random.randint(0, 2),
+            }
+        )
     return fighters
 
 
@@ -300,7 +350,9 @@ def _strike(
         mods.setdefault("faction_bonus", 1)
     elif attacker_type == "government":
         mods.setdefault("government_bonus", 1)
-    rr = d20_system.roll_d20(attacker_label, "combat", context, base_dc=target_ac, modifiers=mods)
+    rr = d20_system.roll_d20(
+        attacker_label, "combat", context, base_dc=target_ac, modifiers=mods
+    )
     return bool(rr.success), rr
 
 
@@ -349,11 +401,17 @@ def _timeline_snap_casualty(
     a_pressure = sum(int(getattr(m, "wound_level", 0) or 0) for m in living_a)
 
     log.append("")
-    log.append("   — **Engagement limit** — window closing: heat, shear, or Director risk tolerance.")
-    log.append("   ⚡ **Timeline snap** — one last thread of violence resolves; not everyone exits the frame.")
+    log.append(
+        "   — **Engagement limit** — window closing: heat, shear, or Director risk tolerance."
+    )
+    log.append(
+        "   ⚡ **Timeline snap** — one last thread of violence resolves; not everyone exits the frame."
+    )
 
     # Side that has taken more cumulative punishment loses one fighter — the worst-hit survivor.
-    ally_pays = a_pressure > e_pressure or (a_pressure == e_pressure and random.random() < 0.45)
+    ally_pays = a_pressure > e_pressure or (
+        a_pressure == e_pressure and random.random() < 0.45
+    )
 
     if not ally_pays:
         mx = max(int(e.get("wound_level", 0) or 0) for e in living_e)
@@ -362,7 +420,9 @@ def _timeline_snap_casualty(
         victim["alive"] = False
         victim["wound_level"] = max(int(victim.get("wound_level", 0) or 0), 3)
         summary["casualties_enemy"] = summary.get("casualties_enemy", 0) + 1
-        log.append(f"   💀 {victim['label']}: KIA as overlapping timelines collapse onto one outcome.")
+        log.append(
+            f"   💀 {victim['label']}: KIA as overlapping timelines collapse onto one outcome."
+        )
         log.append(
             "   📎 Shear resolves against the opposition only — allied losses this engagement, if any, "
             "are logged above under hostile fire."
@@ -376,7 +436,11 @@ def _timeline_snap_casualty(
         victim = random.choice(worst)
         is_ldr = victim is getattr(team, "leader", None)
         setattr(victim, "alive", False)
-        setattr(victim, "wound_level", max(int(getattr(victim, "wound_level", 0) or 0), 4 if is_ldr else 3))
+        setattr(
+            victim,
+            "wound_level",
+            max(int(getattr(victim, "wound_level", 0) or 0), 4 if is_ldr else 3),
+        )
         summary["casualties_friendly"] = summary.get("casualties_friendly", 0) + 1
         if is_ldr:
             setattr(game, "player_alive", False)
@@ -398,17 +462,21 @@ def _timeline_snap_casualty(
     try:
         from messenger_system import global_world_tracker
 
-        global_world_tracker.apply_single_effect({
-            "type": "attribute_change",
-            "target": "timeline_stability",
-            "value": 0.03,
-            "operation": "subtract",
-        })
+        global_world_tracker.apply_single_effect(
+            {
+                "type": "attribute_change",
+                "target": "timeline_stability",
+                "value": 0.03,
+                "operation": "subtract",
+            }
+        )
     except Exception:
         pass
 
 
-def _register_support_kia(summary: Dict[str, Any], team: Any, game: Any, fallen: Any) -> None:
+def _register_support_kia(
+    summary: Dict[str, Any], team: Any, game: Any, fallen: Any
+) -> None:
     """Queue a non-leader KIA for Director replacement assessment (after the fight)."""
     if fallen is getattr(team, "leader", None):
         return
@@ -448,7 +516,11 @@ def sync_director_reinforcement_pending(game: Any, team: Any) -> None:
         setattr(game, "director_reinforcement_pending", False)
         return
     leader = getattr(team, "leader", None)
-    if not getattr(game, "player_alive", True) or leader is None or not getattr(leader, "alive", True):
+    if (
+        not getattr(game, "player_alive", True)
+        or leader is None
+        or not getattr(leader, "alive", True)
+    ):
         setattr(game, "director_reinforcement_pending", False)
         return
     dead_support = [m for m in team.members[1:] if not getattr(m, "alive", True)]
@@ -512,10 +584,18 @@ def _try_director_replace_support(
 
     fn = getattr(fallen, "name", "?")
     fd = getattr(fallen, "designation", "?")
-    relief_note = f" (succession relief −{min(3, int(succession_relief))} DC)" if succession_relief else ""
+    relief_note = (
+        f" (succession relief −{min(3, int(succession_relief))} DC)"
+        if succession_relief
+        else ""
+    )
     log.append(
         f"   🎲 Director replacement ({role}) — vacated by {fn} ({fd}): d20 {result['roll']}"
-        + (f" + {result['modifier']} = {result['total']} vs DC {dc}{relief_note}" if result.get("modifier") is not None else "")
+        + (
+            f" + {result['modifier']} = {result['total']} vs DC {dc}{relief_note}"
+            if result.get("modifier") is not None
+            else ""
+        )
         + f" → {'AUTHORIZED' if ok else 'DENIED'}"
     )
 
@@ -553,7 +633,9 @@ def _try_director_replace_support(
     return result
 
 
-def _resolve_director_support_replacements(game: Any, team: Any, log: List[str], summary: Dict[str, Any]) -> None:
+def _resolve_director_support_replacements(
+    game: Any, team: Any, log: List[str], summary: Dict[str, Any]
+) -> None:
     if summary.get("game_over"):
         sync_director_reinforcement_pending(game, team)
         return
@@ -573,7 +655,11 @@ def _resolve_director_support_replacements(game: Any, team: Any, log: List[str],
         seen_ids.add(fid)
         if fallen is getattr(team, "leader", None):
             continue
-        results.append(_try_director_replace_support(game, team, fallen, log, succession_relief=relief_i))
+        results.append(
+            _try_director_replace_support(
+                game, team, fallen, log, succession_relief=relief_i
+            )
+        )
         relief_i += 1
     summary["director_replacements"] = results
     sync_director_reinforcement_pending(game, team)
@@ -582,21 +668,37 @@ def _resolve_director_support_replacements(game: Any, team: Any, log: List[str],
 def _firefight_epilogue(log: List[str], outcome: str, summary: Dict[str, Any]) -> None:
     log.append("")
     if outcome == "enemy_eliminated":
-        log.append("   ✅ **Outcome:** hostile fighters down — your team still has shooters in the fight.")
+        log.append(
+            "   ✅ **Outcome:** hostile fighters down — your team still has shooters in the fight."
+        )
     elif outcome == "ally_eliminated":
-        log.append("   ❌ **Outcome:** team combat ineffective — survivors disengage under cover.")
+        log.append(
+            "   ❌ **Outcome:** team combat ineffective — survivors disengage under cover."
+        )
     elif outcome == "enemy_morale":
-        log.append("   ↩ **Outcome:** opposition breaks contact first — no full sweep, but you retain initiative.")
+        log.append(
+            "   ↩ **Outcome:** opposition breaks contact first — no full sweep, but you retain initiative."
+        )
     elif outcome == "ally_morale":
-        log.append("   ↩ **Outcome:** your team peels off under pressure — mission optics and wounds worsen.")
+        log.append(
+            "   ↩ **Outcome:** your team peels off under pressure — mission optics and wounds worsen."
+        )
     elif outcome == "round_cap_snap":
-        log.append("   ⏱ **Outcome:** timeboxed fight ended in a **timeline snap** (see casualty above).")
+        log.append(
+            "   ⏱ **Outcome:** timeboxed fight ended in a **timeline snap** (see casualty above)."
+        )
     elif outcome == "round_cap":
-        log.append("   ⏱ **Outcome:** exchange timed out — both sides still had guns up (unexpected; report to Director).")
+        log.append(
+            "   ⏱ **Outcome:** exchange timed out — both sides still had guns up (unexpected; report to Director)."
+        )
     elif outcome == "mutual_collapse":
-        log.append("   ☠ **Outcome:** both sides collapse in the same shear fold — rare, catastrophic noise.")
+        log.append(
+            "   ☠ **Outcome:** both sides collapse in the same shear fold — rare, catastrophic noise."
+        )
     elif outcome == "leader_kia":
-        log.append("   💀 **Outcome:** team leader's host line ended — primary consciousness lost.")
+        log.append(
+            "   💀 **Outcome:** team leader's host line ended — primary consciousness lost."
+        )
     elif summary.get("game_over"):
         pass  # already messaged
     else:
@@ -628,14 +730,20 @@ def _morale_break(side: List[Any], is_dict_fighters: bool) -> bool:
     if not side:
         return True
     if is_dict_fighters:
-        severe = sum(1 for f in side if f.get("alive") and int(f.get("wound_level", 0) or 0) >= 2)
+        severe = sum(
+            1 for f in side if f.get("alive") and int(f.get("wound_level", 0) or 0) >= 2
+        )
         alive = sum(1 for f in side if f.get("alive"))
         if alive == 0:
             return True
         if severe >= max(2, alive // 2 + 1):
             return random.randint(1, 20) >= 14
     else:
-        severe = sum(1 for m in side if getattr(m, "alive", True) and int(getattr(m, "wound_level", 0) or 0) >= 2)
+        severe = sum(
+            1
+            for m in side
+            if getattr(m, "alive", True) and int(getattr(m, "wound_level", 0) or 0) >= 2
+        )
         alive = sum(1 for m in side if getattr(m, "alive", True))
         if alive == 0:
             return True
@@ -677,7 +785,9 @@ def run_timeline_shear_firefight(
         log.append("No combat-capable allies in the field.")
         return summary
 
-    inferred = opponent_faction or infer_opponent_faction(str(mission.get("type", "")), FACTION_TRAVELER)
+    inferred = opponent_faction or infer_opponent_faction(
+        str(mission.get("type", "")), FACTION_TRAVELER
+    )
     foe = resolve_player_firefight_opponent_faction(game, mission, inferred)
     # Scale opposition to team size; avoid huge squads that statistically focus-fire the leader.
     enemy_count = random.randint(2, min(4, max(2, len(allies) + 1)))
@@ -686,9 +796,13 @@ def run_timeline_shear_firefight(
     log.append("")
     log.append("══════════════════════════════════════════════════════════")
     log.append("  TIMELINE SHEAR FIREFIGHT")
-    log.append("  (Only trained combatants exchange fire; political targets are never in this exchange.)")
+    log.append(
+        "  (Only trained combatants exchange fire; political targets are never in this exchange.)"
+    )
     log.append("══════════════════════════════════════════════════════════")
-    log.append(f"  Opposition: {foe.replace('_', ' ').title()} — {enemy_count} fighter(s)")
+    log.append(
+        f"  Opposition: {foe.replace('_', ' ').title()} — {enemy_count} fighter(s)"
+    )
     if inferred == FACTION_GOVERNMENT and foe != FACTION_GOVERNMENT:
         log.append(
             "  Note: no federal field team tied to this site with an active Traveler file — "
@@ -701,7 +815,9 @@ def run_timeline_shear_firefight(
         f"damage, wound totals, and an explicit line for every KIA."
     )
     lockstep_used = False
-    rounds_max = 10  # Hard ceiling; unresolved fights close via timeline snap + epilogue
+    rounds_max = (
+        10  # Hard ceiling; unresolved fights close via timeline snap + epilogue
+    )
     ally_type = "traveler"
     enemy_type = "faction" if foe == FACTION_THE_FACTION else "government"
     battle_outcome = ""
@@ -722,12 +838,16 @@ def run_timeline_shear_firefight(
             break
         if _morale_break(living_enemies, True):
             battle_outcome = "enemy_morale"
-            log.append(f"   ══ Round {rnd}/{rounds_max} — enemy morale break (no further exchange this round) ══")
+            log.append(
+                f"   ══ Round {rnd}/{rounds_max} — enemy morale break (no further exchange this round) ══"
+            )
             log.append(f"      Opposing force breaks contact and withdraws.")
             break
         if _morale_break(living_allies, False):
             battle_outcome = "ally_morale"
-            log.append(f"   ══ Round {rnd}/{rounds_max} — allied morale break (no further exchange this round) ══")
+            log.append(
+                f"   ══ Round {rnd}/{rounds_max} — allied morale break (no further exchange this round) ══"
+            )
             log.append(f"      Your team breaks contact to preserve hosts.")
             break
 
@@ -750,22 +870,41 @@ def run_timeline_shear_firefight(
         label = f"{getattr(attacker, 'designation', '?')} ({getattr(attacker, 'name', 'Unknown')})"
         hit, rr = _strike(label, ally_type, f"engage {defender['label']}", ac, atk_mods)
 
-        if (not hit) and rr and getattr(rr, "critical_failure", False) and not lockstep_used:
+        if (
+            (not hit)
+            and rr
+            and getattr(rr, "critical_failure", False)
+            and not lockstep_used
+        ):
             # Director Lockstep: one timeline-stability spend for a reroll on a catastrophic miss
             try:
                 from messenger_system import global_world_tracker
 
-                stab = float(global_world_tracker.world_state_cache.get("timeline_stability", 0.85))
+                stab = float(
+                    global_world_tracker.world_state_cache.get(
+                        "timeline_stability", 0.85
+                    )
+                )
                 if stab > 0.12:
-                    global_world_tracker.apply_single_effect({
-                        "type": "attribute_change",
-                        "target": "timeline_stability",
-                        "value": 0.02,
-                        "operation": "subtract",
-                    })
+                    global_world_tracker.apply_single_effect(
+                        {
+                            "type": "attribute_change",
+                            "target": "timeline_stability",
+                            "value": 0.02,
+                            "operation": "subtract",
+                        }
+                    )
                     lockstep_used = True
-                    log.append("   🔁 Director Lockstep: probability echo — one combat exchange rerolled at cost to timeline stability (-2%).")
-                    hit, rr = _strike(label, ally_type, f"Lockstep re-engage {defender['label']}", ac - 1, atk_mods)
+                    log.append(
+                        "   🔁 Director Lockstep: probability echo — one combat exchange rerolled at cost to timeline stability (-2%)."
+                    )
+                    hit, rr = _strike(
+                        label,
+                        ally_type,
+                        f"Lockstep re-engage {defender['label']}",
+                        ac - 1,
+                        atk_mods,
+                    )
             except Exception:
                 pass
 
@@ -806,7 +945,13 @@ def run_timeline_shear_firefight(
         e_mods = {"tactical_pressure": random.randint(0, 1), "shear": -shear_skew}
         is_ldr = defender_m is team.leader
         ac_m = _member_ac(defender_m, is_team_leader=is_ldr) + random.randint(0, 1)
-        hit2, rr2 = _strike(attacker_e["label"], enemy_type, f"suppress {getattr(defender_m, 'designation', '?')}", ac_m, e_mods)
+        hit2, rr2 = _strike(
+            attacker_e["label"],
+            enemy_type,
+            f"suppress {getattr(defender_m, 'designation', '?')}",
+            ac_m,
+            e_mods,
+        )
         if hit2 and rr2 and getattr(rr2, "critical_failure", False):
             hit2 = False
             log.append(f"         (Enemy fumble — shot discarded.)")
@@ -818,7 +963,9 @@ def run_timeline_shear_firefight(
             setattr(defender_m, "wound_level", wl)
             if wl >= 1:
                 cs = float(getattr(defender_m, "consciousness_stability", 1.0) or 1.0)
-                setattr(defender_m, "consciousness_stability", max(0.0, cs - 0.08 * dmg2))
+                setattr(
+                    defender_m, "consciousness_stability", max(0.0, cs - 0.08 * dmg2)
+                )
             # Leader needs one more wound tier than specialists (plot + doctrine: not on the X).
             lethal = 4 if is_ldr else 3
             en_note = _strike_log_suffix(rr2, hit2, ac_m)
@@ -866,7 +1013,9 @@ def run_timeline_shear_firefight(
     _firefight_epilogue(log, summary["outcome"], summary)
 
     # Reinforcement narrative (flag already synced in _resolve_director_support_replacements)
-    if getattr(game, "director_reinforcement_pending", False) and not summary.get("game_over"):
+    if getattr(game, "director_reinforcement_pending", False) and not summary.get(
+        "game_over"
+    ):
         log.append("")
         log.append(
             "   📡 Director channel — vacated specialist slot(s) on roster. "
@@ -875,13 +1024,19 @@ def run_timeline_shear_firefight(
 
     if summary["game_over"]:
         log.append("")
-        log.append("   PROTOCOL BREACH: Primary consciousness lost. Grand Plan continuity cannot be assumed.")
-        log.append("   GAME OVER — the Director cannot retrieve what no longer exists in this host.")
+        log.append(
+            "   PROTOCOL BREACH: Primary consciousness lost. Grand Plan continuity cannot be assumed."
+        )
+        log.append(
+            "   GAME OVER — the Director cannot retrieve what no longer exists in this host."
+        )
 
     return summary
 
 
-def maybe_mission_timeline_firefight(game: Any, mission: Dict[str, Any], phase: str, success_level: str) -> Optional[Dict[str, Any]]:
+def maybe_mission_timeline_firefight(
+    game: Any, mission: Dict[str, Any], phase: str, success_level: str
+) -> Optional[Dict[str, Any]]:
     if not getattr(game, "player_alive", True):
         return None
     p = mission_combat_probability(mission, phase, success_level)
@@ -928,7 +1083,9 @@ def _medic_skill_bonus(traveler: Any) -> int:
     return best
 
 
-def medic_post_combat_triage(game: Any, combat_summary: Optional[Dict[str, Any]]) -> None:
+def medic_post_combat_triage(
+    game: Any, combat_summary: Optional[Dict[str, Any]]
+) -> None:
     """
     After a timeline firefight, a living Medic may treat wounded teammates using d20 checks.
     Mutates wound_level / consciousness_stability on Traveler objects.
@@ -939,11 +1096,17 @@ def medic_post_combat_triage(game: Any, combat_summary: Optional[Dict[str, Any]]
     if not team or not getattr(game, "player_alive", True):
         return
 
-    medics = [m for m in (getattr(team, "members", None) or []) if getattr(m, "alive", True) and _traveler_is_medic(m)]
+    medics = [
+        m
+        for m in (getattr(team, "members", None) or [])
+        if getattr(m, "alive", True) and _traveler_is_medic(m)
+    ]
     if not medics:
         return
 
-    roster = [m for m in (getattr(team, "members", None) or []) if getattr(m, "alive", True)]
+    roster = [
+        m for m in (getattr(team, "members", None) or []) if getattr(m, "alive", True)
+    ]
     wounded = [t for t in roster if int(getattr(t, "wound_level", 0) or 0) > 0]
     if not wounded:
         return
@@ -978,21 +1141,46 @@ def medic_post_combat_triage(game: Any, combat_summary: Optional[Dict[str, Any]]
             lines.append(
                 f"  ✅ {label}: success{nat}(d20 {die}+{bonus}={total} vs DC {dc}) — wounds {wl} → {new_wl}"
             )
-            triage_log.append({"patient": patient.name, "result": "healed", "from": wl, "to": new_wl, "roll": total, "dc": dc})
+            triage_log.append(
+                {
+                    "patient": patient.name,
+                    "result": "healed",
+                    "from": wl,
+                    "to": new_wl,
+                    "roll": total,
+                    "dc": dc,
+                }
+            )
         elif total >= dc - 2:
             lines.append(
                 f"  ⚠️  {label}: stabilized only (d20 {die}+{bonus}={total} vs DC {dc}) — wound level stays {wl}"
             )
             cs = float(getattr(patient, "consciousness_stability", 1.0) or 1.0)
             setattr(patient, "consciousness_stability", min(1.0, cs + 0.02))
-            triage_log.append({"patient": patient.name, "result": "stabilized", "wound_level": wl, "roll": total, "dc": dc})
+            triage_log.append(
+                {
+                    "patient": patient.name,
+                    "result": "stabilized",
+                    "wound_level": wl,
+                    "roll": total,
+                    "dc": dc,
+                }
+            )
         else:
             cs = float(getattr(patient, "consciousness_stability", 1.0) or 1.0)
             setattr(patient, "consciousness_stability", max(0.55, cs - 0.03))
             lines.append(
                 f"  ❌ {label}: treatment insufficient (d20 {die}+{bonus}={total} vs DC {dc}) — still at wound {wl}; host under extra strain"
             )
-            triage_log.append({"patient": patient.name, "result": "failed", "wound_level": wl, "roll": total, "dc": dc})
+            triage_log.append(
+                {
+                    "patient": patient.name,
+                    "result": "failed",
+                    "wound_level": wl,
+                    "roll": total,
+                    "dc": dc,
+                }
+            )
 
     combat_summary["medic_triage"] = triage_log
     for line in lines:
@@ -1032,7 +1220,10 @@ def _government_believes_travelers_exist(
 
 def _government_may_hit_faction_activity(world_state: Dict[str, Any]) -> bool:
     """Faction cells are active enough that a field team could plausibly run into them."""
-    fi = float(world_state.get("faction_influence", world_state.get("faction_activity", 0.0)) or 0.0)
+    fi = float(
+        world_state.get("faction_influence", world_state.get("faction_activity", 0.0))
+        or 0.0
+    )
     return fi >= 0.2
 
 
@@ -1049,7 +1240,24 @@ def _locations_text_overlap(a: str, b: str) -> bool:
     if a in b or b in a:
         return True
     stop = frozenset(
-        {"the", "a", "an", "at", "in", "on", "of", "and", "or", "to", "for", "nw", "ne", "se", "sw", "wa"}
+        {
+            "the",
+            "a",
+            "an",
+            "at",
+            "in",
+            "on",
+            "of",
+            "and",
+            "or",
+            "to",
+            "for",
+            "nw",
+            "ne",
+            "se",
+            "sw",
+            "wa",
+        }
     )
 
     def tok(s: str) -> set:
@@ -1111,7 +1319,9 @@ def _government_agent_field_presence(game: Any, mission: Dict[str, Any]) -> bool
     return False
 
 
-def resolve_player_firefight_opponent_faction(game: Any, mission: Dict[str, Any], inferred: str) -> str:
+def resolve_player_firefight_opponent_faction(
+    game: Any, mission: Dict[str, Any], inferred: str
+) -> str:
     """
     Player timeline combat: government opposition only when agencies have Traveler signal *and*
     plausible federal field presence (active investigation overlap with this site, or a hardened
@@ -1127,7 +1337,9 @@ def resolve_player_firefight_opponent_faction(game: Any, mission: Dict[str, Any]
             world_state = {}
     if not _government_believes_travelers_exist(world_state, None):
         return FACTION_THE_FACTION
-    if _government_agent_field_presence(game, mission) or _mission_on_federal_hard_site(mission):
+    if _government_agent_field_presence(game, mission) or _mission_on_federal_hard_site(
+        mission
+    ):
         return FACTION_GOVERNMENT
     return FACTION_THE_FACTION
 
@@ -1143,7 +1355,10 @@ def resolve_ai_team_firefight_opponent(
     if not _government_believes_travelers_exist(world_state, None):
         return FACTION_THE_FACTION
     game = world_state.get("game_reference")
-    if game and (_government_agent_field_presence(game, mission) or _mission_on_federal_hard_site(mission)):
+    if game and (
+        _government_agent_field_presence(game, mission)
+        or _mission_on_federal_hard_site(mission)
+    ):
         return FACTION_GOVERNMENT
     return FACTION_THE_FACTION
 
@@ -1200,7 +1415,9 @@ def brief_mission_field_skirmish(
         ]
     print(f"    ⚔️  {display_name}: {random.choice(outcomes)}.")
     try:
-        world_state["timeline_stability"] = max(0.0, float(world_state.get("timeline_stability", 0.8)) - 0.004)
+        world_state["timeline_stability"] = max(
+            0.0, float(world_state.get("timeline_stability", 0.8)) - 0.004
+        )
     except Exception:
         pass
 
@@ -1298,7 +1515,11 @@ def ai_team_post_combat_recovery(
 
     medic = medics[0]
     bonus = _ai_host_medic_bonus(medic)
-    patients = [h for h in hosts if h.get("alive", True) and int(h.get("wound_level", 0) or 0) > 0]
+    patients = [
+        h
+        for h in hosts
+        if h.get("alive", True) and int(h.get("wound_level", 0) or 0) > 0
+    ]
     patients.sort(key=lambda p: 1 if p is medic else 0)
     triage_parts: List[str] = []
     for patient in patients:
@@ -1317,10 +1538,14 @@ def ai_team_post_combat_recovery(
             patient["wound_level"] = new_wl
             triage_parts.append(f"{label} {wl}→{new_wl}")
         elif total >= dc - 2:
-            patient["stress_level"] = min(1.0, float(patient.get("stress_level", 0.3)) + 0.05)
+            patient["stress_level"] = min(
+                1.0, float(patient.get("stress_level", 0.3)) + 0.05
+            )
             triage_parts.append(f"{label} stable @ {wl}")
         else:
-            patient["stress_level"] = min(1.0, float(patient.get("stress_level", 0.3)) + 0.08)
+            patient["stress_level"] = min(
+                1.0, float(patient.get("stress_level", 0.3)) + 0.08
+            )
             triage_parts.append(f"{label} still @ {wl}")
 
     if triage_parts:
@@ -1332,7 +1557,9 @@ def ai_team_post_combat_recovery(
     for ln in out_lines:
         print(ln)
     try:
-        world_state["director_control"] = min(1.0, float(world_state.get("director_control", 0.5)) + 0.01 * replaced)
+        world_state["director_control"] = min(
+            1.0, float(world_state.get("director_control", 0.5)) + 0.01 * replaced
+        )
     except Exception:
         pass
 
@@ -1376,7 +1603,9 @@ def ai_team_mission_combat(
     enemies = _synthetic_enemy_fighters(foe, random.randint(1, 4))
     log: List[str] = []
     if verbose:
-        log.append(f"\n    ⚔️  AI Team {getattr(ai_team, 'team_id', '?')} — timeline shear skirmish vs {foe}.")
+        log.append(
+            f"\n    ⚔️  AI Team {getattr(ai_team, 'team_id', '?')} — timeline shear skirmish vs {foe}."
+        )
         log.append(
             f"    Order of battle: {len(hosts)} AI host(s) vs {len(enemies)} hostile fighter(s); "
             f"each round is Move 1 (AI strike) then Move 2 (enemy return fire)."
@@ -1415,7 +1644,9 @@ def ai_team_mission_combat(
         fake_member.alive = True
         atk_mods = _traveler_combat_mods(fake_member)
         ac_en = _enemy_ac(e)
-        hit, rr = _strike(h.get("name", "Host"), "traveler", f"AI op vs {e['label']}", ac_en, atk_mods)
+        hit, rr = _strike(
+            h.get("name", "Host"), "traveler", f"AI op vs {e['label']}", ac_en, atk_mods
+        )
         if hit:
             dmg_ai = random.randint(1, 2)
             ew0 = int(e.get("wound_level", 0) or 0)
@@ -1429,9 +1660,13 @@ def ai_team_mission_combat(
             if e["wound_level"] >= 3:
                 e["alive"] = False
                 if verbose:
-                    log.append(f"         💀 HOSTILE KIA: {e['label']} — down during AI skirmish.")
+                    log.append(
+                        f"         💀 HOSTILE KIA: {e['label']} — down during AI skirmish."
+                    )
         elif verbose:
-            log.append(f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)}")
+            log.append(
+                f"         {h.get('name', 'Host')} → {e['label']}{_strike_log_suffix(rr, hit, ac_en)}"
+            )
 
         living_e = [x for x in enemies if x.get("alive")]
         living_h = [x for x in hosts if x.get("alive", True)]
@@ -1476,7 +1711,9 @@ def ai_team_mission_combat(
                 f"         {e2['label']} → {h2.get('name', 'Unknown')}{_strike_log_suffix(rr2, hit2, ac)}"
             )
         try:
-            world_state["timeline_stability"] = max(0.0, float(world_state.get("timeline_stability", 0.8)) - 0.01)
+            world_state["timeline_stability"] = max(
+                0.0, float(world_state.get("timeline_stability", 0.8)) - 0.01
+            )
         except Exception:
             pass
 
@@ -1518,7 +1755,9 @@ def ai_team_mission_combat(
     return {"log": log, "shear_peak": shear, "occurred": True, "summary": summary}
 
 
-def try_director_replace_support_member(game: Any, fallen: Any, log: Optional[List[str]] = None) -> Dict[str, Any]:
+def try_director_replace_support_member(
+    game: Any, fallen: Any, log: Optional[List[str]] = None
+) -> Dict[str, Any]:
     """
     Run the Director d20 replacement check for a dead non-leader (e.g. if something outside
     the firefight module kills a specialist). Appends to ``log`` when provided.

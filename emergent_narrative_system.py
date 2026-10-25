@@ -2,8 +2,8 @@
 # Story that emerges from actual gameplay events
 
 import random
-from typing import Dict, List, Any, Optional
 from collections import defaultdict
+from typing import Any, Dict, List, Optional
 
 
 class RealEvent:
@@ -142,9 +142,8 @@ class EmergentNarrativeSystem:
             return True
 
         # Same NPC?
-        if (
-            event1.data.get("npc_id")
-            and event1.data.get("npc_id") == event2.data.get("npc_id")
+        if event1.data.get("npc_id") and event1.data.get("npc_id") == event2.data.get(
+            "npc_id"
         ):
             return True
 
@@ -236,9 +235,7 @@ class EmergentNarrativeSystem:
 
         # Pattern: Player hitting same location repeatedly
         for location, events in self.location_hotspots.items():
-            recent_events = [
-                e for e in events if e.turn >= self.turn_count - 5
-            ]
+            recent_events = [e for e in events if e.turn >= self.turn_count - 5]
             if len(recent_events) >= 3:
                 patterns.append(
                     {
@@ -252,9 +249,7 @@ class EmergentNarrativeSystem:
 
         # Pattern: Same NPC involved in multiple incidents
         for npc_id, events in self.character_involvement.items():
-            recent_events = [
-                e for e in events if e.turn >= self.turn_count - 8
-            ]
+            recent_events = [e for e in events if e.turn >= self.turn_count - 8]
             if len(recent_events) >= 3:
                 patterns.append(
                     {
@@ -268,9 +263,7 @@ class EmergentNarrativeSystem:
 
         # Pattern: Evidence accumulation
         evidence_events = [
-            e
-            for e in self.event_history[-10:]
-            if e.event_type == "evidence_discovered"
+            e for e in self.event_history[-10:] if e.event_type == "evidence_discovered"
         ]
         if len(evidence_events) >= 3:
             patterns.append(
@@ -306,11 +299,7 @@ class EmergentNarrativeSystem:
 
             # 2. Multiple events in short time
             elif len(thread.events) >= 4:
-                recent = [
-                    e
-                    for e in thread.events
-                    if e.turn >= self.turn_count - 3
-                ]
+                recent = [e for e in thread.events if e.turn >= self.turn_count - 3]
                 if len(recent) >= 2:
                     thread.status = "escalating"
                     escalating.append(thread)
@@ -370,8 +359,8 @@ class EmergentNarrativeSystem:
 
         # Calculate overall tension
         if active_threads:
-            avg_intensity = (
-                sum(t.intensity for t in active_threads) / len(active_threads)
+            avg_intensity = sum(t.intensity for t in active_threads) / len(
+                active_threads
             )
             pattern_pressure = len(patterns) * 0.1
             escalation_pressure = len(escalating) * 0.2
@@ -414,9 +403,7 @@ class EmergentNarrativeSystem:
             for pattern in narrative["new_patterns"]:
                 print(f"    ⚠️  {pattern['description']}")
                 if pattern["severity"] > 0.7:
-                    print(
-                        f"       → Government analysts are connecting the dots!"
-                    )
+                    print(f"       → Government analysts are connecting the dots!")
 
         # Escalating situations
         if narrative["escalations"]:
@@ -558,9 +545,7 @@ class RealityBasedNarrativeIntegrator:
                 },
             )
 
-    def process_turn_narrative(
-        self, game_turn: Optional[int] = None
-    ) -> Dict[str, Any]:
+    def process_turn_narrative(self, game_turn: Optional[int] = None) -> Dict[str, Any]:
         """Generate narrative at end of turn. Optionally sync to game turn before advancing."""
 
         narrative = self.narrative.advance_turn(game_turn=game_turn)
@@ -569,9 +554,7 @@ class RealityBasedNarrativeIntegrator:
         # Check for story consequences
         consequences = []
         for thread in self.narrative.narrative_threads.values():
-            consequence = self.narrative.generate_consequence_from_thread(
-                thread
-            )
+            consequence = self.narrative.generate_consequence_from_thread(thread)
             if consequence:
                 consequences.append(consequence)
 

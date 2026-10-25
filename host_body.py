@@ -7,19 +7,13 @@ inhabit when they travel back in time.
 
 import random
 from typing import List
-from travelers.data import (
-    get_names,
-    get_host_body_occupations,
-    get_host_body_skills,
-    get_host_body_abilities,
-    get_backstories,
-    get_locations,
-    get_family_statuses,
-    get_medical_conditions,
-    get_social_connections,
-    get_daily_routines,
-    get_financial_statuses,
-)
+
+from travelers.data import (get_backstories, get_daily_routines,
+                            get_family_statuses, get_financial_statuses,
+                            get_host_body_abilities, get_host_body_occupations,
+                            get_host_body_skills, get_locations,
+                            get_medical_conditions, get_names,
+                            get_social_connections)
 
 
 class HostBody:
@@ -59,7 +53,11 @@ class HostBody:
 
     def generate_backstory(self) -> str:
         backstories = get_backstories()
-        return random.choice(backstories) if backstories else "A ordinary person living an ordinary life."
+        return (
+            random.choice(backstories)
+            if backstories
+            else "A ordinary person living an ordinary life."
+        )
 
     def generate_location(self) -> str:
         locations = get_locations()
@@ -75,7 +73,11 @@ class HostBody:
 
     def generate_social_connections(self) -> str:
         connections = get_social_connections()
-        return random.choice(connections) if connections else "Regular contact with neighbors"
+        return (
+            random.choice(connections)
+            if connections
+            else "Regular contact with neighbors"
+        )
 
     def generate_daily_routine(self) -> str:
         routines = get_daily_routines()
@@ -113,18 +115,18 @@ Personal Life:
             "family_member": {
                 "positive": "Strong family support improves consciousness stability",
                 "negative": "Family conflicts create emotional instability",
-                "neutral": "Family relationships are stable and supportive"
+                "neutral": "Family relationships are stable and supportive",
             },
             "coworker": {
                 "positive": "Good work relationships reduce job stress",
                 "negative": "Workplace conflicts increase stress and instability",
-                "neutral": "Professional relationships are cordial and functional"
+                "neutral": "Professional relationships are cordial and functional",
             },
             "friend": {
                 "positive": "Close friendships provide emotional support",
                 "negative": "Social isolation or conflicts cause instability",
-                "neutral": "Social connections are balanced and healthy"
-            }
+                "neutral": "Social connections are balanced and healthy",
+            },
         }
         return impacts.get(relationship_type, impacts["friend"])
 

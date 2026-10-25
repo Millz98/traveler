@@ -1,20 +1,14 @@
-import unittest
 import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from travelers.data import (
-    get_names,
-    get_skills,
-    get_abilities,
-    get_host_body_data,
-    get_traveler_names,
-    get_traveler_skills,
-    get_backstories,
-)
 import host_body
 import traveler_character
+from travelers.data import (get_abilities, get_backstories, get_host_body_data,
+                            get_names, get_skills, get_traveler_names,
+                            get_traveler_skills)
 
 
 class TestDataLoading(unittest.TestCase):

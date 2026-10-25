@@ -1,5 +1,5 @@
-from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -43,6 +43,8 @@ class GameState:
         state.completed_missions = data.get("completed_missions", [])
         state.player_alive = data.get("player_alive", True)
         state.team_formed = data.get("team_formed", False)
-        state.director_reinforcement_pending = data.get("director_reinforcement_pending", False)
+        state.director_reinforcement_pending = data.get(
+            "director_reinforcement_pending", False
+        )
         state.npc_status = data.get("npc_status", {})
         return state

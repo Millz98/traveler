@@ -78,17 +78,23 @@ class GameUI:
         self.clear_screen()
         self.print_header("GAME OVER")
         print("\nThe team leader's host has been terminated.")
-        print("Without a surviving primary consciousness, this timeline thread ends here.")
+        print(
+            "Without a surviving primary consciousness, this timeline thread ends here."
+        )
         print("\nThe Director cannot continue the Grand Plan through this team.")
         self.print_separator()
         self.game.save_game()
         input("\nPress Enter to exit...")
 
     def print_status_indicators(self) -> None:
-        if hasattr(self.game, 'team') and hasattr(self.game.team, 'base_of_operations') and not self.game.team.base_of_operations:
+        if (
+            hasattr(self.game, "team")
+            and hasattr(self.game.team, "base_of_operations")
+            and not self.game.team.base_of_operations
+        ):
             print("🏠 NO BASE OF OPERATIONS - Consider option 11")
 
-        if hasattr(self.game, 'team') and hasattr(self.game.team, 'supplies'):
+        if hasattr(self.game, "team") and hasattr(self.game.team, "supplies"):
             total_supplies = sum(self.game.team.supplies.values())
             if total_supplies < 10:
                 print("📦 LOW SUPPLIES - Check option 12")

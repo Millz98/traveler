@@ -1,4 +1,5 @@
-from traveler_character import Traveler, Team
+from traveler_character import Team, Traveler
+
 
 class TeamManagement:
     def __init__(self):
@@ -20,7 +21,7 @@ class TeamManagement:
             if i == 0:
                 self.team.assign_role(member, "Team Leader")
             else:
-                self.team.assign_role(member, roles[i-1])
+                self.team.assign_role(member, roles[i - 1])
 
     def get_team_member(self, designation):
         # Get a team member by designation

@@ -1,15 +1,15 @@
-import unittest
 import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from living_world_events import (
-    LivingWorldEvents, WeatherSystem, EconomySystem, MediaSystem,
-    RandomEncounterSystem, FactionIntrigueSystem, LocationEventSystem,
-    DirectorFeedbackSystem, D20DramaSystem, LivingConsequencesSystem,
-    DynamicDifficultySystem
-)
+from living_world_events import (D20DramaSystem, DirectorFeedbackSystem,
+                                 DynamicDifficultySystem, EconomySystem,
+                                 FactionIntrigueSystem,
+                                 LivingConsequencesSystem, LivingWorldEvents,
+                                 LocationEventSystem, MediaSystem,
+                                 RandomEncounterSystem, WeatherSystem)
 
 
 class TestWeatherSystem(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestWeatherSystem(unittest.TestCase):
         self.assertIn("type", result)
         self.assertIn("season", result)
         self.assertIn("visibility", result)
-    
+
     def test_mission_modifier(self):
         weather = WeatherSystem()
         weather.current_weather = "rain"
@@ -34,7 +34,7 @@ class TestEconomySystem(unittest.TestCase):
         self.assertIsInstance(result, dict)
         self.assertIn("tech", result)
         self.assertIn("energy", result)
-    
+
     def test_economic_indicator(self):
         economy = EconomySystem()
         indicator = economy.get_economic_indicator()
@@ -64,7 +64,7 @@ class TestLivingWorldEvents(unittest.TestCase):
         self.assertIn("weather", result)
         self.assertIn("economy", result)
         self.assertIn("media", result)
-    
+
     def test_generate_turn_summary(self):
         lwe = LivingWorldEvents()
         results = lwe.process_turn({}, {"detection_level": 0.3})
@@ -75,11 +75,10 @@ class TestLivingWorldEvents(unittest.TestCase):
 class TestDirectorFeedback(unittest.TestCase):
     def test_feedback_generation(self):
         director = DirectorFeedbackSystem()
-        
+
         # Test praise for good performance
         feedback = director.generate_feedback(
-            {"mission_success_rate": 0.9, "protocol_violations": 0},
-            turn=10
+            {"mission_success_rate": 0.9, "protocol_violations": 0}, turn=10
         )
         # Should get feedback after enough turns - just check it's a string or None
         self.assertTrue(feedback is None or isinstance(feedback, str))
@@ -89,8 +88,7 @@ class TestDynamicDifficulty(unittest.TestCase):
     def test_difficulty_update(self):
         diff = DynamicDifficultySystem()
         result = diff.update_difficulty(
-            {"stealth": 5},
-            [{"success": True}, {"success": True}]
+            {"stealth": 5}, [{"success": True}, {"success": True}]
         )
         self.assertIn("current_dc", result)
         self.assertIn("modifier", result)

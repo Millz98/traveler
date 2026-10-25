@@ -1,219 +1,374 @@
 {
   "team_leader": {
-    "name": "Joseph",
-    "designation": "8985",
+    "name": "Kevin Baker",
+    "designation": "7902",
     "role": "Team Leader",
-    "occupation": "Hacker",
+    "occupation": "Leader",
     "skills": [
-      "Business Intelligence",
-      "Data Warehousing",
-      "Cooking",
-      "Intimidation"
+      "Astronomy",
+      "Marksmanship",
+      "Cooking"
     ],
     "abilities": [
-      "Gifted Scientist",
+      "Photographic Memory",
       "Gifted Poet"
     ],
     "mission_count": 0,
     "success_rate": 0.0,
     "protocol_violations": 0,
-    "timeline_impact": 0
+    "timeline_impact": 0,
+    "alive": true,
+    "wound_level": 0,
+    "consciousness_stability": 1.0
   },
   "team_members": [
     {
-      "name": "John",
-      "designation": "5809",
+      "name": "Paul Garcia",
+      "designation": "5794",
       "role": "Historian",
-      "occupation": "Leader",
+      "occupation": "Hacker",
       "skills": [
-        "History",
-        "Horticulture",
-        "Stealth",
-        "Art",
-        "Surgery"
-      ],
-      "abilities": [
-        "Skilled Teacher",
-        "Master Mediator"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Jaxon",
-      "designation": "2946",
-      "role": "Engineer",
-      "occupation": "Engineer",
-      "skills": [
-        "Sociology",
-        "Biology",
-        "Computer Vision"
-      ],
-      "abilities": [
-        "Expert Negotiator",
-        "Skilled Leader",
-        "Charismatic Leader",
-        "Photographic Memory"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Heather",
-      "designation": "2283",
-      "role": "Medic",
-      "occupation": "Tactician",
-      "skills": [
-        "Stealth",
-        "Meteorology",
-        "Sniping",
-        "Astrophysics",
+        "Architecture",
+        "Cooking",
         "Music"
       ],
       "abilities": [
-        "Master Surgeon",
-        "Expert Forger",
-        "Expert Negotiator",
-        "Exceptional Pilot"
-      ],
-      "mission_count": 0,
-      "success_rate": 0.0,
-      "protocol_violations": 0,
-      "timeline_impact": 0
-    },
-    {
-      "name": "Mackenzie",
-      "designation": "5518",
-      "role": "Tactician",
-      "occupation": "Leader",
-      "skills": [
-        "Textile Science",
-        "Data Analysis",
-        "Physics",
-        "History"
-      ],
-      "abilities": [
-        "Expert Manager",
+        "Genius-Level Intellect",
+        "Exceptional Hearing",
+        "Multilingualism",
         "Master Martial Artist"
       ],
       "mission_count": 0,
       "success_rate": 0.0,
       "protocol_violations": 0,
-      "timeline_impact": 0
+      "timeline_impact": 0,
+      "alive": true,
+      "wound_level": 0,
+      "consciousness_stability": 1.0
+    },
+    {
+      "name": "Thomas White",
+      "designation": "4802",
+      "role": "Engineer",
+      "occupation": "Medic",
+      "skills": [
+        "Lockpicking",
+        "Toxicology",
+        "Finance",
+        "Sniping",
+        "Artificial Intelligence"
+      ],
+      "abilities": [
+        "Master Trainer",
+        "Exceptional Persuader"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0,
+      "alive": true,
+      "wound_level": 0,
+      "consciousness_stability": 0.82
+    },
+    {
+      "name": "Nancy Robinson",
+      "designation": "646",
+      "role": "Medic",
+      "occupation": "Medic",
+      "skills": [
+        "Surgery",
+        "Mechanical Engineering",
+        "Cybersecurity",
+        "Planetary Science"
+      ],
+      "abilities": [
+        "Genius-Level Intellect",
+        "Skilled Leader"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0,
+      "alive": true,
+      "wound_level": 2,
+      "consciousness_stability": 0.78
+    },
+    {
+      "name": "Nancy Thomas",
+      "designation": "8792",
+      "role": "Tactician",
+      "occupation": "Leader",
+      "skills": [
+        "Volcanology",
+        "History",
+        "Anthropology",
+        "Entrepreneurship",
+        "Aerospace Engineering"
+      ],
+      "abilities": [
+        "Skilled Survivalist",
+        "Gifted Coach"
+      ],
+      "mission_count": 0,
+      "success_rate": 0.0,
+      "protocol_violations": 0,
+      "timeline_impact": 0,
+      "alive": true,
+      "wound_level": 0,
+      "consciousness_stability": 1.0
     }
   ],
   "mission_status": "Active Missions: 1",
   "current_mission": null,
   "active_missions": [],
-  "team_cohesion": 0.8,
+  "team_cohesion": 0.78,
   "communication_level": 0.7,
-  "timeline_stability": 0.804,
+  "timeline_stability": 0.7729999999999998,
   "timeline_fragility": 0.3,
   "timeline_events": [
     {
       "timestamp": "March 15, 2018",
-      "change": 0.05,
-      "actual_change": 0.065,
-      "old_stability": 0.85,
-      "new_stability": 0.915,
-      "source": "mission_intelligence_gathering_success",
+      "change": -0.02,
+      "actual_change": -0.026000000000000002,
+      "old_stability": 0.82,
+      "new_stability": 0.7939999999999999,
+      "source": "mission_intelligence_gathering_partial_success",
       "fragility_impact": 0.3
     },
     {
       "timestamp": "March 15, 2018",
-      "change": -0.2,
-      "actual_change": -0.26,
-      "old_stability": 0.915,
-      "new_stability": 0.655,
-      "source": "mission_counter_intelligence_critical_failure",
-      "fragility_impact": 0.3
-    },
-    {
-      "timestamp": "March 16, 2018",
       "change": 0.1,
       "actual_change": 0.13,
-      "old_stability": 0.7000000000000001,
-      "new_stability": 0.8300000000000001,
-      "source": "mission_host_body_crisis_complete_success",
+      "old_stability": 0.7939999999999999,
+      "new_stability": 0.9239999999999999,
+      "source": "mission_maintenance_operation_complete_success",
       "fragility_impact": 0.3
     },
     {
       "timestamp": "March 16, 2018",
       "change": -0.02,
       "actual_change": -0.026000000000000002,
-      "old_stability": 0.8300000000000001,
-      "new_stability": 0.804,
+      "old_stability": 0.8129999999999998,
+      "new_stability": 0.7869999999999998,
       "source": "mission_maintenance_operation_partial_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 16, 2018",
+      "change": 0.1,
+      "actual_change": 0.13,
+      "old_stability": 0.7669999999999998,
+      "new_stability": 0.8969999999999998,
+      "source": "mission_intelligence_gathering_complete_success",
+      "fragility_impact": 0.3
+    },
+    {
+      "timestamp": "March 17, 2018",
+      "change": -0.1,
+      "actual_change": -0.13,
+      "old_stability": 0.9029999999999998,
+      "new_stability": 0.7729999999999998,
+      "source": "mission_maintenance_operation_failure",
       "fragility_impact": 0.3
     }
   ],
   "completed_missions": [
     {
       "type": "intelligence_gathering",
-      "location": "Jacksonville, FL",
+      "location": "Washington, DC",
       "npc": "Director Liaison",
-      "outcome": "Success",
-      "outcome_raw": "SUCCESS",
+      "outcome": "Partial Success",
+      "outcome_raw": "PARTIAL_SUCCESS",
       "date": "March 15, 2018",
       "phase_results": [
-        "SUCCESS",
-        "SUCCESS",
-        "PARTIAL_SUCCESS"
+        "FAILURE",
+        "PARTIAL_SUCCESS",
+        "CRITICAL_SUCCESS"
       ]
     },
     {
-      "type": "counter_intelligence",
-      "location": "Military Base - Defense Installation",
+      "type": "maintenance_operation",
+      "location": "Security Perimeter - Defense Maintenance",
       "npc": "Unknown",
-      "outcome": "Failure",
-      "outcome_raw": "CRITICAL_FAILURE",
+      "outcome": "Success",
+      "outcome_raw": "COMPLETE_SUCCESS",
       "date": "March 15, 2018",
       "phase_results": [
-        "PARTIAL_SUCCESS",
+        "SUCCESS",
         "SUCCESS",
         "CRITICAL_SUCCESS"
       ]
     },
     {
-      "type": "host_body_crisis",
-      "location": "Valley Hills",
-      "npc": "Dr. Delaney - Quantum Frame Technology Developer",
-      "outcome": "Success",
-      "outcome_raw": "COMPLETE_SUCCESS",
-      "date": "March 16, 2018",
-      "phase_results": [
-        "CRITICAL_SUCCESS",
-        "SUCCESS",
-        "SUCCESS"
-      ]
-    },
-    {
       "type": "maintenance_operation",
-      "location": "Host Body Residence - Personal Maintenance",
+      "location": "Archive System - Knowledge Maintenance",
       "npc": "Unknown",
       "outcome": "Partial Success",
       "outcome_raw": "PARTIAL_SUCCESS",
       "date": "March 16, 2018",
       "phase_results": [
         "CRITICAL_SUCCESS",
-        "CRITICAL_SUCCESS",
+        "PARTIAL_SUCCESS",
+        "PARTIAL_SUCCESS"
+      ]
+    },
+    {
+      "type": "intelligence_gathering",
+      "location": "Charlotte, NC",
+      "npc": "Director Liaison",
+      "outcome": "Success",
+      "outcome_raw": "COMPLETE_SUCCESS",
+      "date": "March 16, 2018",
+      "phase_results": [
+        "PARTIAL_SUCCESS",
+        "FAILURE",
+        "SUCCESS"
+      ]
+    },
+    {
+      "type": "maintenance_operation",
+      "location": "Communication Network - System Maintenance",
+      "npc": "Unknown",
+      "outcome": "Failure",
+      "outcome_raw": "FAILURE",
+      "date": "March 17, 2018",
+      "phase_results": [
+        "FAILURE",
+        "FAILURE",
         "PARTIAL_SUCCESS"
       ]
     }
   ],
+  "director_programmers": {
+    "Simon": {
+      "designation": "004",
+      "role": "Core Programmer",
+      "status": "active",
+      "specialty": "Quantum Frame Architecture",
+      "loyalty": "Director",
+      "current_host": {
+        "name": "Host-004",
+        "age": 35,
+        "occupation": "University Professor",
+        "location": "Max Planck Institute, Germany",
+        "cover_story": "Government consultant on quantum computing projects",
+        "access_level": "Maximum Access - Director Core",
+        "current_mission": "Maintain Director's quantum infrastructure"
+      },
+      "mission": "Maintain Director's quantum infrastructure",
+      "last_seen": null,
+      "notes": "One of the original creators of the Director"
+    },
+    "Foster": {
+      "designation": "0017",
+      "role": "Core Programmer",
+      "status": "active",
+      "specialty": "AI Consciousness Transfer",
+      "loyalty": "Director",
+      "mission": "Develop consciousness transfer protocols",
+      "last_seen": null,
+      "notes": "Pioneered the Traveler consciousness transfer system",
+      "current_host": {
+        "name": "Host-0017",
+        "age": 47,
+        "occupation": "AI Researcher",
+        "location": "Harvard University, MA",
+        "cover_story": "Private sector expert in advanced AI systems",
+        "access_level": "High Access - Critical Systems",
+        "current_mission": "Develop consciousness transfer protocols"
+      }
+    },
+    "Grace Day": {
+      "designation": "0027",
+      "role": "Core Programmer",
+      "status": "active",
+      "specialty": "Director Core Systems",
+      "loyalty": "Director",
+      "mission": "Maintain Director's core programming",
+      "last_seen": null,
+      "notes": "The Director's 'daughter' - has special access",
+      "current_host": {
+        "name": "Host-0027",
+        "age": 62,
+        "occupation": "AI Ethics Researcher",
+        "location": "Fermilab, IL",
+        "cover_story": "Government consultant on quantum computing projects",
+        "access_level": "Standard Access - Standard Systems",
+        "current_mission": "Maintain Director's core programming"
+      }
+    }
+  },
+  "world_memory": {
+    "turn_count": 2,
+    "player_actions": [],
+    "hot_locations": {
+      "Washington, DC": {
+        "heat_level": 0.5499999999999999,
+        "incident_count": 1,
+        "last_incident_turn": 0,
+        "worst_incident": "critical",
+        "investigation_active": true
+      },
+      "Security Perimeter - Defense Maintenance": {
+        "heat_level": 0.0,
+        "incident_count": 1,
+        "last_incident_turn": 0,
+        "worst_incident": "none"
+      },
+      "Archive System - Knowledge Maintenance": {
+        "heat_level": 0.4,
+        "incident_count": 1,
+        "last_incident_turn": 1,
+        "worst_incident": "major"
+      },
+      "Charlotte, NC": {
+        "heat_level": 0.0,
+        "incident_count": 1,
+        "last_incident_turn": 1,
+        "worst_incident": "none"
+      },
+      "Communication Network - System Maintenance": {
+        "heat_level": 0.65,
+        "incident_count": 1,
+        "last_incident_turn": 2,
+        "worst_incident": "critical"
+      }
+    },
+    "scheduled_consequences": [
+      {
+        "trigger_turn": 3,
+        "description": "\ud83d\udd2c Standard forensic analysis at Washington, DC",
+        "location": "Washington, DC",
+        "intensity": 0.52,
+        "type": "forensics",
+        "traveler_exposure_risk": 0.1
+      },
+      {
+        "trigger_turn": 3,
+        "description": "\ud83d\udea8 URGENT federal response to Communication Network - System Maintenance",
+        "location": "Communication Network - System Maintenance",
+        "intensity": 0.78,
+        "type": "immediate_response"
+      },
+      {
+        "trigger_turn": 5,
+        "description": "\ud83d\udd2c Standard forensic analysis at Communication Network - System Maintenance",
+        "location": "Communication Network - System Maintenance",
+        "intensity": 0.52,
+        "type": "forensics",
+        "traveler_exposure_risk": 0.1
+      }
+    ]
+  },
   "us_political_system": {
     "executive_branch": {
       "president": {
-        "name": "Donald J. Trump",
-        "party": "Republican"
+        "name": "Joseph R. Biden",
+        "party": "Democratic"
       },
       "vice_president": {
-        "name": "Jacob Gonzalez",
-        "party": "Republican"
+        "name": "David Hernandez",
+        "party": "Democratic"
       }
     },
     "legislative_branch": {
@@ -222,10 +377,178 @@
         "majority_count": 51
       },
       "house": {
-        "majority_party": "Republican",
+        "majority_party": "Democrat",
         "majority_count": 218
       }
     },
     "turn_count": 2
-  }
+  },
+  "traveler_001_state": {
+    "traveler_001": {
+      "designation": "001",
+      "name": "Vincent Ingram",
+      "aliases": [
+        "Dr. Perrow",
+        "Jeff Conniker",
+        "Ilsa"
+      ],
+      "current_alias": "Vincent Ingram",
+      "status": "rogue",
+      "faction_leader": true,
+      "arrival_date": "September 11, 2001",
+      "arrival_location": "World Trade Center, New York",
+      "original_mission": "Test consciousness transfer protocol - send message then die in 9/11",
+      "mission_failure": "Computer malfunction prevented message transmission",
+      "betrayal_reason": "Refused self-termination order after mission failure",
+      "protocols_violated": [
+        "Protocol 1",
+        "Protocol 2",
+        "Protocol 3",
+        "Protocol 4"
+      ],
+      "consciousness_stability": 0.95,
+      "host_body_count": 1,
+      "current_host": "Vincent Ingram",
+      "current_location": "Pacific Northwest",
+      "threat_level": "CRITICAL",
+      "last_known_activity": "2026-05-13 09:00:47.637460",
+      "canonical_history": {
+        "fled_911": true,
+        "relocated_pacific_northwest": true,
+        "worked_with_oliver_norton": true,
+        "market_prediction_software": true,
+        "married_irene": true,
+        "son_taylor": true,
+        "irene_died": true,
+        "oliver_died": true,
+        "isolated_himself": true,
+        "monitored_travelers": true,
+        "captured_travelers": true,
+        "met_grant_maclaren": true,
+        "met_simon": true,
+        "built_marcy_machine": true,
+        "transferred_to_perrow": true
+      }
+    },
+    "objectives": {
+      "oppose_director_ai": {
+        "progress": 0.6,
+        "priority": "critical"
+      },
+      "establish_human_sovereignty": {
+        "progress": 0.4,
+        "priority": "high"
+      },
+      "recruit_other_travelers": {
+        "progress": 0.6,
+        "priority": "high"
+      },
+      "disrupt_grand_plan": {
+        "progress": 0.5,
+        "priority": "critical"
+      },
+      "build_consciousness_devices": {
+        "progress": 0.8,
+        "priority": "medium"
+      },
+      "monitor_traveler_activities": {
+        "progress": 1.0,
+        "priority": "high"
+      },
+      "avoid_director_detection": {
+        "progress": 0.8999999999999999,
+        "priority": "critical"
+      },
+      "protect_family": {
+        "progress": 0.5,
+        "priority": "high"
+      }
+    },
+    "resources": {
+      "consciousness_transfer_device": true,
+      "quantum_frame_access": false,
+      "faction_operatives": 15,
+      "infiltrated_systems": 8,
+      "safe_houses": 5,
+      "funding_sources": 3,
+      "political_connections": 2,
+      "market_knowledge": true,
+      "traveler_profiles": true,
+      "remote_interrogation_facilities": true,
+      "isolated_compound": true,
+      "hacker_protection": true
+    },
+    "mission_history": [
+      {
+        "mission_id": "001_MONITOR_001",
+        "mission_type": "traveler_monitoring",
+        "description": "Monitor and track known Traveler activities (canonical behavior)",
+        "location": "Pacific Northwest",
+        "outcome": "SUCCESS",
+        "start_time": "2026-05-13T08:57:26.405746",
+        "completion_time": "2026-05-13T08:58:49.214136"
+      },
+      {
+        "mission_id": "001_RECRUIT_001",
+        "mission_type": "faction_recruitment",
+        "description": "Recruit disaffected Travelers to the Faction (like Simon in show)",
+        "location": "Pacific Northwest",
+        "outcome": "FAILURE",
+        "start_time": "2026-05-13T08:57:26.405749",
+        "completion_time": "2026-05-13T08:58:49.214266"
+      },
+      {
+        "mission_id": "001_SECURITY_001",
+        "mission_type": "maintain_isolation",
+        "description": "Maintain isolation and security to avoid Director detection (canonical)",
+        "location": "Isolated compound",
+        "outcome": "SUCCESS",
+        "start_time": "2026-05-13T08:57:26.405750",
+        "completion_time": "2026-05-13T08:58:49.214385"
+      }
+    ],
+    "mission_patterns": {
+      "traveler_monitoring": {
+        "count": 1,
+        "success_rate": 1.0,
+        "total_timeline_impact": -0.05,
+        "total_faction_gain": 0.1,
+        "locations": [
+          "Pacific Northwest"
+        ]
+      },
+      "faction_recruitment": {
+        "count": 1,
+        "success_rate": 0.0,
+        "total_timeline_impact": -0.045,
+        "total_faction_gain": 0.04000000000000001,
+        "locations": []
+      },
+      "maintain_isolation": {
+        "count": 1,
+        "success_rate": 1.0,
+        "total_timeline_impact": -0.02,
+        "total_faction_gain": 0.05,
+        "locations": [
+          "Isolated compound"
+        ]
+      }
+    },
+    "operation_locations": {
+      "Pacific Northwest": {
+        "mission_count": 2,
+        "success_count": 1,
+        "total_timeline_impact": 0.2,
+        "heat_level": 0.2
+      },
+      "Isolated compound": {
+        "mission_count": 1,
+        "success_count": 1,
+        "total_timeline_impact": 0.02,
+        "heat_level": 0.1
+      }
+    }
+  },
+  "player_alive": true,
+  "director_reinforcement_pending": false
 }

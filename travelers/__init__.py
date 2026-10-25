@@ -1,4 +1,4 @@
-from travelers.core import GameUI, GameState, GameLoop
-from travelers.models import Traveler, Team, HostBody
+from travelers.core import GameLoop, GameState, GameUI
+from travelers.models import HostBody, Team, Traveler
 
 __all__ = ["GameUI", "GameState", "GameLoop", "Traveler", "Team", "HostBody"]

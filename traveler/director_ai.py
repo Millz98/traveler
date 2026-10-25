@@ -1,5 +1,5 @@
-
 import random
+
 from world_generation import World
 
 
@@ -17,7 +17,7 @@ class Director:
         mission = {
             "description": self.generate_mission_description(mission_type),
             "objectives": self.generate_mission_objectives(mission_type),
-            "rewards": self.generate_mission_rewards()
+            "rewards": self.generate_mission_rewards(),
         }
         self.missions.append(mission)
         return mission
@@ -28,18 +28,18 @@ class Director:
             "combat": [
                 "Eliminate the enemy threat",
                 "Defend the base from enemy attack",
-                "Take out the enemy commander"
+                "Take out the enemy commander",
             ],
             "stealth": [
                 "Infiltrate the enemy base undetected",
                 "Sabotage the enemy's equipment",
-                "Steal the enemy's plans"
+                "Steal the enemy's plans",
             ],
             "exploration": [
                 "Explore the abandoned city",
                 "Discover the secrets of the ancient temple",
-                "Uncover the truth about the mysterious artifact"
-            ]
+                "Uncover the truth about the mysterious artifact",
+            ],
         }
         return random.choice(descriptions[mission_type])
 
@@ -49,37 +49,34 @@ class Director:
             "combat": [
                 "Eliminate 10 enemy soldiers",
                 "Destroy 5 enemy tanks",
-                "Capture the enemy flag"
+                "Capture the enemy flag",
             ],
             "stealth": [
                 "Sneak past 5 enemy guards undetected",
                 "Hack into the enemy's computer system",
-                "Steal 3 enemy documents"
+                "Steal 3 enemy documents",
             ],
             "exploration": [
                 "Explore 3 new areas",
                 "Discover 2 new items",
-                "Uncover 1 new secret"
-            ]
+                "Uncover 1 new secret",
+            ],
         }
         return random.sample(objectives[mission_type], 2)
 
     def generate_mission_rewards(self):
         # Generate a list of random mission rewards
-        rewards = [
-            "1000 credits",
-            "A new weapon",
-            "A new skill",
-            "A new item"
-        ]
+        rewards = ["1000 credits", "A new weapon", "A new skill", "A new item"]
         return random.sample(rewards, 2)
 
     def generate_event(self):
         # Generate a new event for the player to respond to
-        event_type = random.choice(["enemy attack", "natural disaster", "mysterious occurrence"])
+        event_type = random.choice(
+            ["enemy attack", "natural disaster", "mysterious occurrence"]
+        )
         event = {
             "description": self.generate_event_description(event_type),
-            "choices": self.generate_event_choices(event_type)
+            "choices": self.generate_event_choices(event_type),
         }
         self.events.append(event)
         return event
@@ -90,18 +87,18 @@ class Director:
             "enemy attack": [
                 "The enemy has launched a surprise attack on your base",
                 "Enemy forces have been spotted approaching your position",
-                "The enemy has infiltrated your base and is causing chaos"
+                "The enemy has infiltrated your base and is causing chaos",
             ],
             "natural disaster": [
                 "A massive earthquake has struck the area",
                 "A hurricane is approaching the coast",
-                "A wildfire is sweeping through the countryside"
+                "A wildfire is sweeping through the countryside",
             ],
             "mysterious occurrence": [
                 "A strange object has been spotted in the sky",
                 "A mysterious energy signal has been detected",
-                "A bizarre creature has been seen roaming the area"
-            ]
+                "A bizarre creature has been seen roaming the area",
+            ],
         }
         return random.choice(descriptions[event_type])
 
@@ -111,18 +108,18 @@ class Director:
             "enemy attack": [
                 "Defend your base",
                 "Launch a counterattack",
-                "Attempt to negotiate with the enemy"
+                "Attempt to negotiate with the enemy",
             ],
             "natural disaster": [
                 "Evacuate the area",
                 "Try to mitigate the damage",
-                "Search for survivors"
+                "Search for survivors",
             ],
             "mysterious occurrence": [
                 "Investigate the strange object",
                 "Try to communicate with the mysterious energy signal",
-                "Capture the bizarre creature"
-            ]
+                "Capture the bizarre creature",
+            ],
         }
         return random.sample(choices[event_type], 2)
 

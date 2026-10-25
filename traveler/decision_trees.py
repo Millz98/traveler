@@ -1,5 +1,6 @@
 import random
 
+
 class DecisionTree:
     def __init__(self):
         self.tree = {}
@@ -25,6 +26,7 @@ class DecisionTree:
     def predict(self, input_data):
         # Make a prediction using the decision tree
         return self.make_decision("root", input_data)
+
 
 class DirectorDecisionTree(DecisionTree):
     def __init__(self):
@@ -72,5 +74,6 @@ class DirectorDecisionTree(DecisionTree):
 
     def predict(self, input_data):
         return self.make_decision("root", input_data)
+
 
 director_decision_tree = DirectorDecisionTree()

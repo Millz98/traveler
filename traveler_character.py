@@ -7,13 +7,10 @@ to prevent the collapse of society.
 
 import random
 from typing import List, Optional
+
 import host_body as hb_module
-from travelers.data import (
-    get_names,
-    get_traveler_skills,
-    get_traveler_abilities,
-    get_traveler_occupations,
-)
+from travelers.data import (get_names, get_traveler_abilities,
+                            get_traveler_occupations, get_traveler_skills)
 
 
 class Traveler:
@@ -98,16 +95,22 @@ Host Body: {'Assigned' if self.host_body else 'Not Assigned'}
     def complete_mission(self, success: bool, timeline_impact: int) -> None:
         self.mission_count += 1
         if success:
-            self.success_rate = (self.success_rate * (self.mission_count - 1) + 1) / self.mission_count
+            self.success_rate = (
+                self.success_rate * (self.mission_count - 1) + 1
+            ) / self.mission_count
         else:
-            self.success_rate = (self.success_rate * (self.mission_count - 1)) / self.mission_count
+            self.success_rate = (
+                self.success_rate * (self.mission_count - 1)
+            ) / self.mission_count
         self.timeline_impact += timeline_impact
 
     def violate_protocol(self) -> None:
         self.protocol_violations += 1
 
     def __str__(self) -> str:
-        return f"Traveler {self.designation} ({self.name}) - {self.role or 'Unassigned'}"
+        return (
+            f"Traveler {self.designation} ({self.name}) - {self.role or 'Unassigned'}"
+        )
 
 
 class Team:
@@ -119,7 +122,7 @@ class Team:
             "Engineer": None,
             "Medic": None,
             "Tactician": None,
-            "Team Leader": None
+            "Team Leader": None,
         }
         self.assign_role(leader, "Team Leader")
         self.generate_team()
@@ -136,7 +139,7 @@ class Team:
     def generate_team(self) -> None:
         roles = list(self.roles.keys())
         roles.remove("Team Leader")
-        
+
         for role in roles:
             traveler = Traveler()
             self.assign_role(traveler, role)
@@ -171,16 +174,18 @@ Members:
 
     def get_team_stats(self) -> dict:
         total_missions = sum(member.mission_count for member in self.members)
-        avg_success_rate = sum(member.success_rate for member in self.members) / len(self.members)
+        avg_success_rate = sum(member.success_rate for member in self.members) / len(
+            self.members
+        )
         total_violations = sum(member.protocol_violations for member in self.members)
-        
+
         return {
             "total_members": len(self.members),
             "total_missions": total_missions,
             "average_success_rate": avg_success_rate,
             "total_protocol_violations": total_violations,
             "team_cohesion": self.team_cohesion,
-            "communication_level": self.communication_level
+            "communication_level": self.communication_level,
         }
 
     def improve_cohesion(self, amount: float = 0.1) -> None:

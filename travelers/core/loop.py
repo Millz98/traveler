@@ -11,8 +11,12 @@ class GameLoop:
     def run(self) -> None:
         print("🚀 Welcome to TRAVELERS - A Time Travel Mission Game")
         print("Based on the TV show 'Travelers'")
-        print("Your consciousness has been sent back to prevent the collapse of society")
-        print("Remember: The mission comes first. The mission comes last. The mission comes only.")
+        print(
+            "Your consciousness has been sent back to prevent the collapse of society"
+        )
+        print(
+            "Remember: The mission comes first. The mission comes last. The mission comes only."
+        )
         print("🆕 Starting new game...")
         self.game.initialize_new_game()
 
@@ -31,7 +35,9 @@ class GameLoop:
                 self._handle_error(e)
 
     def _check_game_over(self) -> bool:
-        if getattr(self.game, "team_formed", False) and not getattr(self.game, "player_alive", True):
+        if getattr(self.game, "team_formed", False) and not getattr(
+            self.game, "player_alive", True
+        ):
             self.game.ui.handle_game_over()
             return True
         return False
@@ -68,7 +74,10 @@ class GameLoop:
             "6": self.game.view_host_body_life,
             "7": self.game.view_npc_interactions,
             "8": self.game.view_hacking_system,
-            "9": lambda: (self.game.check_director_updates(), self.game.check_messenger_events()),
+            "9": lambda: (
+                self.game.check_director_updates(),
+                self.game.check_messenger_events(),
+            ),
             "10": self.game.view_host_body_complications,
             "11": self.game.establish_base_of_operations,
             "12": self.game.manage_team_supplies,

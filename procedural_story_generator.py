@@ -2,7 +2,7 @@
 # Generates unique narrative prose using actual game characters
 
 import random
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 class ProceduralStoryGenerator:
@@ -20,9 +20,7 @@ class ProceduralStoryGenerator:
         if not variants:
             return ""
         avoid = self._last_variant_index.get(story_type)
-        choices = [
-            (i, v) for i, v in enumerate(variants) if i != avoid
-        ]
+        choices = [(i, v) for i, v in enumerate(variants) if i != avoid]
         if not choices:
             choices = list(enumerate(variants))
         i, chosen = random.choice(choices)
@@ -122,7 +120,13 @@ class ProceduralStoryGenerator:
             weight = 0.5 + tension * 0.5
             if patterns:
                 weight += 0.2 * min(len(patterns), 5)
-            out.append({"type": "investigation", "weight": weight, "data": {"patterns": patterns}})
+            out.append(
+                {
+                    "type": "investigation",
+                    "weight": weight,
+                    "data": {"patterns": patterns},
+                }
+            )
 
         # Faction activity (updates + completed)
         faction = turn_summary.get("faction_updates") or {}
@@ -139,11 +143,17 @@ class ProceduralStoryGenerator:
                 elif hasattr(c, "description"):
                     descs.append(c.description)
             if descs:
-                out.append({
-                    "type": "faction_activity",
-                    "weight": 0.4 + 0.2 * min(len(descs), 3),
-                    "data": {"descriptions": descs, "updates": updates, "completed": completed},
-                })
+                out.append(
+                    {
+                        "type": "faction_activity",
+                        "weight": 0.4 + 0.2 * min(len(descs), 3),
+                        "data": {
+                            "descriptions": descs,
+                            "updates": updates,
+                            "completed": completed,
+                        },
+                    }
+                )
 
         # World events (daily + new)
         daily = turn_summary.get("daily_events") or []
@@ -161,11 +171,13 @@ class ProceduralStoryGenerator:
                 elif hasattr(e, "description"):
                     descs.append(e.description)
             if descs:
-                out.append({
-                    "type": "world_event",
-                    "weight": 0.5 + 0.15 * min(len(descs), 4),
-                    "data": {"descriptions": descs},
-                })
+                out.append(
+                    {
+                        "type": "world_event",
+                        "weight": 0.5 + 0.15 * min(len(descs), 4),
+                        "data": {"descriptions": descs},
+                    }
+                )
 
         # Major changes
         major = turn_summary.get("major_changes") or []
@@ -177,27 +189,33 @@ class ProceduralStoryGenerator:
                 elif hasattr(m, "description"):
                     descs.append(m.description)
             if descs:
-                out.append({
-                    "type": "major_change",
-                    "weight": 0.9,
-                    "data": {"descriptions": descs},
-                })
+                out.append(
+                    {
+                        "type": "major_change",
+                        "weight": 0.9,
+                        "data": {"descriptions": descs},
+                    }
+                )
 
         # Government / political news
         if breaking_news:
-            out.append({
-                "type": "political_news",
-                "weight": 0.85,
-                "data": {"stories": breaking_news[-5:]},
-            })
+            out.append(
+                {
+                    "type": "political_news",
+                    "weight": 0.85,
+                    "data": {"stories": breaking_news[-5:]},
+                }
+            )
 
         # Traveler 001 consequences
         if traveler_001_consequences:
-            out.append({
-                "type": "traveler_001",
-                "weight": 0.8,
-                "data": {"consequences": traveler_001_consequences[-5:]},
-            })
+            out.append(
+                {
+                    "type": "traveler_001",
+                    "weight": 0.8,
+                    "data": {"consequences": traveler_001_consequences[-5:]},
+                }
+            )
 
         return out
 
@@ -275,9 +293,7 @@ class ProceduralStoryGenerator:
             if pattern["type"] == "npc_pattern":
                 desc = pattern.get("description", "")
                 if "FBI-" in desc or "CIA-" in desc:
-                    agent_id = (
-                        desc.split(" appears")[0] if " appears" in desc else None
-                    )
+                    agent_id = desc.split(" appears")[0] if " appears" in desc else None
                     if agent_id:
                         agents.append(
                             {
@@ -303,9 +319,7 @@ class ProceduralStoryGenerator:
 
     def _find_npc_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         """Find NPC data from world generator"""
-        if not self.world_generator or not getattr(
-            self.world_generator, "npcs", None
-        ):
+        if not self.world_generator or not getattr(self.world_generator, "npcs", None):
             return None
         for npc in self.world_generator.npcs:
             if getattr(npc, "name", None) == name:
@@ -346,7 +360,8 @@ class ProceduralStoryGenerator:
         others = [
             self._npc_to_dict(npc)
             for npc in npcs
-            if getattr(npc, "name", None) and getattr(npc, "name") not in exclude_names
+            if getattr(npc, "name", None)
+            and getattr(npc, "name") not in exclude_names
             and getattr(npc, "faction", "civilian") == "civilian"
         ]
         # Use location-linked first, then fill with random civilians
@@ -403,17 +418,25 @@ class ProceduralStoryGenerator:
     ) -> str:
         """Generate breakthrough investigation scene with REAL characters"""
 
-        primary_agent = random.choice(agents) if agents else {"id": "Agent", "agency": "FBI"}
+        primary_agent = (
+            random.choice(agents) if agents else {"id": "Agent", "agency": "FBI"}
+        )
         location = locations[0] if locations else "the city"
         event_count = next(
-            (p.get("event_count", 0) for p in patterns if p.get("location") == location),
+            (
+                p.get("event_count", 0)
+                for p in patterns
+                if p.get("location") == location
+            ),
             0,
         )
         # Use real NPCs from patterns when available; otherwise get NPCs from the world so we show real names, not "Unknown Subject"
         suspects = list(random.sample(npcs, min(3, len(npcs)))) if npcs else []
         if len(suspects) < 3:
             extra = self._get_npcs_for_location(
-                location or "the city", need=3 - len(suspects), exclude_names=[s.get("name") for s in suspects]
+                location or "the city",
+                need=3 - len(suspects),
+                exclude_names=[s.get("name") for s in suspects],
             )
             suspects.extend(extra)
         suspects = suspects[:3]
@@ -595,11 +618,7 @@ Whatever happens next, they'll be ready to document it.""",
     ) -> str:
         """Generate pattern recognition scene"""
 
-        agent = (
-            random.choice(agents)
-            if agents
-            else {"id": "Analyst", "agency": "FBI"}
-        )
+        agent = random.choice(agents) if agents else {"id": "Analyst", "agency": "FBI"}
         location = locations[0] if locations else "multiple locations"
         pattern_count = len(patterns)
 
@@ -635,9 +654,7 @@ The response comes back two minutes later:
 
 "Briefing tomorrow. 0600. This goes to the Director." """
 
-    def _generate_character_scene(
-        self, npcs: List[Dict], locations: List[str]
-    ) -> str:
+    def _generate_character_scene(self, npcs: List[Dict], locations: List[str]) -> str:
         """Generate character-focused scene"""
 
         if not npcs:
@@ -785,7 +802,11 @@ And every day, they get a little closer to the truth."""
                 lines.append(c.description)
         if not lines:
             lines = ["Faction operatives advanced their objectives across the city."]
-        location = updates[0].get("location", "the city") if updates and isinstance(updates[0], dict) else "the city"
+        location = (
+            updates[0].get("location", "the city")
+            if updates and isinstance(updates[0], dict)
+            else "the city"
+        )
         variants = [
             f"""Somewhere in the city, the Faction moves.
 
@@ -862,7 +883,9 @@ Down in the field, you might not feel it yet. But the game just changed. The rul
 
 The world is still turning. But the axis moved."""
 
-    def _generate_political_news_scene(self, breaking_news: List[Dict[str, Any]]) -> str:
+    def _generate_political_news_scene(
+        self, breaking_news: List[Dict[str, Any]]
+    ) -> str:
         """Generate narrative from government/political breaking news."""
         if not breaking_news:
             return self._generate_quiet_turn(0)
@@ -894,7 +917,12 @@ The news cycle moves on. The consequences don't.""",
         if not consequences:
             return "Traveler 001's presence lingers in the intelligence reports. No new action this turn—but he's still out there."
         c = consequences[-1]
-        desc = c.get("description") or c.get("consequence") or c.get("headline") or "001 activity detected."
+        desc = (
+            c.get("description")
+            or c.get("consequence")
+            or c.get("headline")
+            or "001 activity detected."
+        )
         location = c.get("location") or c.get("target") or "an undisclosed location"
         variants = [
             f"""Traveler 001 doesn't rest.

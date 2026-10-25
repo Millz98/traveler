@@ -22,7 +22,7 @@ class MissionGenerator:
             "description": "",
             "objectives": [],
             "time_limit": "",
-            "consequences": []
+            "consequences": [],
         }
         self.mission_types: Dict[str, Dict[str, List[str]]] = {
             "prevent_traveler_exposure": {
@@ -30,40 +30,40 @@ class MissionGenerator:
                     "A Traveler team has been discovered by FBI Agent Grant MacLaren - contain the situation",
                     "Local police are investigating suspicious behavior of Traveler 3326 - provide cover",
                     "A historian has connected multiple Traveler arrivals to unexplained deaths - silence the investigation",
-                    "Social media posts are revealing patterns in Traveler host selection - scrub the data"
+                    "Social media posts are revealing patterns in Traveler host selection - scrub the data",
                 ],
                 "objectives": [
                     "Eliminate evidence of Traveler program existence",
                     "Maintain host body cover stories and relationships",
                     "Prevent law enforcement investigation from progressing",
-                    "Ensure no witnesses can connect the dots"
+                    "Ensure no witnesses can connect the dots",
                 ],
                 "consequences": [
                     "Program secrecy maintained, operations can continue",
                     "Exposure could lead to mass Traveler captures and torture",
                     "Host families may discover the truth about their loved ones",
-                    "Government agencies may attempt to weaponize Travelers"
-                ]
+                    "Government agencies may attempt to weaponize Travelers",
+                ],
             },
             "protocol_violation_cleanup": {
                 "descriptions": [
                     "Traveler 0115 has violated Protocol 3 by saving a child's life - fix the timeline",
                     "A Traveler has fallen in love with their host's spouse, violating Protocol 4 implications",
                     "Traveler team ignored Director's orders and went rogue - bring them back in line",
-                    "A Traveler revealed their true identity to their host's family - contain the damage"
+                    "A Traveler revealed their true identity to their host's family - contain the damage",
                 ],
                 "objectives": [
                     "Restore timeline to its proper course",
                     "Counsel or replace problematic Traveler",
                     "Manage host body relationships and emotions",
-                    "Prevent cascade effects from protocol violations"
+                    "Prevent cascade effects from protocol violations",
                 ],
                 "consequences": [
                     "Timeline corrected, future events proceed as planned",
                     "Traveler consciousness may need to be reset or replaced",
                     "Host body relationships permanently damaged",
-                    "Trust between team members compromised"
-                ]
+                    "Trust between team members compromised",
+                ],
             },
             "prevent_historical_disaster": {
                 "descriptions": [
@@ -76,20 +76,20 @@ class MissionGenerator:
                     "Prevent a chemical plant explosion in the industrial district",
                     "Stop the singularity engine experiment that creates a black hole",
                     "Prevent the nuclear meltdown at the power plant",
-                    "Avert the quantum computing breakthrough that leads to AI takeover"
+                    "Avert the quantum computing breakthrough that leads to AI takeover",
                 ],
                 "objectives": [
                     "Infiltrate target location without raising suspicion",
                     "Neutralize the threat while maintaining timeline integrity",
                     "Ensure the disaster appears to be prevented by natural causes",
-                    "Document all actions for Director analysis"
+                    "Document all actions for Director analysis",
                 ],
                 "consequences": [
                     "Thousands of lives saved, future timeline improved",
                     "Failure results in mass casualties and timeline acceleration",
                     "Success may create new timeline branches requiring monitoring",
-                    "Host body may be traumatized by the experience"
-                ]
+                    "Host body may be traumatized by the experience",
+                ],
             },
             "faction_interference": {
                 "descriptions": [
@@ -100,40 +100,40 @@ class MissionGenerator:
                     "Faction operatives are using space-time attenuators to block Director communications",
                     "Traveler 001 has been spotted in your operational area",
                     "Faction is attempting to hijack the quantum frame for their own missions",
-                    "Biological weapon deployment detected - Faction attempting to cull humanity"
+                    "Biological weapon deployment detected - Faction attempting to cull humanity",
                 ],
                 "objectives": [
                     "Identify and neutralize Faction operatives",
                     "Recover stolen technology and intelligence",
                     "Prevent civilian casualties during the operation",
-                    "Maintain cover while engaging hostile Travelers"
+                    "Maintain cover while engaging hostile Travelers",
                 ],
                 "consequences": [
                     "Faction threat eliminated, Director operations secured",
                     "Failure could lead to accelerated timeline collapse",
                     "Faction may retaliate against your team's host families",
-                    "Public exposure could end the entire program"
-                ]
+                    "Public exposure could end the entire program",
+                ],
             },
             "host_body_crisis": {
                 "descriptions": [
                     "Your host body's spouse is becoming suspicious of personality changes",
                     "Host body's medical condition is deteriorating, threatening the mission",
                     "Host body's children are asking difficult questions about 'mommy/daddy acting different'",
-                    "Host body's employer has noticed significant behavioral changes and is investigating"
+                    "Host body's employer has noticed significant behavioral changes and is investigating",
                 ],
                 "objectives": [
                     "Maintain host body's relationships and cover story",
                     "Address medical or psychological issues without exposure",
                     "Satisfy family members' concerns about changes",
-                    "Continue mission while managing personal complications"
+                    "Continue mission while managing personal complications",
                 ],
                 "consequences": [
                     "Host body relationships stabilized, cover maintained",
                     "Family discovers the truth, requiring memory modification",
                     "Host body's life completely disrupted, new identity needed",
-                    "Emotional trauma affects team performance and cohesion"
-                ]
+                    "Emotional trauma affects team performance and cohesion",
+                ],
             },
             "traveler_malfunction": {
                 "descriptions": [
@@ -142,21 +142,21 @@ class MissionGenerator:
                     "Traveler is suffering from temporal displacement syndrome and losing mission focus",
                     "A Traveler's consciousness is being overwritten by their host's stronger personality",
                     "Traveler is experiencing quantum frame interference from Faction technology",
-                    "Consciousness transfer stability is degrading due to timeline contamination"
+                    "Consciousness transfer stability is degrading due to timeline contamination",
                 ],
                 "objectives": [
                     "Stabilize the malfunctioning Traveler's consciousness",
                     "Separate Traveler memories from host body experiences",
                     "Maintain team operational capacity during crisis",
-                    "Determine if Traveler replacement is necessary"
+                    "Determine if Traveler replacement is necessary",
                 ],
                 "consequences": [
                     "Traveler consciousness restored, mission continues normally",
                     "Traveler must be reset, losing all mission experience",
                     "Host body personality takes over, Traveler consciousness lost",
-                    "Team dynamics permanently altered by the experience"
-                ]
-            }
+                    "Team dynamics permanently altered by the experience",
+                ],
+            },
         }
 
     def generate_mission(self) -> None:
@@ -171,26 +171,26 @@ class MissionGenerator:
         self.mission["resource"] = self.generate_resource()
         self.mission["challenge"] = self.generate_challenge()
         base_description = random.choice(mission_data["descriptions"])
-        self.mission["description"] = self.get_time_appropriate_description(mission_type, base_description)
+        self.mission["description"] = self.get_time_appropriate_description(
+            mission_type, base_description
+        )
         self.mission["objectives"] = random.sample(
-            mission_data["objectives"],
-            min(3, len(mission_data["objectives"]))
+            mission_data["objectives"], min(3, len(mission_data["objectives"]))
         )
         self.mission["time_limit"] = self.generate_time_limit()
         self.mission["consequences"] = random.sample(
-            mission_data["consequences"],
-            min(2, len(mission_data["consequences"]))
+            mission_data["consequences"], min(2, len(mission_data["consequences"]))
         )
 
     def generate_location(self) -> str:
-        if hasattr(self.world, 'get_locations_by_type'):
+        if hasattr(self.world, "get_locations_by_type"):
             location_types = [
                 "GOVERNMENT_FACILITY",
                 "RESEARCH_LAB",
                 "CORPORATE_HQ",
                 "SAFE_HOUSE",
                 "MEDICAL_FACILITY",
-                "INDUSTRIAL_SITE"
+                "INDUSTRIAL_SITE",
             ]
             all_locations = []
             for loc_type in location_types:
@@ -217,29 +217,35 @@ class MissionGenerator:
             "Phoenix, AZ - Aerospace Facility",
             "Dallas, TX - Corporate Headquarters",
             "Houston, TX - Space Center",
-            "Atlanta, GA - Transportation Hub"
+            "Atlanta, GA - Transportation Hub",
         ]
         return random.choice(locations)
 
     def generate_npc(self) -> Tuple[str, Optional[str]]:
-        if hasattr(self.world, 'get_npcs_by_faction'):
-            gov_npcs = self.world.get_npcs_by_faction('government')
+        if hasattr(self.world, "get_npcs_by_faction"):
+            gov_npcs = self.world.get_npcs_by_faction("government")
             if gov_npcs:
                 npc = random.choice(gov_npcs)
                 return (
                     f"{npc.name} - {npc.occupation} at {npc.work_location} (Security Clearance: Level {npc.security_clearance})",
-                    getattr(npc, "id", None)
+                    getattr(npc, "id", None),
                 )
 
-            faction_npcs = self.world.get_npcs_by_faction('faction')
+            faction_npcs = self.world.get_npcs_by_faction("faction")
             if faction_npcs:
                 npc = random.choice(faction_npcs)
-                return (f"{npc.name} - {npc.occupation} (Faction Operative)", getattr(npc, "id", None))
+                return (
+                    f"{npc.name} - {npc.occupation} (Faction Operative)",
+                    getattr(npc, "id", None),
+                )
 
-            civilian_npcs = self.world.get_npcs_by_faction('civilian')
+            civilian_npcs = self.world.get_npcs_by_faction("civilian")
             if civilian_npcs:
                 npc = random.choice(civilian_npcs)
-                return (f"{npc.name} - {npc.occupation} at {npc.work_location}", getattr(npc, "id", None))
+                return (
+                    f"{npc.name} - {npc.occupation} at {npc.work_location}",
+                    getattr(npc, "id", None),
+                )
 
         npcs = [
             "The Director - Quantum AI from 2045",
@@ -255,11 +261,13 @@ class MissionGenerator:
             "Simon - Marcy's Social Worker (21st Century)",
             "Faction Leader Vincent Ingram (001) - Rogue Traveler",
             "Dr. Delaney - Quantum Frame Technology Developer",
-            "Yates - FBI Section Chief investigating Travelers"
+            "Yates - FBI Section Chief investigating Travelers",
         ]
         return (random.choice(npcs), None)
 
-    def get_time_appropriate_description(self, mission_type: str, base_description: str) -> str:
+    def get_time_appropriate_description(
+        self, mission_type: str, base_description: str
+    ) -> str:
         if not self.time_system:
             return base_description
 
@@ -271,20 +279,20 @@ class MissionGenerator:
                 "Avert the terrorist attack on the Seattle Space Needle planned for this weekend",
                 "Stop the bombing planned for the downtown financial district",
                 "Prevent the attack on the sports stadium during the upcoming game",
-                "Avert the planned assault on the government building"
+                "Avert the planned assault on the government building",
             ],
             "transportation disaster at the airport": [
                 "Prevent the plane crash scheduled for tomorrow morning",
                 "Stop the sabotage of the air traffic control system",
                 "Avert the terrorist attack on Terminal 3",
-                "Prevent the runway collision during rush hour"
+                "Prevent the runway collision during rush hour",
             ],
             "cyber attack on critical infrastructure": [
                 "Stop the hacking of the power grid scheduled for this week",
                 "Prevent the cyber attack on the water treatment facility",
                 "Avert the digital assault on the hospital network",
-                "Stop the malware attack on emergency services"
-            ]
+                "Stop the malware attack on emergency services",
+            ],
         }
 
         for key, variations in time_variations.items():
@@ -308,10 +316,16 @@ class MissionGenerator:
 
     def generate_resource(self) -> str:
         resources = [
-            "Advanced Technology", "Intelligence Data", "Key Personnel",
-            "Critical Documents", "Experimental Equipment", "Classified Information",
-            "Prototype Device", "Research Materials", "Security Clearance",
-            "Transportation Assets"
+            "Advanced Technology",
+            "Intelligence Data",
+            "Key Personnel",
+            "Critical Documents",
+            "Experimental Equipment",
+            "Classified Information",
+            "Prototype Device",
+            "Research Materials",
+            "Security Clearance",
+            "Transportation Assets",
         ]
         return random.choice(resources)
 
@@ -324,7 +338,7 @@ class MissionGenerator:
             "Extreme-risk - Maximum security, multiple high-level threats",
             "Stealth-required - Detection means immediate failure",
             "Time-critical - Limited window for completion",
-            "Multi-phase - Complex operation with multiple stages"
+            "Multi-phase - Complex operation with multiple stages",
         ]
         return random.choice(challenges)
 
@@ -335,7 +349,7 @@ class MissionGenerator:
             "48 hours - Two days for mission completion",
             "72 hours - Three days to finish operation",
             "1 week - Extended operation window",
-            "Variable - Time limit depends on circumstances"
+            "Variable - Time limit depends on circumstances",
         ]
         return random.choice(time_limits)
 
@@ -357,11 +371,11 @@ DESCRIPTION:
 
 OBJECTIVES:
 """
-        for i, objective in enumerate(self.mission['objectives'], 1):
+        for i, objective in enumerate(self.mission["objectives"], 1):
             briefing += f"{i}. {objective}\n"
 
         briefing += "\nCONSEQUENCES:\n"
-        for i, consequence in enumerate(self.mission['consequences'], 1):
+        for i, consequence in enumerate(self.mission["consequences"], 1):
             briefing += f"{i}. {consequence}\n"
 
         return briefing

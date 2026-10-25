@@ -1,6 +1,7 @@
-from typing import List
 import sys
 from pathlib import Path
+from typing import List
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from traveler_character import Traveler
 
@@ -14,7 +15,7 @@ class Team:
             "Engineer": None,
             "Medic": None,
             "Tactician": None,
-            "Team Leader": None
+            "Team Leader": None,
         }
         self.assign_role(leader, "Team Leader")
         self.generate_team()
@@ -31,7 +32,7 @@ class Team:
     def generate_team(self) -> None:
         roles = list(self.roles.keys())
         roles.remove("Team Leader")
-        
+
         for role in roles:
             traveler = Traveler()
             self.assign_role(traveler, role)

@@ -1,5 +1,6 @@
 import random
 
+
 class World:
     def __init__(self):
         self.terrain = random.choice(["desert", "forest", "mountains"])
